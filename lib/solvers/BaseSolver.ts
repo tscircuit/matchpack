@@ -13,13 +13,6 @@ export class BaseSolver {
   timeToSolve?: number
   stats: Record<string, any> = {}
 
-  /**
-   * For cached solvers
-   **/
-  cacheHit?: boolean
-  cacheKey?: string
-  cacheToSolveSpaceTransform?: any
-
   /** DO NOT OVERRIDE! Override _step() instead */
   step() {
     if (this.solved) return

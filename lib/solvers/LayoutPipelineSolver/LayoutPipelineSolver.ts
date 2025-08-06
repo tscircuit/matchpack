@@ -1,8 +1,4 @@
-interface CapacityMeshSolverOptions {
-  capacityDepth?: number
-  targetMinCapacity?: number
-  cacheProvider?: CacheProvider | null
-}
+import type { BaseSolver } from "../BaseSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
