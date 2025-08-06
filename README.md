@@ -17,3 +17,8 @@ LayoutPipelineSolver: Runs pipeline
 ↳ PinRangeOverlapSolver: Finds overlaps between laid out boxes from each pin range and fixes them
 ↳ PartitionPackingSolver: Packs the laid out chip partitions into a single layout
 ```
+
+## Implementation Notes
+
+- There is the concept of a "weak" and "strong" connection between pins. A "strong" connection is one where a pin is directly assigned to another pin. A "weak" connection is generally a pin assigned to a net like "GND" or "VCC". Strong connections are important for layout but weak connections often determine orientation of passives (e.g. a capacitor is "facing up" to VCC but "facing down" to GND)
+- Often there are pre-laid-out designs that are passed in. This is represented by a `SchematicGroup`. We don't lay out anything inside of these groups but the inner pins are still used to compute a good packing
