@@ -4,9 +4,17 @@ import { getExampleCircuitJson } from "../../tests/assets/ExampleCircuit01"
 import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputProblemFromCircuitJsonSchematic"
 
 export default function LayoutPipelineSolver01Page() {
-  // Convert ExampleCircuit01 to InputProblem
+  // Convert ExampleCircuit01 to InputProblem with readable IDs
   const circuitJson = getExampleCircuitJson()
-  const problem: InputProblem = getInputProblemFromCircuitJsonSchematic(circuitJson)
+  const problem: InputProblem = getInputProblemFromCircuitJsonSchematic(
+    circuitJson,
+    { useReadableIds: true },
+  )
 
-  return <LayoutPipelineDebugger problem={problem} />
+  return (
+    <LayoutPipelineDebugger
+      problem={problem}
+      problemCircuitJson={circuitJson}
+    />
+  )
 }

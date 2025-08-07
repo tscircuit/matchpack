@@ -3,7 +3,7 @@ import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPip
 import type { InputProblem } from "lib/types/InputProblem"
 import { normalizeSide } from "lib/types/Side"
 
-test("LayoutPipelineSolver visualization", () => {
+test("LayoutPipelineSolver01 visualization example", () => {
   const problem: InputProblem = {
     chipMap: {
       C1: { chipId: "C1", pins: ["P1", "P2"] },

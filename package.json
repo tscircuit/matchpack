@@ -12,6 +12,7 @@
     "@react-hook/resize-observer": "^2.0.2",
     "@tscircuit/circuit-json-util": "^0.0.62",
     "@tscircuit/math-utils": "^0.0.19",
+    "@tscircuit/schematic-viewer": "^2.0.26",
     "@types/bun": "latest",
     "bpc-graph": "^0.0.66",
     "calculate-packing": "^0.0.10",

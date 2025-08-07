@@ -177,26 +177,19 @@ export class LayoutPipelineSolver extends BaseSolver {
       const placement = basicLayout.chipPlacements[chipId]
 
       if (!placement) continue
-
-      const xs = chipPins.map((p) => p.offset.x)
-      const ys = chipPins.map((p) => p.offset.y)
-
-      const minX = Math.min(...xs)
-      const minY = Math.min(...ys)
-      const maxX = Math.max(...xs)
-      const maxY = Math.max(...ys)
+      // Use chip.size if available, otherwise calculate from pin positions
+      const width = chip.size.x
+      const height = chip.size.y
 
       // Position chip at its placement location
-      const chipCenterX = placement.x + minX + (maxX - minX) / 2
-      const chipCenterY = placement.y + minY + (maxY - minY) / 2
+      const chipCenterX = placement.x
+      const chipCenterY = placement.y
 
       inputViz.rects!.push({
         center: { x: chipCenterX, y: chipCenterY },
-        width: maxX - minX,
-        height: maxY - minY,
+        width,
+        height,
         label: chipId,
-        // color: "blue",
-        // opacity: 0.1,
       })
 
       // Use points instead of circles for pins
@@ -204,29 +197,10 @@ export class LayoutPipelineSolver extends BaseSolver {
         inputViz.points!.push({
           x: placement.x + pin.offset.x,
           y: placement.y + pin.offset.y,
-          // color: "blue",
+          label: pin.pinId,
         })
       }
     }
-
-    // for (const [groupId, group] of Object.entries(this.inputProblem.groupMap)) {
-    //   for (const bound of group.shape) {
-    //     inputViz.rects!.push({
-    //       center: { x: bound.x + bound.width / 2, y: bound.y + bound.height / 2 },
-    //       width: bound.width,
-    //       height: bound.height,
-    //       color: "green",
-    //       opacity: 0.1,
-    //     })
-    //   }
-    //   inputViz.texts!.push({
-    //     x: group.shape[0]!.x,
-    //     y: group.shape[0]!.y - 10,
-    //     text: groupId,
-    //     color: "green",
-    //   })
-    // }
-
     const pinToNetMap: Record<PinId, NetId> = {}
 
     for (const conn of Object.keys(this.inputProblem.netConnMap)) {

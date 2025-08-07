@@ -4,8 +4,16 @@ import { cju } from "@tscircuit/circuit-json-util"
 
 export const getInputProblemFromCircuitJsonSchematic = (
   circuitJson: CircuitJson,
+  options?: { useReadableIds?: boolean }
 ): InputProblem => {
   const db = cju(circuitJson)
+  const { useReadableIds = false } = options || {}
+
+  // ID mapping for readable IDs
+  const sourceComponentIdToReadableId = new Map<string, string>()
+  const sourcePortIdToReadableId = new Map<string, string>()
+  const readableIdToSourceComponentId = new Map<string, string>()
+  const readableIdToSourcePortId = new Map<string, string>()
 
   const problem: InputProblem = {
     chipMap: {},
@@ -41,9 +49,31 @@ export const getInputProblemFromCircuitJsonSchematic = (
 
     if (!source_component) continue
 
-    const chipId = source_component.source_component_id
+    // Generate chip ID based on useReadableIds option
+    const originalChipId = source_component.source_component_id
+    const chipId = useReadableIds 
+      ? (source_component.name || originalChipId)
+      : originalChipId
+
+    if (useReadableIds) {
+      sourceComponentIdToReadableId.set(originalChipId, chipId)
+      readableIdToSourceComponentId.set(chipId, originalChipId)
+    }
+
+    // Generate pin IDs based on useReadableIds option
     const pinIds = ports
-      .map((p) => p.source_port?.source_port_id)
+      .map((p) => {
+        if (!p.source_port) return null
+        
+        const originalPinId = p.source_port.source_port_id
+        if (useReadableIds) {
+          const readablePinId = `${chipId}.${p.source_port.pin_number || p.source_port.name || originalPinId.split('_').pop()}`
+          sourcePortIdToReadableId.set(originalPinId, readablePinId)
+          readableIdToSourcePortId.set(readablePinId, originalPinId)
+          return readablePinId
+        }
+        return originalPinId
+      })
       .filter(Boolean) as string[]
 
     problem.chipMap[chipId] = {
@@ -79,8 +109,14 @@ export const getInputProblemFromCircuitJsonSchematic = (
           }
         }
 
-        problem.chipPinMap[source_port.source_port_id] = {
-          pinId: source_port.source_port_id,
+        // Use readable pin ID if enabled
+        const originalPinId = source_port.source_port_id
+        const pinId = useReadableIds 
+          ? sourcePortIdToReadableId.get(originalPinId) || originalPinId
+          : originalPinId
+
+        problem.chipPinMap[pinId] = {
+          pinId,
           offset: {
             x:
               (schematic_port.center?.x || 0) -
@@ -110,15 +146,27 @@ export const getInputProblemFromCircuitJsonSchematic = (
     // Create pin-to-pin connections
     for (let i = 0; i < connectedPorts.length; i++) {
       for (let j = i + 1; j < connectedPorts.length; j++) {
-        const pin1 = connectedPorts[i]
-        const pin2 = connectedPorts[j]
+        const originalPin1 = connectedPorts[i]
+        const originalPin2 = connectedPorts[j]
+        
+        const pin1 = useReadableIds 
+          ? sourcePortIdToReadableId.get(originalPin1) || originalPin1
+          : originalPin1
+        const pin2 = useReadableIds 
+          ? sourcePortIdToReadableId.get(originalPin2) || originalPin2
+          : originalPin2
+          
         problem.pinConnMap[`${pin1}-${pin2}`] = true
         problem.pinConnMap[`${pin2}-${pin1}`] = true
       }
     }
 
     // Create pin-to-net connections
-    for (const pinId of connectedPorts) {
+    for (const originalPinId of connectedPorts) {
+      const pinId = useReadableIds 
+        ? sourcePortIdToReadableId.get(originalPinId) || originalPinId
+        : originalPinId
+        
       for (const netId of connectedNets) {
         problem.netConnMap[`${pinId}-${netId}`] = true
       }
@@ -137,9 +185,15 @@ export const getInputProblemFromCircuitJsonSchematic = (
           portsByConnectivityKey[source_port.subcircuit_connectivity_map_key] =
             []
         }
+        
+        const originalPinId = source_port.source_port_id
+        const pinId = useReadableIds 
+          ? sourcePortIdToReadableId.get(originalPinId) || originalPinId
+          : originalPinId
+          
         portsByConnectivityKey[
           source_port.subcircuit_connectivity_map_key
-        ]!.push(source_port.source_port_id)
+        ]!.push(pinId)
       }
     }
   }
