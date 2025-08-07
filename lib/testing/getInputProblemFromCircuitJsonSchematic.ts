@@ -12,8 +12,10 @@ export const getInputProblemFromCircuitJsonSchematic = (
   // ID mapping for readable IDs
   const sourceComponentIdToReadableId = new Map<string, string>()
   const sourcePortIdToReadableId = new Map<string, string>()
+  const sourceNetIdToReadableId = new Map<string, string>()
   const readableIdToSourceComponentId = new Map<string, string>()
   const readableIdToSourcePortId = new Map<string, string>()
+  const readableIdToSourceNetId = new Map<string, string>()
 
   const problem: InputProblem = {
     chipMap: {},
@@ -133,8 +135,19 @@ export const getInputProblemFromCircuitJsonSchematic = (
 
   // Extract nets from source traces and source nets
   for (const sourceNet of cjSourceNets) {
-    problem.netMap[sourceNet.source_net_id] = {
-      netId: sourceNet.source_net_id,
+    // Generate net ID based on useReadableIds option
+    const originalNetId = sourceNet.source_net_id
+    const netId = useReadableIds
+      ? sourceNet.name || originalNetId
+      : originalNetId
+
+    if (useReadableIds) {
+      sourceNetIdToReadableId.set(originalNetId, netId)
+      readableIdToSourceNetId.set(netId, originalNetId)
+    }
+
+    problem.netMap[netId] = {
+      netId: netId,
     }
   }
 
@@ -174,7 +187,10 @@ export const getInputProblemFromCircuitJsonSchematic = (
         ? sourcePortIdToReadableId.get(originalPinId) || originalPinId
         : originalPinId
 
-      for (const netId of connectedNets) {
+      for (const originalNetId of connectedNets) {
+        const netId = useReadableIds
+          ? sourceNetIdToReadableId.get(originalNetId) || originalNetId
+          : originalNetId
         problem.netConnMap[`${pinId}-${netId}`] = true
       }
     }
