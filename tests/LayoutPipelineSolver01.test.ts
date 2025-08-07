@@ -29,7 +29,7 @@ test("LayoutPipelineSolver01 visualization example", () => {
     netMap: {
       N1: { netId: "N1" },
     },
-    pinConnMap: {},
+    pinStrongConnMap: {},
     netConnMap: {
       "P1-N1": true,
       "P3-N1": true,

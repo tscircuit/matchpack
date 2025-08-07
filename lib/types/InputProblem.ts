@@ -29,6 +29,6 @@ export type InputProblem = {
   netMap: Record<NetId, Net>
 
   /** This is a two-way map */
-  pinConnMap: Record<`${PinId}-${PinId}`, boolean>
+  pinStrongConnMap: Record<`${PinId}-${PinId}`, boolean>
   netConnMap: Record<`${PinId}-${NetId}`, boolean>
 }

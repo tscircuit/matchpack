@@ -7,582 +7,583 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
 
   console.log(circuitJson)
 
-  const problem = getInputProblemFromCircuitJsonSchematic(circuitJson)
-
+  const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
+    useReadableIds: true,
+  })
   expect(problem).toMatchInlineSnapshot(`
     {
       "chipMap": {
-        "source_component_0": {
-          "chipId": "source_component_0",
+        "C1": {
+          "chipId": "C1",
           "pins": [
-            "source_port_0",
-            "source_port_1",
-          ],
-          "size": {
-            "x": 0.40790845000000175,
-            "y": 1.0583332999999997,
-          },
-        },
-        "source_component_1": {
-          "chipId": "source_component_1",
-          "pins": [
-            "source_port_2",
-            "source_port_3",
-            "source_port_4",
-          ],
-          "size": {
-            "x": 0.8935117710000002,
-            "y": 1.1601665819999987,
-          },
-        },
-        "source_component_10": {
-          "chipId": "source_component_10",
-          "pins": [
-            "source_port_34",
-            "source_port_35",
-          ],
-          "size": {
-            "x": 0.40790845000000175,
-            "y": 1.0583332999999997,
-          },
-        },
-        "source_component_11": {
-          "chipId": "source_component_11",
-          "pins": [
-            "source_port_36",
-            "source_port_37",
-          ],
-          "size": {
-            "x": 0.6221256000000088,
-            "y": 1.0521572000000003,
-          },
-        },
-        "source_component_12": {
-          "chipId": "source_component_12",
-          "pins": [
-            "source_port_38",
-            "source_port_39",
-          ],
-          "size": {
-            "x": 0.30829299999999904,
-            "y": 0.8811970999999998,
-          },
-        },
-        "source_component_13": {
-          "chipId": "source_component_13",
-          "pins": [
-            "source_port_40",
-            "source_port_41",
-          ],
-          "size": {
-            "x": 0.30829299999999904,
-            "y": 0.8811970999999998,
-          },
-        },
-        "source_component_14": {
-          "chipId": "source_component_14",
-          "pins": [
-            "source_port_42",
-            "source_port_43",
-          ],
-          "size": {
-            "x": 0.40790845000000175,
-            "y": 1.0583332999999997,
-          },
-        },
-        "source_component_2": {
-          "chipId": "source_component_2",
-          "pins": [
-            "source_port_5",
-            "source_port_6",
-            "source_port_7",
-            "source_port_8",
-            "source_port_9",
-            "source_port_10",
-          ],
-          "size": {
-            "x": 1.2000000000000002,
-            "y": 0.8,
-          },
-        },
-        "source_component_3": {
-          "chipId": "source_component_3",
-          "pins": [
-            "source_port_11",
-            "source_port_12",
+            "C1.1",
+            "C1.2",
           ],
           "size": {
             "x": 0.5291665999999999,
             "y": 1.0583333000000001,
           },
         },
-        "source_component_4": {
-          "chipId": "source_component_4",
+        "D1": {
+          "chipId": "D1",
           "pins": [
-            "source_port_13",
-            "source_port_14",
-            "source_port_15",
+            "D1.1",
+            "D1.2",
+          ],
+          "size": {
+            "x": 0.6221256000000088,
+            "y": 1.0521572000000003,
+          },
+        },
+        "I2C": {
+          "chipId": "I2C",
+          "pins": [
+            "I2C.1",
+            "I2C.2",
+            "I2C.3",
           ],
           "size": {
             "x": 0.8843008999999997,
             "y": 0.5299361999999987,
           },
         },
-        "source_component_5": {
-          "chipId": "source_component_5",
+        "INT_JP": {
+          "chipId": "INT_JP",
           "pins": [
-            "source_port_16",
-            "source_port_17",
+            "INT_JP.1",
+            "INT_JP.2",
           ],
           "size": {
-            "x": 0.40790845000000175,
-            "y": 1.0583332999999997,
+            "x": 0.30829299999999904,
+            "y": 0.8811970999999998,
           },
         },
-        "source_component_6": {
-          "chipId": "source_component_6",
+        "J1": {
+          "chipId": "J1",
           "pins": [
-            "source_port_18",
-            "source_port_19",
+            "J1.1",
+            "J1.2",
+            "J1.3",
+            "J1.4",
           ],
           "size": {
-            "x": 0.40790845000000175,
-            "y": 1.0583332999999997,
+            "x": 0.6,
+            "y": 1,
           },
         },
-        "source_component_7": {
-          "chipId": "source_component_7",
+        "J2": {
+          "chipId": "J2",
           "pins": [
-            "source_port_20",
-            "source_port_21",
-            "source_port_22",
-            "source_port_23",
-            "source_port_24",
-            "source_port_25",
+            "J2.1",
+            "J2.2",
+            "J2.3",
+            "J2.4",
+          ],
+          "size": {
+            "x": 0.6,
+            "y": 1,
+          },
+        },
+        "J3": {
+          "chipId": "J3",
+          "pins": [
+            "J3.1",
+            "J3.2",
+            "J3.3",
+            "J3.4",
+            "J3.5",
+            "J3.6",
           ],
           "size": {
             "x": 0.4,
             "y": 1.4,
           },
         },
-        "source_component_8": {
-          "chipId": "source_component_8",
+        "LED": {
+          "chipId": "LED",
           "pins": [
-            "source_port_26",
-            "source_port_27",
-            "source_port_28",
-            "source_port_29",
+            "LED.1",
+            "LED.2",
           ],
           "size": {
-            "x": 0.6,
-            "y": 1,
+            "x": 0.30829299999999904,
+            "y": 0.8811970999999998,
           },
         },
-        "source_component_9": {
-          "chipId": "source_component_9",
+        "Q1": {
+          "chipId": "Q1",
           "pins": [
-            "source_port_30",
-            "source_port_31",
-            "source_port_32",
-            "source_port_33",
+            "Q1.1",
+            "Q1.2",
+            "Q1.3",
           ],
           "size": {
-            "x": 0.6,
-            "y": 1,
+            "x": 0.8935117710000002,
+            "y": 1.1601665819999987,
+          },
+        },
+        "R2": {
+          "chipId": "R2",
+          "pins": [
+            "R2.1",
+            "R2.2",
+          ],
+          "size": {
+            "x": 0.40790845000000175,
+            "y": 1.0583332999999997,
+          },
+        },
+        "R3": {
+          "chipId": "R3",
+          "pins": [
+            "R3.1",
+            "R3.2",
+          ],
+          "size": {
+            "x": 0.40790845000000175,
+            "y": 1.0583332999999997,
+          },
+        },
+        "R4": {
+          "chipId": "R4",
+          "pins": [
+            "R4.1",
+            "R4.2",
+          ],
+          "size": {
+            "x": 0.40790845000000175,
+            "y": 1.0583332999999997,
+          },
+        },
+        "R5": {
+          "chipId": "R5",
+          "pins": [
+            "R5.1",
+            "R5.2",
+          ],
+          "size": {
+            "x": 0.40790845000000175,
+            "y": 1.0583332999999997,
+          },
+        },
+        "R7": {
+          "chipId": "R7",
+          "pins": [
+            "R7.1",
+            "R7.2",
+          ],
+          "size": {
+            "x": 0.40790845000000175,
+            "y": 1.0583332999999997,
+          },
+        },
+        "U1": {
+          "chipId": "U1",
+          "pins": [
+            "U1.1",
+            "U1.2",
+            "U1.3",
+            "U1.4",
+            "U1.5",
+            "U1.6",
+          ],
+          "size": {
+            "x": 1.2000000000000002,
+            "y": 0.8,
           },
         },
       },
       "chipPinMap": {
-        "source_port_0": {
-          "offset": {
-            "x": -0.0002732499999993365,
-            "y": -0.5512907000000005,
-          },
-          "pinId": "source_port_0",
-          "side": "y-",
-        },
-        "source_port_1": {
-          "offset": {
-            "x": 0.0002732499999993365,
-            "y": 0.5512907000000002,
-          },
-          "pinId": "source_port_1",
-          "side": "y+",
-        },
-        "source_port_10": {
-          "offset": {
-            "x": 1,
-            "y": 0,
-          },
-          "pinId": "source_port_10",
-          "side": "x+",
-        },
-        "source_port_11": {
+        "C1.1": {
           "offset": {
             "x": -0.00027334999999961695,
             "y": 0.5512093000000002,
           },
-          "pinId": "source_port_11",
+          "pinId": "C1.1",
           "side": "y+",
         },
-        "source_port_12": {
+        "C1.2": {
           "offset": {
             "x": 0.00027334999999961695,
             "y": -0.5512093000000002,
           },
-          "pinId": "source_port_12",
+          "pinId": "C1.2",
           "side": "y-",
         },
-        "source_port_13": {
-          "offset": {
-            "x": 0.44580080000000066,
-            "y": -0.10158727049999955,
-          },
-          "pinId": "source_port_13",
-          "side": "x+",
-        },
-        "source_port_14": {
-          "offset": {
-            "x": 0.0034928000000000736,
-            "y": 0.25259902949999957,
-          },
-          "pinId": "source_port_14",
-          "side": "y+",
-        },
-        "source_port_15": {
-          "offset": {
-            "x": -0.44580080000000066,
-            "y": -0.10146287049999964,
-          },
-          "pinId": "source_port_15",
-          "side": "x-",
-        },
-        "source_port_16": {
-          "offset": {
-            "x": -0.0002732499999993365,
-            "y": -0.5512907000000005,
-          },
-          "pinId": "source_port_16",
-          "side": "y-",
-        },
-        "source_port_17": {
-          "offset": {
-            "x": 0.0002732499999993365,
-            "y": 0.5512907000000002,
-          },
-          "pinId": "source_port_17",
-          "side": "y+",
-        },
-        "source_port_18": {
-          "offset": {
-            "x": -0.0002732499999993365,
-            "y": -0.5512907000000005,
-          },
-          "pinId": "source_port_18",
-          "side": "y-",
-        },
-        "source_port_19": {
-          "offset": {
-            "x": 0.0002732499999993365,
-            "y": 0.5512907000000002,
-          },
-          "pinId": "source_port_19",
-          "side": "y+",
-        },
-        "source_port_2": {
-          "offset": {
-            "x": 0.30397715550000004,
-            "y": 0.5519248499999994,
-          },
-          "pinId": "source_port_2",
-          "side": "y+",
-        },
-        "source_port_20": {
-          "offset": {
-            "x": 0.6000000000000001,
-            "y": -0.5,
-          },
-          "pinId": "source_port_20",
-          "side": "x+",
-        },
-        "source_port_21": {
-          "offset": {
-            "x": 0.6000000000000001,
-            "y": -0.2999999999999998,
-          },
-          "pinId": "source_port_21",
-          "side": "x+",
-        },
-        "source_port_22": {
-          "offset": {
-            "x": 0.6000000000000001,
-            "y": -0.09999999999999964,
-          },
-          "pinId": "source_port_22",
-          "side": "x+",
-        },
-        "source_port_23": {
-          "offset": {
-            "x": 0.6000000000000001,
-            "y": 0.09999999999999964,
-          },
-          "pinId": "source_port_23",
-          "side": "x+",
-        },
-        "source_port_24": {
-          "offset": {
-            "x": 0.6000000000000001,
-            "y": 0.2999999999999998,
-          },
-          "pinId": "source_port_24",
-          "side": "x+",
-        },
-        "source_port_25": {
-          "offset": {
-            "x": 0.6000000000000001,
-            "y": 0.5,
-          },
-          "pinId": "source_port_25",
-          "side": "x+",
-        },
-        "source_port_26": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": -0.2999999999999998,
-          },
-          "pinId": "source_port_26",
-          "side": "x+",
-        },
-        "source_port_27": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": -0.09999999999999964,
-          },
-          "pinId": "source_port_27",
-          "side": "x+",
-        },
-        "source_port_28": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": 0.09999999999999964,
-          },
-          "pinId": "source_port_28",
-          "side": "x+",
-        },
-        "source_port_29": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": 0.2999999999999998,
-          },
-          "pinId": "source_port_29",
-          "side": "x+",
-        },
-        "source_port_3": {
-          "offset": {
-            "x": 0.31067575550000137,
-            "y": -0.5519248499999994,
-          },
-          "pinId": "source_port_3",
-          "side": "y-",
-        },
-        "source_port_30": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": -0.2999999999999998,
-          },
-          "pinId": "source_port_30",
-          "side": "x+",
-        },
-        "source_port_31": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": -0.09999999999999964,
-          },
-          "pinId": "source_port_31",
-          "side": "x+",
-        },
-        "source_port_32": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": 0.09999999999999964,
-          },
-          "pinId": "source_port_32",
-          "side": "x+",
-        },
-        "source_port_33": {
-          "offset": {
-            "x": 0.7000000000000002,
-            "y": 0.2999999999999998,
-          },
-          "pinId": "source_port_33",
-          "side": "x+",
-        },
-        "source_port_34": {
-          "offset": {
-            "x": -0.0002732499999993365,
-            "y": -0.5512907,
-          },
-          "pinId": "source_port_34",
-          "side": "y-",
-        },
-        "source_port_35": {
-          "offset": {
-            "x": 0.0002732499999993365,
-            "y": 0.5512907,
-          },
-          "pinId": "source_port_35",
-          "side": "y+",
-        },
-        "source_port_36": {
+        "D1.1": {
           "offset": {
             "x": 0.004432900000001183,
             "y": 0.5362093000000003,
           },
-          "pinId": "source_port_36",
+          "pinId": "D1.1",
           "side": "y+",
         },
-        "source_port_37": {
+        "D1.2": {
           "offset": {
             "x": 0.004886400000003732,
             "y": -0.5362092999999994,
           },
-          "pinId": "source_port_37",
+          "pinId": "D1.2",
           "side": "y-",
         },
-        "source_port_38": {
+        "I2C.1": {
           "offset": {
-            "x": 0.00006220000000034531,
-            "y": 0.44580080000000066,
+            "x": 0.44580080000000066,
+            "y": -0.10158727049999955,
           },
-          "pinId": "source_port_38",
+          "pinId": "I2C.1",
+          "side": "x+",
+        },
+        "I2C.2": {
+          "offset": {
+            "x": 0.0034928000000000736,
+            "y": 0.25259902949999957,
+          },
+          "pinId": "I2C.2",
           "side": "y+",
         },
-        "source_port_39": {
+        "I2C.3": {
           "offset": {
-            "x": -0.00006220000000034531,
-            "y": -0.44580080000000066,
+            "x": -0.44580080000000066,
+            "y": -0.10146287049999964,
           },
-          "pinId": "source_port_39",
-          "side": "y-",
-        },
-        "source_port_4": {
-          "offset": {
-            "x": -0.4185974445,
-            "y": -0.10250625000000019,
-          },
-          "pinId": "source_port_4",
+          "pinId": "I2C.3",
           "side": "x-",
         },
-        "source_port_40": {
+        "INT_JP.1": {
           "offset": {
             "x": 0.00006220000000034531,
             "y": 0.4458007999999998,
           },
-          "pinId": "source_port_40",
+          "pinId": "INT_JP.1",
           "side": "y+",
         },
-        "source_port_41": {
+        "INT_JP.2": {
           "offset": {
             "x": -0.00006220000000034531,
             "y": -0.4458007999999998,
           },
-          "pinId": "source_port_41",
+          "pinId": "INT_JP.2",
           "side": "y-",
         },
-        "source_port_42": {
+        "J1.1": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": -0.2999999999999998,
+          },
+          "pinId": "J1.1",
+          "side": "x+",
+        },
+        "J1.2": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": -0.09999999999999964,
+          },
+          "pinId": "J1.2",
+          "side": "x+",
+        },
+        "J1.3": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": 0.09999999999999964,
+          },
+          "pinId": "J1.3",
+          "side": "x+",
+        },
+        "J1.4": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": 0.2999999999999998,
+          },
+          "pinId": "J1.4",
+          "side": "x+",
+        },
+        "J2.1": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": -0.2999999999999998,
+          },
+          "pinId": "J2.1",
+          "side": "x+",
+        },
+        "J2.2": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": -0.09999999999999964,
+          },
+          "pinId": "J2.2",
+          "side": "x+",
+        },
+        "J2.3": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": 0.09999999999999964,
+          },
+          "pinId": "J2.3",
+          "side": "x+",
+        },
+        "J2.4": {
+          "offset": {
+            "x": 0.7000000000000002,
+            "y": 0.2999999999999998,
+          },
+          "pinId": "J2.4",
+          "side": "x+",
+        },
+        "J3.1": {
+          "offset": {
+            "x": 0.6000000000000001,
+            "y": -0.5,
+          },
+          "pinId": "J3.1",
+          "side": "x+",
+        },
+        "J3.2": {
+          "offset": {
+            "x": 0.6000000000000001,
+            "y": -0.2999999999999998,
+          },
+          "pinId": "J3.2",
+          "side": "x+",
+        },
+        "J3.3": {
+          "offset": {
+            "x": 0.6000000000000001,
+            "y": -0.09999999999999964,
+          },
+          "pinId": "J3.3",
+          "side": "x+",
+        },
+        "J3.4": {
+          "offset": {
+            "x": 0.6000000000000001,
+            "y": 0.09999999999999964,
+          },
+          "pinId": "J3.4",
+          "side": "x+",
+        },
+        "J3.5": {
+          "offset": {
+            "x": 0.6000000000000001,
+            "y": 0.2999999999999998,
+          },
+          "pinId": "J3.5",
+          "side": "x+",
+        },
+        "J3.6": {
+          "offset": {
+            "x": 0.6000000000000001,
+            "y": 0.5,
+          },
+          "pinId": "J3.6",
+          "side": "x+",
+        },
+        "LED.1": {
+          "offset": {
+            "x": 0.00006220000000034531,
+            "y": 0.44580080000000066,
+          },
+          "pinId": "LED.1",
+          "side": "y+",
+        },
+        "LED.2": {
+          "offset": {
+            "x": -0.00006220000000034531,
+            "y": -0.44580080000000066,
+          },
+          "pinId": "LED.2",
+          "side": "y-",
+        },
+        "Q1.1": {
+          "offset": {
+            "x": 0.30397715550000004,
+            "y": 0.5519248499999994,
+          },
+          "pinId": "Q1.1",
+          "side": "y+",
+        },
+        "Q1.2": {
+          "offset": {
+            "x": 0.31067575550000137,
+            "y": -0.5519248499999994,
+          },
+          "pinId": "Q1.2",
+          "side": "y-",
+        },
+        "Q1.3": {
+          "offset": {
+            "x": -0.4185974445,
+            "y": -0.10250625000000019,
+          },
+          "pinId": "Q1.3",
+          "side": "x-",
+        },
+        "R2.1": {
           "offset": {
             "x": -0.0002732499999993365,
-            "y": -0.5512907000000009,
+            "y": -0.5512907000000005,
           },
-          "pinId": "source_port_42",
+          "pinId": "R2.1",
           "side": "y-",
         },
-        "source_port_43": {
+        "R2.2": {
+          "offset": {
+            "x": 0.0002732499999993365,
+            "y": 0.5512907000000002,
+          },
+          "pinId": "R2.2",
+          "side": "y+",
+        },
+        "R3.1": {
+          "offset": {
+            "x": -0.0002732499999993365,
+            "y": -0.5512907,
+          },
+          "pinId": "R3.1",
+          "side": "y-",
+        },
+        "R3.2": {
           "offset": {
             "x": 0.0002732499999993365,
             "y": 0.5512907,
           },
-          "pinId": "source_port_43",
+          "pinId": "R3.2",
           "side": "y+",
         },
-        "source_port_5": {
+        "R4.1": {
+          "offset": {
+            "x": -0.0002732499999993365,
+            "y": -0.5512907000000009,
+          },
+          "pinId": "R4.1",
+          "side": "y-",
+        },
+        "R4.2": {
+          "offset": {
+            "x": 0.0002732499999993365,
+            "y": 0.5512907,
+          },
+          "pinId": "R4.2",
+          "side": "y+",
+        },
+        "R5.1": {
+          "offset": {
+            "x": -0.0002732499999993365,
+            "y": -0.5512907000000005,
+          },
+          "pinId": "R5.1",
+          "side": "y-",
+        },
+        "R5.2": {
+          "offset": {
+            "x": 0.0002732499999993365,
+            "y": 0.5512907000000002,
+          },
+          "pinId": "R5.2",
+          "side": "y+",
+        },
+        "R7.1": {
+          "offset": {
+            "x": -0.0002732499999993365,
+            "y": -0.5512907000000005,
+          },
+          "pinId": "R7.1",
+          "side": "y-",
+        },
+        "R7.2": {
+          "offset": {
+            "x": 0.0002732499999993365,
+            "y": 0.5512907000000002,
+          },
+          "pinId": "R7.2",
+          "side": "y+",
+        },
+        "U1.1": {
           "offset": {
             "x": 1,
             "y": 0.2,
           },
-          "pinId": "source_port_5",
+          "pinId": "U1.1",
           "side": "x+",
         },
-        "source_port_6": {
+        "U1.2": {
           "offset": {
             "x": -1,
             "y": -0.2,
           },
-          "pinId": "source_port_6",
+          "pinId": "U1.2",
           "side": "x-",
         },
-        "source_port_7": {
+        "U1.3": {
           "offset": {
             "x": -1,
             "y": 0,
           },
-          "pinId": "source_port_7",
+          "pinId": "U1.3",
           "side": "x-",
         },
-        "source_port_8": {
+        "U1.4": {
           "offset": {
             "x": -1,
             "y": 0.2,
           },
-          "pinId": "source_port_8",
+          "pinId": "U1.4",
           "side": "x-",
         },
-        "source_port_9": {
+        "U1.5": {
           "offset": {
             "x": 1,
             "y": -0.2,
           },
-          "pinId": "source_port_9",
+          "pinId": "U1.5",
+          "side": "x+",
+        },
+        "U1.6": {
+          "offset": {
+            "x": 1,
+            "y": 0,
+          },
+          "pinId": "U1.6",
           "side": "x+",
         },
       },
       "groupMap": {},
       "groupPinMap": {},
       "netConnMap": {
-        "source_port_0-source_net_0": true,
-        "source_port_10-source_net_5": true,
-        "source_port_11-source_net_2": true,
-        "source_port_12-source_net_0": true,
-        "source_port_14-source_net_2": true,
-        "source_port_16-source_net_5": true,
-        "source_port_18-source_net_4": true,
-        "source_port_2-source_net_1": true,
-        "source_port_20-source_net_0": true,
-        "source_port_21-source_net_1": true,
-        "source_port_22-source_net_5": true,
-        "source_port_23-source_net_4": true,
-        "source_port_24-source_net_3": true,
-        "source_port_25-source_net_6": true,
-        "source_port_26-source_net_0": true,
-        "source_port_27-source_net_1": true,
-        "source_port_28-source_net_5": true,
-        "source_port_29-source_net_4": true,
-        "source_port_3-source_net_2": true,
-        "source_port_30-source_net_0": true,
-        "source_port_31-source_net_1": true,
-        "source_port_32-source_net_5": true,
-        "source_port_33-source_net_4": true,
-        "source_port_35-source_net_2": true,
-        "source_port_39-source_net_0": true,
-        "source_port_4-source_net_3": true,
-        "source_port_40-source_net_2": true,
-        "source_port_42-source_net_6": true,
-        "source_port_42-source_net_7": true,
-        "source_port_5-source_net_4": true,
-        "source_port_6-source_net_0": true,
-        "source_port_7-source_net_0": true,
-        "source_port_8-source_net_2": true,
-        "source_port_9-source_net_6": true,
+        "C1.1-source_net_2": true,
+        "C1.2-source_net_0": true,
+        "I2C.2-source_net_2": true,
+        "INT_JP.1-source_net_2": true,
+        "J1.1-source_net_0": true,
+        "J1.2-source_net_1": true,
+        "J1.3-source_net_5": true,
+        "J1.4-source_net_4": true,
+        "J2.1-source_net_0": true,
+        "J2.2-source_net_1": true,
+        "J2.3-source_net_5": true,
+        "J2.4-source_net_4": true,
+        "J3.1-source_net_0": true,
+        "J3.2-source_net_1": true,
+        "J3.3-source_net_5": true,
+        "J3.4-source_net_4": true,
+        "J3.5-source_net_3": true,
+        "J3.6-source_net_6": true,
+        "LED.2-source_net_0": true,
+        "Q1.1-source_net_1": true,
+        "Q1.2-source_net_2": true,
+        "Q1.3-source_net_3": true,
+        "R2.1-source_net_5": true,
+        "R3.2-source_net_2": true,
+        "R4.1-source_net_6": true,
+        "R4.1-source_net_7": true,
+        "R5.1-source_net_4": true,
+        "R7.1-source_net_0": true,
+        "U1.1-source_net_4": true,
+        "U1.2-source_net_0": true,
+        "U1.3-source_net_0": true,
+        "U1.4-source_net_2": true,
+        "U1.5-source_net_6": true,
+        "U1.6-source_net_5": true,
       },
       "netMap": {
         "source_net_0": {
@@ -610,167 +611,19 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           "netId": "source_net_7",
         },
       },
-      "pinConnMap": {
-        "source_port_0-source_port_12": true,
-        "source_port_0-source_port_20": true,
-        "source_port_0-source_port_26": true,
-        "source_port_0-source_port_30": true,
-        "source_port_0-source_port_39": true,
-        "source_port_0-source_port_6": true,
-        "source_port_0-source_port_7": true,
-        "source_port_1-source_port_24": true,
-        "source_port_1-source_port_4": true,
-        "source_port_10-source_port_16": true,
-        "source_port_10-source_port_22": true,
-        "source_port_10-source_port_28": true,
-        "source_port_10-source_port_32": true,
-        "source_port_11-source_port_14": true,
-        "source_port_11-source_port_3": true,
-        "source_port_11-source_port_35": true,
-        "source_port_11-source_port_40": true,
-        "source_port_11-source_port_8": true,
-        "source_port_12-source_port_0": true,
-        "source_port_12-source_port_20": true,
-        "source_port_12-source_port_26": true,
-        "source_port_12-source_port_30": true,
-        "source_port_12-source_port_39": true,
-        "source_port_12-source_port_6": true,
-        "source_port_12-source_port_7": true,
-        "source_port_13-source_port_19": true,
-        "source_port_14-source_port_11": true,
-        "source_port_14-source_port_3": true,
-        "source_port_14-source_port_35": true,
-        "source_port_14-source_port_40": true,
-        "source_port_14-source_port_8": true,
-        "source_port_15-source_port_17": true,
-        "source_port_16-source_port_10": true,
-        "source_port_16-source_port_22": true,
-        "source_port_16-source_port_28": true,
-        "source_port_16-source_port_32": true,
-        "source_port_17-source_port_15": true,
-        "source_port_18-source_port_23": true,
-        "source_port_18-source_port_29": true,
-        "source_port_18-source_port_33": true,
-        "source_port_18-source_port_5": true,
-        "source_port_19-source_port_13": true,
-        "source_port_2-source_port_21": true,
-        "source_port_2-source_port_27": true,
-        "source_port_2-source_port_31": true,
-        "source_port_20-source_port_0": true,
-        "source_port_20-source_port_12": true,
-        "source_port_20-source_port_26": true,
-        "source_port_20-source_port_30": true,
-        "source_port_20-source_port_39": true,
-        "source_port_20-source_port_6": true,
-        "source_port_20-source_port_7": true,
-        "source_port_21-source_port_2": true,
-        "source_port_21-source_port_27": true,
-        "source_port_21-source_port_31": true,
-        "source_port_22-source_port_10": true,
-        "source_port_22-source_port_16": true,
-        "source_port_22-source_port_28": true,
-        "source_port_22-source_port_32": true,
-        "source_port_23-source_port_18": true,
-        "source_port_23-source_port_29": true,
-        "source_port_23-source_port_33": true,
-        "source_port_23-source_port_5": true,
-        "source_port_24-source_port_1": true,
-        "source_port_24-source_port_4": true,
-        "source_port_25-source_port_42": true,
-        "source_port_25-source_port_9": true,
-        "source_port_26-source_port_0": true,
-        "source_port_26-source_port_12": true,
-        "source_port_26-source_port_20": true,
-        "source_port_26-source_port_30": true,
-        "source_port_26-source_port_39": true,
-        "source_port_26-source_port_6": true,
-        "source_port_26-source_port_7": true,
-        "source_port_27-source_port_2": true,
-        "source_port_27-source_port_21": true,
-        "source_port_27-source_port_31": true,
-        "source_port_28-source_port_10": true,
-        "source_port_28-source_port_16": true,
-        "source_port_28-source_port_22": true,
-        "source_port_28-source_port_32": true,
-        "source_port_29-source_port_18": true,
-        "source_port_29-source_port_23": true,
-        "source_port_29-source_port_33": true,
-        "source_port_29-source_port_5": true,
-        "source_port_3-source_port_11": true,
-        "source_port_3-source_port_14": true,
-        "source_port_3-source_port_35": true,
-        "source_port_3-source_port_40": true,
-        "source_port_3-source_port_8": true,
-        "source_port_30-source_port_0": true,
-        "source_port_30-source_port_12": true,
-        "source_port_30-source_port_20": true,
-        "source_port_30-source_port_26": true,
-        "source_port_30-source_port_39": true,
-        "source_port_30-source_port_6": true,
-        "source_port_30-source_port_7": true,
-        "source_port_31-source_port_2": true,
-        "source_port_31-source_port_21": true,
-        "source_port_31-source_port_27": true,
-        "source_port_32-source_port_10": true,
-        "source_port_32-source_port_16": true,
-        "source_port_32-source_port_22": true,
-        "source_port_32-source_port_28": true,
-        "source_port_33-source_port_18": true,
-        "source_port_33-source_port_23": true,
-        "source_port_33-source_port_29": true,
-        "source_port_33-source_port_5": true,
-        "source_port_34-source_port_36": true,
-        "source_port_35-source_port_11": true,
-        "source_port_35-source_port_14": true,
-        "source_port_35-source_port_3": true,
-        "source_port_35-source_port_40": true,
-        "source_port_35-source_port_8": true,
-        "source_port_36-source_port_34": true,
-        "source_port_37-source_port_38": true,
-        "source_port_38-source_port_37": true,
-        "source_port_39-source_port_0": true,
-        "source_port_39-source_port_12": true,
-        "source_port_39-source_port_20": true,
-        "source_port_39-source_port_26": true,
-        "source_port_39-source_port_30": true,
-        "source_port_39-source_port_6": true,
-        "source_port_39-source_port_7": true,
-        "source_port_4-source_port_1": true,
-        "source_port_4-source_port_24": true,
-        "source_port_40-source_port_11": true,
-        "source_port_40-source_port_14": true,
-        "source_port_40-source_port_3": true,
-        "source_port_40-source_port_35": true,
-        "source_port_40-source_port_8": true,
-        "source_port_41-source_port_43": true,
-        "source_port_42-source_port_25": true,
-        "source_port_42-source_port_9": true,
-        "source_port_43-source_port_41": true,
-        "source_port_5-source_port_18": true,
-        "source_port_5-source_port_23": true,
-        "source_port_5-source_port_29": true,
-        "source_port_5-source_port_33": true,
-        "source_port_6-source_port_0": true,
-        "source_port_6-source_port_12": true,
-        "source_port_6-source_port_20": true,
-        "source_port_6-source_port_26": true,
-        "source_port_6-source_port_30": true,
-        "source_port_6-source_port_39": true,
-        "source_port_6-source_port_7": true,
-        "source_port_7-source_port_0": true,
-        "source_port_7-source_port_12": true,
-        "source_port_7-source_port_20": true,
-        "source_port_7-source_port_26": true,
-        "source_port_7-source_port_30": true,
-        "source_port_7-source_port_39": true,
-        "source_port_7-source_port_6": true,
-        "source_port_8-source_port_11": true,
-        "source_port_8-source_port_14": true,
-        "source_port_8-source_port_3": true,
-        "source_port_8-source_port_35": true,
-        "source_port_8-source_port_40": true,
-        "source_port_9-source_port_25": true,
-        "source_port_9-source_port_42": true,
+      "pinStrongConnMap": {
+        "D1.1-R3.1": true,
+        "D1.2-LED.1": true,
+        "I2C.1-R5.2": true,
+        "I2C.3-R2.2": true,
+        "INT_JP.2-R4.2": true,
+        "LED.1-D1.2": true,
+        "Q1.3-R7.2": true,
+        "R2.2-I2C.3": true,
+        "R3.1-D1.1": true,
+        "R4.2-INT_JP.2": true,
+        "R5.2-I2C.1": true,
+        "R7.2-Q1.3": true,
       },
     }
   `)
