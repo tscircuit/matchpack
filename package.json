@@ -16,7 +16,8 @@
     "calculate-packing": "^0.0.10",
     "graphics-debug": "^0.0.61",
     "react-cosmos": "^7.0.0",
-    "react-cosmos-plugin-vite": "^7.0.0"
+    "react-cosmos-plugin-vite": "^7.0.0",
+    "tscircuit": "^0.0.581"
   },
   "peerDependencies": {
     "typescript": "^5"
