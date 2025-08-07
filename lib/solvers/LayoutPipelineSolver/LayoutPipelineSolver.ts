@@ -10,8 +10,9 @@ import { PinRangeMatchSolver } from "lib/solvers/PinRangeMatchSolver/PinRangeMat
 import { PinRangeLayoutSolver } from "lib/solvers/PinRangeLayoutSolver/PinRangeLayoutSolver"
 import { PinRangeOverlapSolver } from "lib/solvers/PinRangeOverlapSolver/PinRangeOverlapSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
-import type { InputProblem } from "lib/types/InputProblem"
+import type { InputProblem, PinId, NetId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
+import type { Point } from "@tscircuit/math-utils"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -164,6 +165,94 @@ export class LayoutPipelineSolver extends BaseSolver {
       rects: [],
       lines: [],
       circles: [],
+      texts: [],
+    }
+
+    for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
+      const chipPins = chip.pins.map((p) => this.inputProblem.chipPinMap[p]!)
+
+      const xs = chipPins.map((p) => p.offset.x)
+      const ys = chipPins.map((p) => p.offset.y)
+
+      const minX = Math.min(...xs)
+      const minY = Math.min(...ys)
+      const maxX = Math.max(...xs)
+      const maxY = Math.max(...ys)
+
+      inputViz.rects!.push({
+        center: { x: minX + (maxX - minX) / 2, y: minY + (maxY - minY) / 2 },
+        width: maxX - minX,
+        height: maxY - minY,
+        // color: "blue",
+        // opacity: 0.1,
+      })
+      inputViz.texts!.push({
+        x: minX,
+        y: minY - 10,
+        text: chipId,
+        color: "blue",
+      })
+
+      for (const pin of chipPins) {
+        inputViz.circles!.push({
+          center: { x: pin.offset.x, y: pin.offset.y },
+          radius: 2,
+          // color: "blue",
+        })
+      }
+    }
+
+    // for (const [groupId, group] of Object.entries(this.inputProblem.groupMap)) {
+    //   for (const bound of group.shape) {
+    //     inputViz.rects!.push({
+    //       center: { x: bound.x + bound.width / 2, y: bound.y + bound.height / 2 },
+    //       width: bound.width,
+    //       height: bound.height,
+    //       color: "green",
+    //       opacity: 0.1,
+    //     })
+    //   }
+    //   inputViz.texts!.push({
+    //     x: group.shape[0]!.x,
+    //     y: group.shape[0]!.y - 10,
+    //     text: groupId,
+    //     color: "green",
+    //   })
+    // }
+
+    const pinToNetMap: Record<PinId, NetId> = {}
+
+    for (const conn of Object.keys(this.inputProblem.netConnMap)) {
+      const [pinId, netId] = conn.split("-") as [PinId, NetId]
+      pinToNetMap[pinId] = netId
+    }
+
+    const netToPins: Record<NetId, PinId[]> = {}
+    for (const [pinId, netId] of Object.entries(pinToNetMap)) {
+      if (!netToPins[netId]) netToPins[netId] = []
+      netToPins[netId]!.push(pinId)
+    }
+
+    for (const [netId, pinIds] of Object.entries(netToPins)) {
+      const pinPositions = pinIds
+        .map((pinId) => {
+          const chipPin = this.inputProblem.chipPinMap[pinId]
+          if (chipPin) return chipPin.offset
+          const groupPin = this.inputProblem.groupPinMap[pinId]
+          if (groupPin) return groupPin.offset
+          return null
+        })
+        .filter(Boolean) as Point[]
+
+      for (let i = 0; i < pinPositions.length; i++) {
+        for (let j = i + 1; j < pinPositions.length; j++) {
+          inputViz.lines!.push({
+            points: [pinPositions[i]!, pinPositions[j]!],
+            // color: "red",
+            // opacity: 0.5,
+          })
+        }
+      }
     }
 
     const visualizations = [
