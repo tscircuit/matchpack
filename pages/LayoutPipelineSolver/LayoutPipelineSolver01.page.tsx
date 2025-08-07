@@ -36,22 +36,5 @@ export default function LayoutPipelineSolver01Page() {
     },
   }
 
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">
-        Layout Pipeline Solver - Test Case 01
-      </h1>
-      <p className="mb-4 text-gray-600">
-        This page demonstrates the LayoutPipelineSolver with a simple test case
-        containing:
-      </p>
-      <ul className="mb-6 list-disc list-inside text-gray-600">
-        <li>1 chip (C1) with 2 pins (P1, P2)</li>
-        <li>1 group (G1) with 1 pin (P3)</li>
-        <li>1 net (N1) connecting P1 and P3</li>
-      </ul>
-
-      <LayoutPipelineDebugger problem={problem} />
-    </div>
-  )
+  return <LayoutPipelineDebugger problem={problem} />
 }
