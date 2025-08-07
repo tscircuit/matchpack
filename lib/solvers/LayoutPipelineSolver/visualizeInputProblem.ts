@@ -19,6 +19,13 @@ export function visualizeInputProblem(
     texts: [],
   }
 
+  // Build pin-to-net mapping first so it's available when creating pin labels
+  const pinToNetMap: Record<PinId, NetId> = {}
+  for (const conn of Object.keys(inputProblem.netConnMap)) {
+    const [pinId, netId] = conn.split("-") as [PinId, NetId]
+    pinToNetMap[pinId] = netId
+  }
+
   for (const [chipId, chip] of Object.entries(inputProblem.chipMap)) {
     const chipPins = chip.pins.map((p) => inputProblem.chipPinMap[p]!)
     const placement = basicLayout.chipPlacements[chipId]
@@ -63,19 +70,14 @@ export function visualizeInputProblem(
     for (const pin of chipPins) {
       const pinAbsX = placement.x + pin.offset.x
       const pinAbsY = placement.y + pin.offset.y
+      const netId = pinToNetMap[pin.pinId]
+      const label = netId ? `${pin.pinId} (${netId})` : pin.pinId
       inputViz.points!.push({
         x: pinAbsX,
         y: pinAbsY,
-        label: pin.pinId,
+        label: label,
       })
     }
-  }
-
-  const pinToNetMap: Record<PinId, NetId> = {}
-
-  for (const conn of Object.keys(inputProblem.netConnMap)) {
-    const [pinId, netId] = conn.split("-") as [PinId, NetId]
-    pinToNetMap[pinId] = netId
   }
 
   const netToPins: Record<NetId, PinId[]> = {}

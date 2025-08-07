@@ -145,7 +145,7 @@ export const getInputProblemFromCircuitJsonSchematic = (
 
     // Only create pin-to-pin connections if this trace connects exactly 2 pins
     // and doesn't have named nets (which would make it a weak connection)
-    const shouldCreateStrongConnections = 
+    const shouldCreateStrongConnections =
       connectedPorts.length === 2 && connectedNets.length === 0
 
     if (shouldCreateStrongConnections) {
@@ -215,7 +215,7 @@ export const getInputProblemFromCircuitJsonSchematic = (
       problem.pinStrongConnMap[`${pin1}-${pin2}`] = true
       problem.pinStrongConnMap[`${pin2}-${pin1}`] = true
     }
-    // If more than 2 pins share the same connectivity key, it's likely a power/ground 
+    // If more than 2 pins share the same connectivity key, it's likely a power/ground
     // net or bus, so these should be weak connections (handled by netConnMap)
   }
 
