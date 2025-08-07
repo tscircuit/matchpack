@@ -1,3 +1,8 @@
+/**
+ * Pipeline solver that runs a series of solvers to find the best schematic layout.
+ * Coordinates the entire layout process from net analysis through final routing.
+ */
+
 import type { BaseSolver } from "../BaseSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
