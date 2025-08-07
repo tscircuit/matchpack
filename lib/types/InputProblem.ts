@@ -7,7 +7,11 @@ export type GroupId = string
 export type NetId = string
 
 export type ChipPin = { pinId: PinId; offset: Point; side: Side }
-export type Chip = { chipId: ChipId; pins: PinId[] }
+export type Chip = {
+  chipId: ChipId
+  pins: PinId[]
+  size: Point
+}
 export type Group = {
   groupId: GroupId
   pins: PinId[]
