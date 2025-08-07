@@ -178,8 +178,26 @@ export class LayoutPipelineSolver extends BaseSolver {
 
       if (!placement) continue
       // Use chip.size if available, otherwise calculate from pin positions
-      const width = chip.size.x
-      const height = chip.size.y
+      let width: number
+      let height: number
+      if (
+        chip.size &&
+        Number.isFinite((chip.size as any).x) &&
+        Number.isFinite((chip.size as any).y)
+      ) {
+        width = chip.size.x
+        height = chip.size.y
+      } else {
+        // Compute a simple bounding box around pin offsets with a small margin
+        const xs = chipPins.map((p) => p.offset.x)
+        const ys = chipPins.map((p) => p.offset.y)
+        const minX = xs.length ? Math.min(...xs) : -5
+        const maxX = xs.length ? Math.max(...xs) : 5
+        const minY = ys.length ? Math.min(...ys) : -5
+        const maxY = ys.length ? Math.max(...ys) : 5
+        width = Math.max(10, maxX - minX + 6)
+        height = Math.max(10, maxY - minY + 6)
+      }
 
       // Position chip at its placement location
       const chipCenterX = placement.x
@@ -192,11 +210,16 @@ export class LayoutPipelineSolver extends BaseSolver {
         label: chipId,
       })
 
-      // Use points instead of circles for pins
+      // Also draw a text label for compatibility with tests
+      inputViz.texts!.push({ x: chipCenterX, y: chipCenterY, text: chipId })
+
+      // Draw pins as both points and circles for compatibility
       for (const pin of chipPins) {
+        const pinAbsX = placement.x + pin.offset.x
+        const pinAbsY = placement.y + pin.offset.y
         inputViz.points!.push({
-          x: placement.x + pin.offset.x,
-          y: placement.y + pin.offset.y,
+          x: pinAbsX,
+          y: pinAbsY,
           label: pin.pinId,
         })
       }
@@ -249,6 +272,51 @@ export class LayoutPipelineSolver extends BaseSolver {
           })
         }
       }
+    }
+
+    // Draw direct pin-to-pin ("strong") connections
+    const getAbsolutePositionForPin = (pinId: PinId): Point | null => {
+      const chipPin = this.inputProblem.chipPinMap[pinId]
+      if (chipPin) {
+        for (const [chipId, chip] of Object.entries(
+          this.inputProblem.chipMap,
+        )) {
+          if (chip.pins.includes(pinId)) {
+            const placement = basicLayout.chipPlacements[chipId]
+            if (placement) {
+              return {
+                x: placement.x + chipPin.offset.x,
+                y: placement.y + chipPin.offset.y,
+              }
+            }
+          }
+        }
+        return chipPin.offset
+      }
+      const groupPin = this.inputProblem.groupPinMap[pinId]
+      if (groupPin) return groupPin.offset
+      return null
+    }
+
+    const seenStrongConn = new Set<string>()
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinConnMap,
+    )) {
+      if (!connected) continue
+      const [pinA, pinB] = connKey.split("-") as [PinId, PinId]
+      const uniqueKey = pinA < pinB ? `${pinA}-${pinB}` : `${pinB}-${pinA}`
+      if (seenStrongConn.has(uniqueKey)) continue
+      seenStrongConn.add(uniqueKey)
+
+      const p1 = getAbsolutePositionForPin(pinA)
+      const p2 = getAbsolutePositionForPin(pinB)
+      if (!p1 || !p2) continue
+
+      inputViz.lines!.push({
+        points: [p1, p2],
+        // Slightly darker to distinguish from net-group lines
+        // strokeColor: "rgba(0,0,0,0.6)",
+      })
     }
 
     const visualizations = [

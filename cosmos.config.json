@@ -2,9 +2,5 @@
   "$schema": "http://json.schemastore.org/cosmos-config",
   "plugins": ["react-cosmos-plugin-vite"],
   "fixtureFileSuffix": "page",
-  "mainScriptUrl": "/src/main.tsx",
-  "vite": {
-    "mainScriptUrl": "/src/main.tsx"
-  },
   "decoratorFile": "cosmos.decorator.tsx"
 }

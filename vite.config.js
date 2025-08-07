@@ -7,5 +7,4 @@ export default defineConfig({
       lib: resolve(__dirname, 'lib')
     }
   },
-  "mainScriptUrl": "/src/main.tsx",
 })
