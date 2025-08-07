@@ -1,5 +1,4 @@
 import type { GraphicsObject } from "graphics-debug"
-import { CachableSolver, CacheProvider } from "lib/cache/types"
 
 export class BaseSolver {
   MAX_ITERATIONS = 1000

@@ -1,0 +1,25 @@
+import type { Point } from "@tscircuit/math-utils"
+import type { Side } from "./Side"
+
+export type PinId = string
+export type ChipId = string
+export type GroupId = string
+export type NetId = string
+
+export type ChipPin = { pinId: PinId; offset: Point; side: Side }
+export type Chip = { chipId: ChipId; pins: PinId[] }
+export type Group = { groupId: GroupId; pins: PinId[] }
+export type GroupPin = { pinId: PinId; offset: Point }
+export type Net = { netId: NetId }
+
+export type InputProblem = {
+  chipMap: Record<ChipId, Chip>
+  chipPinMap: Record<PinId, ChipPin>
+  groupMap: Record<GroupId, Group>
+  groupPinMap: Record<PinId, GroupPin>
+  netMap: Record<NetId, Net>
+
+  /** This is a two-way map */
+  pinConnMap: Record<`${PinId}-${PinId}`, boolean>
+  netConnMap: Record<`${PinId}-${NetId}`, boolean>
+}

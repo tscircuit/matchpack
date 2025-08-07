@@ -3,14 +3,14 @@
  * Coordinates the entire layout process from chip partitioning through final packing.
  */
 
-import type { BaseSolver } from "../BaseSolver"
-import type { BpcGraph } from "bpc-graph"
+import { BaseSolver } from "../BaseSolver"
 import type { GraphicsObject } from "graphics-debug"
 import { ChipPartitionsSolver } from "../ChipPartitionsSolver/ChipPartitionsSolver"
 import { PinRangeMatchSolver } from "../PinRangeMatchSolver/PinRangeMatchSolver"
 import { PinRangeLayoutSolver } from "../PinRangeLayoutSolver/PinRangeLayoutSolver"
 import { PinRangeOverlapSolver } from "../PinRangeOverlapSolver/PinRangeOverlapSolver"
 import { PartitionPackingSolver } from "../PartitionPackingSolver/PartitionPackingSolver"
+import type { InputProblem } from "../../types/InputProblem"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -53,41 +53,24 @@ export class LayoutPipelineSolver extends BaseSolver {
   endTimeOfPhase: Record<string, number>
   timeSpentOnPhase: Record<string, number>
 
-  activeSubSolver?: BaseSolver | null = null
-  inputGraph: BpcGraph
-  outputGraph?: BpcGraph
+  inputProblem: InputProblem
 
   pipelineDef = [
-    definePipelineStep(
-      "chipPartitionsSolver",
-      ChipPartitionsSolver,
-      () => [],
-      {
-        onSolved: (solver) => {
-          // Store partitions for next phase
-        },
+    definePipelineStep("chipPartitionsSolver", ChipPartitionsSolver, () => [], {
+      onSolved: (solver) => {
+        // Store partitions for next phase
       },
-    ),
-    definePipelineStep(
-      "pinRangeMatchSolver",
-      PinRangeMatchSolver,
-      () => [],
-      {
-        onSolved: (solver) => {
-          // Store matched layouts for next phase
-        },
+    }),
+    definePipelineStep("pinRangeMatchSolver", PinRangeMatchSolver, () => [], {
+      onSolved: (solver) => {
+        // Store matched layouts for next phase
       },
-    ),
-    definePipelineStep(
-      "pinRangeLayoutSolver",
-      PinRangeLayoutSolver,
-      () => [],
-      {
-        onSolved: (solver) => {
-          // Store laid out pin ranges for next phase
-        },
+    }),
+    definePipelineStep("pinRangeLayoutSolver", PinRangeLayoutSolver, () => [], {
+      onSolved: (solver) => {
+        // Store laid out pin ranges for next phase
       },
-    ),
+    }),
     definePipelineStep(
       "pinRangeOverlapSolver",
       PinRangeOverlapSolver,
@@ -110,10 +93,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     ),
   ]
 
-  constructor(
-    public inputGraph: BpcGraph,
-  ) {
+  constructor(inputProblem: InputProblem) {
     super()
+    this.inputProblem = inputProblem
     this.MAX_ITERATIONS = 1000
     this.startTimeOfPhase = {}
     this.endTimeOfPhase = {}
@@ -121,7 +103,8 @@ export class LayoutPipelineSolver extends BaseSolver {
   }
 
   currentPipelineStepIndex = 0
-  _step() {
+
+  override _step() {
     const pipelineStepDef = this.pipelineDef[this.currentPipelineStepIndex]
     if (!pipelineStepDef) {
       this.solved = true
@@ -133,8 +116,8 @@ export class LayoutPipelineSolver extends BaseSolver {
       if (this.activeSubSolver.solved) {
         this.endTimeOfPhase[pipelineStepDef.solverName] = performance.now()
         this.timeSpentOnPhase[pipelineStepDef.solverName] =
-          this.endTimeOfPhase[pipelineStepDef.solverName] -
-          this.startTimeOfPhase[pipelineStepDef.solverName]
+          this.endTimeOfPhase[pipelineStepDef.solverName]! -
+          this.startTimeOfPhase[pipelineStepDef.solverName]!
         pipelineStepDef.onSolved?.(this)
         this.activeSubSolver = null
         this.currentPipelineStepIndex++
@@ -164,36 +147,24 @@ export class LayoutPipelineSolver extends BaseSolver {
     return this.pipelineDef[this.currentPipelineStepIndex]?.solverName ?? "none"
   }
 
-  visualize(): GraphicsObject {
+  override visualize(): GraphicsObject {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
-    
+
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const pinRangeMatchViz = this.pinRangeMatchSolver?.visualize()
     const pinRangeLayoutViz = this.pinRangeLayoutSolver?.visualize()
     const pinRangeOverlapViz = this.pinRangeOverlapSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
-    
+
     // Create visualization of input graph
     const inputViz: GraphicsObject = {
-      points: this.inputGraph.pins?.map(pin => ({
-        x: pin.offset.x,
-        y: pin.offset.y,
-        label: `${pin.boxId}:${pin.pinId}`,
-        color: pin.color || "black"
-      })) || [],
-      rects: this.inputGraph.boxes?.map(box => ({
-        x: "center" in box ? box.center.x - 5 : 0,
-        y: "center" in box ? box.center.y - 5 : 0,
-        width: 10,
-        height: 10,
-        fill: "rgba(100,100,100,0.3)",
-        label: box.boxId
-      })) || [],
+      points: [],
+      rects: [],
       lines: [],
-      circles: []
+      circles: [],
     }
-    
+
     const visualizations = [
       inputViz,
       chipPartitionsViz,
@@ -202,15 +173,15 @@ export class LayoutPipelineSolver extends BaseSolver {
       pinRangeOverlapViz,
       partitionPackingViz,
     ].filter(Boolean) as GraphicsObject[]
-    
+
     if (visualizations.length === 1) return visualizations[0]
-    
+
     // Simple combination of visualizations
     return {
-      points: visualizations.flatMap(v => v.points || []),
-      rects: visualizations.flatMap(v => v.rects || []),
-      lines: visualizations.flatMap(v => v.lines || []),
-      circles: visualizations.flatMap(v => v.circles || [])
+      points: visualizations.flatMap((v) => v.points || []),
+      rects: visualizations.flatMap((v) => v.rects || []),
+      lines: visualizations.flatMap((v) => v.lines || []),
+      circles: visualizations.flatMap((v) => v.circles || []),
     }
   }
 
@@ -218,11 +189,11 @@ export class LayoutPipelineSolver extends BaseSolver {
    * A lightweight version of the visualize method that can be used to stream
    * progress
    */
-  preview(): GraphicsObject {
+  override preview(): GraphicsObject {
     if (this.activeSubSolver) {
       return this.activeSubSolver.preview()
     }
-    
+
     // Show the most recent solver's output
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
@@ -239,18 +210,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (this.chipPartitionsSolver?.solved) {
       return this.chipPartitionsSolver.visualize()
     }
-    
-    return super.preview()
-  }
 
-  /**
-   * Get the final laid out graph after the pipeline completes
-   */
-  getOutputGraph(): BpcGraph {
-    if (!this.solved) {
-      throw new Error("Cannot get output before solving is complete")
-    }
-    
-    return this.outputGraph ?? this.inputGraph
+    return super.preview()
   }
 }
