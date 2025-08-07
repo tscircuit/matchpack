@@ -1,4 +1,4 @@
-import type { Point } from "@tscircuit/math-utils"
+import type { Point, Bounds } from "@tscircuit/math-utils"
 import type { Side } from "./Side"
 
 export type PinId = string
@@ -8,7 +8,12 @@ export type NetId = string
 
 export type ChipPin = { pinId: PinId; offset: Point; side: Side }
 export type Chip = { chipId: ChipId; pins: PinId[] }
-export type Group = { groupId: GroupId; pins: PinId[] }
+export type Group = {
+  groupId: GroupId
+  pins: PinId[]
+  /** The shape of the group is defined by a set of bounding boxes */
+  shape: Bounds[]
+}
 export type GroupPin = { pinId: PinId; offset: Point }
 export type Net = { netId: NetId }
 

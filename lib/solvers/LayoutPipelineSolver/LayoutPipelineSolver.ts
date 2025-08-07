@@ -175,7 +175,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       partitionPackingViz,
     ].filter(Boolean) as GraphicsObject[]
 
-    if (visualizations.length === 1) return visualizations[0]
+    if (visualizations.length === 1) return visualizations[0]!
 
     // Simple combination of visualizations
     return {
