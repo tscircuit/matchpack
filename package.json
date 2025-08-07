@@ -14,6 +14,7 @@
     "@types/bun": "latest",
     "bpc-graph": "^0.0.66",
     "calculate-packing": "^0.0.10",
+    "circuit-json": "^0.0.226",
     "graphics-debug": "^0.0.61",
     "react-cosmos": "^7.0.0",
     "react-cosmos-plugin-vite": "^7.0.0",
