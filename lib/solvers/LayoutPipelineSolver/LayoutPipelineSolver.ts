@@ -13,6 +13,7 @@ import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/Parti
 import type { InputProblem, PinId, NetId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import type { Point } from "@tscircuit/math-utils"
+import { pack } from "calculate-packing"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -159,6 +160,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     const pinRangeOverlapViz = this.pinRangeOverlapSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
 
+    // Get basic layout positions to avoid overlapping at (0,0)
+    const basicLayout = doBasicInputProblemLayout(this.inputProblem)
+
     // Create visualization of input graph
     const inputViz: GraphicsObject = {
       points: [],
@@ -170,6 +174,9 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
       const chipPins = chip.pins.map((p) => this.inputProblem.chipPinMap[p]!)
+      const placement = basicLayout.chipPlacements[chipId]
+
+      if (!placement) continue
 
       const xs = chipPins.map((p) => p.offset.x)
       const ys = chipPins.map((p) => p.offset.y)
@@ -179,24 +186,24 @@ export class LayoutPipelineSolver extends BaseSolver {
       const maxX = Math.max(...xs)
       const maxY = Math.max(...ys)
 
+      // Position chip at its placement location
+      const chipCenterX = placement.x + minX + (maxX - minX) / 2
+      const chipCenterY = placement.y + minY + (maxY - minY) / 2
+
       inputViz.rects!.push({
-        center: { x: minX + (maxX - minX) / 2, y: minY + (maxY - minY) / 2 },
+        center: { x: chipCenterX, y: chipCenterY },
         width: maxX - minX,
         height: maxY - minY,
+        label: chipId,
         // color: "blue",
         // opacity: 0.1,
       })
-      inputViz.texts!.push({
-        x: minX,
-        y: minY - 10,
-        text: chipId,
-        color: "blue",
-      })
 
+      // Use points instead of circles for pins
       for (const pin of chipPins) {
-        inputViz.circles!.push({
-          center: { x: pin.offset.x, y: pin.offset.y },
-          radius: 2,
+        inputViz.points!.push({
+          x: placement.x + pin.offset.x,
+          y: placement.y + pin.offset.y,
           // color: "blue",
         })
       }
@@ -233,11 +240,27 @@ export class LayoutPipelineSolver extends BaseSolver {
       netToPins[netId]!.push(pinId)
     }
 
-    for (const [netId, pinIds] of Object.entries(netToPins)) {
+    for (const [, pinIds] of Object.entries(netToPins)) {
       const pinPositions = pinIds
         .map((pinId) => {
           const chipPin = this.inputProblem.chipPinMap[pinId]
-          if (chipPin) return chipPin.offset
+          if (chipPin) {
+            // Find which chip this pin belongs to
+            for (const [chipId, chip] of Object.entries(
+              this.inputProblem.chipMap,
+            )) {
+              if (chip.pins.includes(pinId)) {
+                const placement = basicLayout.chipPlacements[chipId]
+                if (placement) {
+                  return {
+                    x: placement.x + chipPin.offset.x,
+                    y: placement.y + chipPin.offset.y,
+                  }
+                }
+              }
+            }
+            return chipPin.offset
+          }
           const groupPin = this.inputProblem.groupPinMap[pinId]
           if (groupPin) return groupPin.offset
           return null
@@ -248,8 +271,7 @@ export class LayoutPipelineSolver extends BaseSolver {
         for (let j = i + 1; j < pinPositions.length; j++) {
           inputViz.lines!.push({
             points: [pinPositions[i]!, pinPositions[j]!],
-            // color: "red",
-            // opacity: 0.5,
+            strokeColor: "rgba(0,0,0,0.1)",
           })
         }
       }
@@ -306,5 +328,76 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   getOutputLayout(): OutputLayout {
     throw new Error("Not implemented")
+  }
+}
+
+export function doBasicInputProblemLayout(
+  inputProblem: InputProblem,
+): OutputLayout {
+  // Convert InputProblem to calculate-packing format
+  const components = Object.entries(inputProblem.chipMap).map(
+    ([chipId, chip]) => {
+      const chipPins = chip.pins.map((pinId) => inputProblem.chipPinMap[pinId]!)
+
+      // Note: We don't need to calculate bounding box - the pack algorithm calculates from pads
+
+      // Convert pins to pads with network information
+      const pads = chipPins.map((pin) => {
+        // Find which network this pin connects to
+        let networkId = "unconnected"
+        for (const [connKey, connected] of Object.entries(
+          inputProblem.netConnMap,
+        )) {
+          if (connected && connKey.includes(pin.pinId)) {
+            const parts = connKey.split("-")
+            const otherPart = parts.find((p) => p !== pin.pinId)
+            if (otherPart && inputProblem.netMap[otherPart]) {
+              networkId = otherPart
+              break
+            }
+          }
+        }
+
+        return {
+          padId: pin.pinId,
+          networkId,
+          type: "rect" as const,
+          offset: pin.offset,
+          size: { x: 1, y: 1 }, // Small pad size
+        }
+      })
+
+      return {
+        componentId: chipId,
+        pads,
+      }
+    },
+  )
+
+  // Pack with specified gap
+  const packResult = pack({
+    components,
+    minGap: 2,
+    packOrderStrategy: "largest_to_smallest",
+    packPlacementStrategy: "shortest_connection_along_outline",
+  })
+
+  // Convert pack result to OutputLayout
+  const chipPlacements: Record<
+    string,
+    { x: number; y: number; ccwRotationDegrees: number }
+  > = {}
+
+  for (const component of packResult.components) {
+    chipPlacements[component.componentId] = {
+      x: component.center.x,
+      y: component.center.y,
+      ccwRotationDegrees: component.ccwRotationOffset,
+    }
+  }
+
+  return {
+    chipPlacements,
+    groupPlacements: {}, // No groups for now
   }
 }
