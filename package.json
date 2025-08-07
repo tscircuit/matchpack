@@ -9,7 +9,8 @@
     "@types/bun": "latest",
     "bpc-graph": "^0.0.66",
     "calculate-packing": "^0.0.10",
-    "graphics-debug": "^0.0.61"
+    "graphics-debug": "^0.0.61",
+    "react-cosmos": "^7.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"

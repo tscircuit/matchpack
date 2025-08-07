@@ -3,14 +3,15 @@
  * Coordinates the entire layout process from chip partitioning through final packing.
  */
 
-import { BaseSolver } from "../BaseSolver"
+import { BaseSolver } from "lib/solvers/BaseSolver"
 import type { GraphicsObject } from "graphics-debug"
-import { ChipPartitionsSolver } from "../ChipPartitionsSolver/ChipPartitionsSolver"
-import { PinRangeMatchSolver } from "../PinRangeMatchSolver/PinRangeMatchSolver"
-import { PinRangeLayoutSolver } from "../PinRangeLayoutSolver/PinRangeLayoutSolver"
-import { PinRangeOverlapSolver } from "../PinRangeOverlapSolver/PinRangeOverlapSolver"
-import { PartitionPackingSolver } from "../PartitionPackingSolver/PartitionPackingSolver"
-import type { InputProblem } from "../../types/InputProblem"
+import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
+import { PinRangeMatchSolver } from "lib/solvers/PinRangeMatchSolver/PinRangeMatchSolver"
+import { PinRangeLayoutSolver } from "lib/solvers/PinRangeLayoutSolver/PinRangeLayoutSolver"
+import { PinRangeOverlapSolver } from "lib/solvers/PinRangeOverlapSolver/PinRangeOverlapSolver"
+import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import type { InputProblem } from "lib/types/InputProblem"
+import type { OutputLayout } from "lib/types/OutputLayout"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -212,5 +213,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     return super.preview()
+  }
+
+  getOutputLayout(): OutputLayout {
+    throw new Error("Not implemented")
   }
 }
