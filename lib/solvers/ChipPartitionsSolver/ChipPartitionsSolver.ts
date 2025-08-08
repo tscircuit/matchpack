@@ -57,8 +57,8 @@ export class ChipPartitionsSolver extends BaseSolver {
       const [pin1Id, pin2Id] = connKey.split("-")
 
       // Find which chips/groups own these pins
-      const owner1 = this.findPinOwner(pin1Id, inputProblem)
-      const owner2 = this.findPinOwner(pin2Id, inputProblem)
+      const owner1 = this.findPinOwner(pin1Id!, inputProblem)
+      const owner2 = this.findPinOwner(pin2Id!, inputProblem)
 
       if (owner1 && owner2 && owner1 !== owner2) {
         adjacencyMap.get(owner1)!.add(owner2)
