@@ -14,7 +14,7 @@ import type {
 import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
-import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
