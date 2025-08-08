@@ -32,6 +32,7 @@ export const LayoutPipelineDebugger = ({
           solver.solve()
           incRunCount()
         }}
+        activeSubSolverName={solver.activeSubSolver?.constructor.name}
       />
       {currentTab === "pipeline" && (
         <InteractiveGraphics graphics={solver.visualize()} />

@@ -3,11 +3,17 @@ export const LayoutPipelineToolbar = (props: {
   onStep: () => void
   onSolve: () => void
   onChangeTab: (tab: "pipeline" | "circuit") => void
+  activeSubSolverName?: string
 }) => {
   return (
     <div className="flex gap-2 p-2">
       <button onClick={props.onStep}>Step</button>
       <button onClick={props.onSolve}>Solve</button>
+      {props.activeSubSolverName && (
+        <div className="flex items-center px-3 py-1 bg-gray-100 rounded text-sm">
+          Active: {props.activeSubSolverName}
+        </div>
+      )}
       <div className="flex-grow" />
       <div className="flex gap-1">
         <button
