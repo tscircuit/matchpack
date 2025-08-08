@@ -6,7 +6,7 @@ import { normalizeSide } from "lib/types/Side"
 test("LayoutPipelineSolver01 visualization example", () => {
   const problem: InputProblem = {
     chipMap: {
-      C1: { chipId: "C1", pins: ["P1", "P2"] },
+      C1: { chipId: "C1", pins: ["P1", "P2"], size: { x: 2.0, y: 1.0 } },
     },
     chipPinMap: {
       P1: { pinId: "P1", offset: { x: 0, y: 0 }, side: normalizeSide("left") },

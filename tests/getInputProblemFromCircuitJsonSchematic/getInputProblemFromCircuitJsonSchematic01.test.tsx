@@ -5,8 +5,6 @@ import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputPro
 test("getInputProblemFromCircuitJsonSchematic01", () => {
   const circuitJson = getExampleCircuitJson()
 
-  console.log(circuitJson)
-
   const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
     useReadableIds: true,
   })

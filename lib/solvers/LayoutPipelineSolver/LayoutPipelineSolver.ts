@@ -71,11 +71,16 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
-    definePipelineStep("pinRangeMatchSolver", PinRangeMatchSolver, () => [], {
-      onSolved: (solver) => {
-        // Store matched layouts for next phase
+    definePipelineStep(
+      "pinRangeMatchSolver",
+      PinRangeMatchSolver,
+      () => [this.chipPartitions || []],
+      {
+        onSolved: (solver) => {
+          // Store matched layouts for next phase
+        },
       },
-    }),
+    ),
     definePipelineStep("pinRangeLayoutSolver", PinRangeLayoutSolver, () => [], {
       onSolved: (solver) => {
         // Store laid out pin ranges for next phase
