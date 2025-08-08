@@ -256,16 +256,18 @@ export function doBasicInputProblemLayout(
 
       // Convert pins to pads with network information
       const pads = chipPins.map((pin) => {
-        // Find which network this pin connects to
-        let networkId = "unconnected"
+        // Find which network this pin connects to using strong connections
+        let networkId = pin.pinId // Default to unique network per pin
+
+        // Look for strong connections to this pin
         for (const [connKey, connected] of Object.entries(
-          inputProblem.netConnMap,
+          inputProblem.pinStrongConnMap,
         )) {
           if (connected && connKey.includes(pin.pinId)) {
-            const parts = connKey.split("-")
-            const otherPart = parts.find((p) => p !== pin.pinId)
-            if (otherPart && inputProblem.netMap[otherPart]) {
-              networkId = otherPart
+            const [pin1Id, pin2Id] = connKey.split("-")
+            if (pin1Id === pin.pinId || pin2Id === pin.pinId) {
+              // Create connectivity key from sorted pin IDs
+              networkId = [pin1Id, pin2Id].sort().join("_")
               break
             }
           }

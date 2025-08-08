@@ -42,7 +42,7 @@ test("LayoutPipelineSolver01 visualization example", () => {
   const viz = solver.visualize()
 
   expect(viz.rects?.length).toBe(1) // 1 chip
-  expect(viz.circles?.length).toBe(2) // 2 chip pins
+  expect(viz.points?.length).toBe(2) // 2 chip pins
   expect(viz.lines?.length).toBe(1) // 1 net
   expect(viz.texts?.length).toBe(1) // 1 for chip
 })
