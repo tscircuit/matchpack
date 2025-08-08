@@ -57,13 +57,19 @@ export class LayoutPipelineSolver extends BaseSolver {
   timeSpentOnPhase: Record<string, number>
 
   inputProblem: InputProblem
+  chipPartitions?: ChipPartitionsSolver["partitions"]
 
   pipelineDef = [
-    definePipelineStep("chipPartitionsSolver", ChipPartitionsSolver, () => [], {
-      onSolved: (solver) => {
-        // Store partitions for next phase
+    definePipelineStep(
+      "chipPartitionsSolver",
+      ChipPartitionsSolver,
+      () => [this.inputProblem],
+      {
+        onSolved: (layoutSolver) => {
+          this.chipPartitions = this.chipPartitionsSolver!.partitions
+        },
       },
-    }),
+    ),
     definePipelineStep("pinRangeMatchSolver", PinRangeMatchSolver, () => [], {
       onSolved: (solver) => {
         // Store matched layouts for next phase
@@ -171,7 +177,26 @@ export class LayoutPipelineSolver extends BaseSolver {
       pinRangeLayoutViz,
       pinRangeOverlapViz,
       partitionPackingViz,
-    ].filter(Boolean) as GraphicsObject[]
+    ]
+      .filter(Boolean)
+      .map((viz, stepIndex) => {
+        for (const rect of viz!.rects ?? []) {
+          rect.step = stepIndex
+        }
+        for (const point of viz!.points ?? []) {
+          point.step = stepIndex
+        }
+        for (const circle of viz!.circles ?? []) {
+          circle.step = stepIndex
+        }
+        for (const text of viz!.texts ?? []) {
+          text.step = stepIndex
+        }
+        for (const line of viz!.lines ?? []) {
+          line.step = stepIndex
+        }
+        return viz
+      }) as GraphicsObject[]
 
     if (visualizations.length === 1) return visualizations[0]!
 
@@ -181,6 +206,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       rects: visualizations.flatMap((v) => v.rects || []),
       lines: visualizations.flatMap((v) => v.lines || []),
       circles: visualizations.flatMap((v) => v.circles || []),
+      texts: visualizations.flatMap((v) => v.texts || []),
     }
   }
 
