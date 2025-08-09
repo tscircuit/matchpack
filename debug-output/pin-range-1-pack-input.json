@@ -1,15 +1,10 @@
 {
   "pinRangeIndex": 1,
   "pinRange": {
-    "pinIds": [
-      "U1.3",
-      "U1.4"
-    ],
+    "pinIds": ["U1.3", "U1.4"],
     "side": "x+",
     "chipId": "U1",
-    "connectedChips": [
-      "C5"
-    ]
+    "connectedChips": ["C5"]
   },
   "packInput": {
     "components": [
