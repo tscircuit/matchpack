@@ -72,72 +72,75 @@ export class PinRangeMatchSolver extends BaseSolver {
     }
 
     // Create visualization for each partition
-    const partitionVisualizations = this.partitions.map((partition, partitionIndex) => {
-      // Create basic layout for chip positioning
-      const basicLayout = doBasicInputProblemLayout(partition)
-      
-      // Start with the basic input problem visualization (chips, pins, connections)
-      const baseViz = visualizeInputProblem(partition, basicLayout)
-      
-      // Get pin ranges for this partition
-      const partitionRanges = this.partitionResults[partitionIndex] || []
-      
-      // Add highlighting rectangles for each pin range
-      const highlightRects = partitionRanges.map((range, rangeIndex) => {
-        // Calculate bounding box for pins in this range
-        const rangePositions = range.pinIds
-          .map((pinId) => {
-            const chipPin = partition.chipPinMap[pinId]
-            const groupPin = partition.groupPinMap[pinId]
-            const offset = chipPin?.offset || groupPin?.offset
-            
-            if (offset && chipPin) {
-              // Find chip placement to get absolute position
-              const chipId = Object.entries(partition.chipMap).find(([, chip]) =>
-                chip.pins.includes(pinId)
-              )?.[0]
-              
-              if (chipId) {
-                const placement = basicLayout.chipPlacements[chipId]
-                if (placement) {
-                  return {
-                    x: placement.x + offset.x,
-                    y: placement.y + offset.y
+    const partitionVisualizations = this.partitions.map(
+      (partition, partitionIndex) => {
+        // Create basic layout for chip positioning
+        const basicLayout = doBasicInputProblemLayout(partition)
+
+        // Start with the basic input problem visualization (chips, pins, connections)
+        const baseViz = visualizeInputProblem(partition, basicLayout)
+
+        // Get pin ranges for this partition
+        const partitionRanges = this.partitionResults[partitionIndex] || []
+
+        // Add highlighting rectangles for each pin range
+        const highlightRects = partitionRanges
+          .map((range, rangeIndex) => {
+            // Calculate bounding box for pins in this range
+            const rangePositions = range.pinIds
+              .map((pinId) => {
+                const chipPin = partition.chipPinMap[pinId]
+                const groupPin = partition.groupPinMap[pinId]
+                const offset = chipPin?.offset || groupPin?.offset
+
+                if (offset && chipPin) {
+                  // Find chip placement to get absolute position
+                  const chipId = Object.entries(partition.chipMap).find(
+                    ([, chip]) => chip.pins.includes(pinId),
+                  )?.[0]
+
+                  if (chipId) {
+                    const placement = basicLayout.chipPlacements[chipId]
+                    if (placement) {
+                      return {
+                        x: placement.x + offset.x,
+                        y: placement.y + offset.y,
+                      }
+                    }
                   }
                 }
-              }
+                return offset
+              })
+              .filter((pos) => pos !== null && pos !== undefined)
+
+            if (rangePositions.length === 0) return null
+
+            // Calculate bounding box with padding
+            const xs = rangePositions.map((p) => p!.x)
+            const ys = rangePositions.map((p) => p!.y)
+            const minX = Math.min(...xs) - 0.05
+            const maxX = Math.max(...xs) + 0.05
+            const minY = Math.min(...ys) - 0.05
+            const maxY = Math.max(...ys) + 0.05
+
+            return {
+              center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 },
+              width: Math.max(0.1, maxX - minX),
+              height: Math.max(0.1, maxY - minY),
+              strokeColor: `hsl(${(rangeIndex * 60) % 360}, 70%, 50%)`,
+              fillColor: `hsla(${(rangeIndex * 60) % 360}, 70%, 50%, 0.1)`,
+              strokeWidth: 2,
+              label: `Range ${rangeIndex} (${range.side})`,
             }
-            return offset
           })
-          .filter(pos => pos !== null && pos !== undefined)
-        
-        if (rangePositions.length === 0) return null
-        
-        // Calculate bounding box with padding
-        const xs = rangePositions.map(p => p!.x)
-        const ys = rangePositions.map(p => p!.y)
-        const minX = Math.min(...xs) - 0.5
-        const maxX = Math.max(...xs) + 0.5
-        const minY = Math.min(...ys) - 0.5
-        const maxY = Math.max(...ys) + 0.5
-        
+          .filter((rect) => rect !== null)
+
         return {
-          center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 },
-          width: Math.max(1, maxX - minX),
-          height: Math.max(1, maxY - minY),
-          strokeColor: `hsl(${(rangeIndex * 60) % 360}, 70%, 50%)`,
-          fillColor: `hsla(${(rangeIndex * 60) % 360}, 70%, 50%, 0.1)`,
-          strokeWidth: 2,
-          label: `Range ${rangeIndex} (${range.side})`
+          ...baseViz,
+          rects: [...(baseViz.rects || []), ...highlightRects],
         }
-      })
-      .filter(rect => rect !== null)
-      
-      return {
-        ...baseViz,
-        rects: [...(baseViz.rects || []), ...highlightRects]
-      }
-    })
+      },
+    )
 
     // Create titles for each partition
     const titles = this.partitions.map((_, index) => {
