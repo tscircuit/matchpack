@@ -66,7 +66,18 @@ export class PinRangeMatchSolver extends BaseSolver {
 
     // Show all completed results
     return {
-      lines: [],
+      lines: [
+        {
+          points: [
+            // draw points to indicate bounds
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+            { x: 10, y: 10 },
+            { x: 0, y: 10 },
+            { x: 0, y: 0 },
+          ],
+        },
+      ],
       points: this.getAllPinRanges().flatMap((range) =>
         range.pinIds.map(() => ({
           x: Math.random() * 10,

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
-import { getExampleCircuitJson } from "./assets/ExampleCircuit02"
+import { getExampleCircuitJson } from "../assets/ExampleCircuit02"
 import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputProblemFromCircuitJsonSchematic"
 
 test("LayoutPipelineSolver02 runs pipeline phases for ExampleCircuit02", () => {
