@@ -5,7 +5,7 @@
  */
 
 import type { GraphicsObject } from "graphics-debug"
-import { pack } from "calculate-packing"
+import { pack, type PackInput } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { PinRange } from "../PinRangeMatchSolver/PartitionPinRangeMatchSolver/PartitionPinRangeMatchSolver"
 import type { InputProblem } from "../../types/InputProblem"
@@ -315,11 +315,11 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
     }
 
     // Pack components with tighter spacing for pin range layouts
-    const packInput = {
+    const packInput: PackInput = {
       components,
       minGap: 0.2, // Tighter gap than general layout
       packOrderStrategy: "largest_to_smallest" as const,
-      packPlacementStrategy: "minimum_sum_distance_to_network" as any, // New strategy not yet in types
+      packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
 
     // Store for debugging
