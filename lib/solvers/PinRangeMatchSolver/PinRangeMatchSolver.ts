@@ -144,7 +144,7 @@ export class PinRangeMatchSolver extends BaseSolver {
           // Draw connection lines to connected passive chips and add labeled rectangles
           if (range.connectedChips && range.connectedChips.length > 0) {
             const connectedPinRangeName = `Range ${rangeIndex} (${range.side})`
-            
+
             for (const connectedChipId of range.connectedChips) {
               const placement = basicLayout.chipPlacements[connectedChipId]
               const chip = partition.chipMap[connectedChipId]
@@ -167,7 +167,6 @@ export class PinRangeMatchSolver extends BaseSolver {
                   height: chip.size.y + 0.1,
                   strokeColor: rangeColor,
                   fillColor: `hsla(${(rangeIndex * 60) % 360}, 70%, 50%, 0.05)`,
-                  strokeWidth: 1,
                   strokeDashArray: [3, 3],
                   label: `${connectedChipId}\n${connectedPinRangeName}`,
                 })
