@@ -21,6 +21,8 @@ export type PinRange = {
   side: Side
   chipId?: ChipId
   groupId?: GroupId
+  connectedPins?: PinId[]
+  connectedChips?: ChipId[]
 }
 
 export class PartitionPinRangeMatchSolver extends BaseSolver {
@@ -40,16 +42,64 @@ export class PartitionPinRangeMatchSolver extends BaseSolver {
   private createPinRanges(): PinRange[] {
     const pinRanges: PinRange[] = []
 
-    // Process each chip
+    // Identify potential passive components (two-pin chips that are connected to other chips)
+    const passiveChips = new Set<ChipId>()
     for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
-      const chipPinRanges = this.createPinRangesForChip(chipId, chip.pins)
-      pinRanges.push(...chipPinRanges)
+      if (chip.pins.length === 2) {
+        // Check if this 2-pin chip is connected to chips with more pins (acting as a passive)
+        let connectedToLargerChip = false
+        for (const pinId of chip.pins) {
+          for (const [connKey, connected] of Object.entries(this.inputProblem.pinStrongConnMap)) {
+            if (!connected) continue
+            
+            const [pin1Id, pin2Id] = connKey.split("-") as [PinId, PinId]
+            let connectedPinId: PinId | null = null
+            
+            if (pin1Id === pinId) {
+              connectedPinId = pin2Id
+            } else if (pin2Id === pinId) {
+              connectedPinId = pin1Id
+            }
+            
+            if (connectedPinId) {
+              // Find which chip the connected pin belongs to
+              for (const [, otherChip] of Object.entries(this.inputProblem.chipMap)) {
+                if (otherChip.pins.includes(connectedPinId) && otherChip.pins.length > 2) {
+                  connectedToLargerChip = true
+                  break
+                }
+              }
+            }
+            if (connectedToLargerChip) break
+          }
+          if (connectedToLargerChip) break
+        }
+        
+        if (connectedToLargerChip) {
+          passiveChips.add(chipId)
+        }
+      }
+    }
+
+    // Process each non-passive chip
+    for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
+      if (!passiveChips.has(chipId)) {
+        const chipPinRanges = this.createPinRangesForChip(chipId, chip.pins)
+        pinRanges.push(...chipPinRanges)
+      }
     }
 
     // Process each group
     for (const [groupId, group] of Object.entries(this.inputProblem.groupMap)) {
       const groupPinRanges = this.createPinRangesForGroup(groupId, group.pins)
       pinRanges.push(...groupPinRanges)
+    }
+
+    // Find connected passives for each pin range
+    for (const range of pinRanges) {
+      const connectedInfo = this.findConnectedPassives(range.pinIds, passiveChips)
+      range.connectedPins = connectedInfo.connectedPins
+      range.connectedChips = connectedInfo.connectedChips
     }
 
     return pinRanges
@@ -196,12 +246,54 @@ export class PartitionPinRangeMatchSolver extends BaseSolver {
     return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
   }
 
+  private findConnectedPassives(rangePinIds: PinId[], passiveChips: Set<ChipId>): {
+    connectedPins: PinId[]
+    connectedChips: ChipId[]
+  } {
+    const connectedPins: PinId[] = []
+    const connectedChips: ChipId[] = []
+
+    // For each pin in the range, find connected passive components
+    for (const rangePinId of rangePinIds) {
+      // Check strong connections to this pin
+      for (const [connKey, connected] of Object.entries(this.inputProblem.pinStrongConnMap)) {
+        if (!connected) continue
+        
+        const [pin1Id, pin2Id] = connKey.split("-") as [PinId, PinId]
+        let connectedPinId: PinId | null = null
+        
+        if (pin1Id === rangePinId) {
+          connectedPinId = pin2Id
+        } else if (pin2Id === rangePinId) {
+          connectedPinId = pin1Id
+        }
+        
+        if (connectedPinId) {
+          // Find which chip this connected pin belongs to
+          for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
+            if (chip.pins.includes(connectedPinId) && passiveChips.has(chipId)) {
+              // This is a connected passive component
+              if (!connectedChips.includes(chipId)) {
+                connectedChips.push(chipId)
+                // Add both pins of the passive component
+                connectedPins.push(...chip.pins.filter(pinId => !connectedPins.includes(pinId)))
+              }
+              break
+            }
+          }
+        }
+      }
+    }
+
+    return { connectedPins, connectedChips }
+  }
+
   override visualize(): GraphicsObject {
-    // For now, return a simple visualization
     return {
       lines: [],
-      points: this.pinRanges.flatMap((range) =>
-        range.pinIds
+      points: this.pinRanges.flatMap((range) => {
+        // Main pin range points in blue
+        const rangePinPoints = range.pinIds
           .map((pinId) => {
             const chipPin = this.inputProblem.chipPinMap[pinId]
             const groupPin = this.inputProblem.groupPinMap[pinId]
@@ -211,8 +303,23 @@ export class PartitionPinRangeMatchSolver extends BaseSolver {
           .filter(
             (point): point is { x: number; y: number; color: string } =>
               point !== null,
-          ),
-      ),
+          )
+        
+        // Connected passive pins in orange
+        const connectedPinPoints = (range.connectedPins || [])
+          .map((pinId) => {
+            const chipPin = this.inputProblem.chipPinMap[pinId]
+            const groupPin = this.inputProblem.groupPinMap[pinId]
+            const offset = chipPin?.offset || groupPin?.offset
+            return offset ? { x: offset.x, y: offset.y, color: "orange" } : null
+          })
+          .filter(
+            (point): point is { x: number; y: number; color: string } =>
+              point !== null,
+          )
+        
+        return [...rangePinPoints, ...connectedPinPoints]
+      }),
       rects: [],
       circles: [],
     }

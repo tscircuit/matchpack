@@ -83,10 +83,12 @@ export class PinRangeMatchSolver extends BaseSolver {
         // Get pin ranges for this partition
         const partitionRanges = this.partitionResults[partitionIndex] || []
 
-        // Add highlighting rectangles for each pin range
+        // Add highlighting rectangles for each pin range and connected passives
         const highlightRects = partitionRanges
-          .map((range, rangeIndex) => {
-            // Calculate bounding box for pins in this range
+          .flatMap((range, rangeIndex) => {
+            const rects = []
+            
+            // Main pin range highlighting
             const rangePositions = range.pinIds
               .map((pinId) => {
                 const chipPin = partition.chipPinMap[pinId]
@@ -113,25 +115,48 @@ export class PinRangeMatchSolver extends BaseSolver {
               })
               .filter((pos) => pos !== null && pos !== undefined)
 
-            if (rangePositions.length === 0) return null
+            if (rangePositions.length > 0) {
+              // Calculate bounding box with padding
+              const xs = rangePositions.map((p) => p!.x)
+              const ys = rangePositions.map((p) => p!.y)
+              const minX = Math.min(...xs) - 0.05
+              const maxX = Math.max(...xs) + 0.05
+              const minY = Math.min(...ys) - 0.05
+              const maxY = Math.max(...ys) + 0.05
 
-            // Calculate bounding box with padding
-            const xs = rangePositions.map((p) => p!.x)
-            const ys = rangePositions.map((p) => p!.y)
-            const minX = Math.min(...xs) - 0.05
-            const maxX = Math.max(...xs) + 0.05
-            const minY = Math.min(...ys) - 0.05
-            const maxY = Math.max(...ys) + 0.05
-
-            return {
-              center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 },
-              width: Math.max(0.1, maxX - minX),
-              height: Math.max(0.1, maxY - minY),
-              strokeColor: `hsl(${(rangeIndex * 60) % 360}, 70%, 50%)`,
-              fillColor: `hsla(${(rangeIndex * 60) % 360}, 70%, 50%, 0.1)`,
-              strokeWidth: 2,
-              label: `Range ${rangeIndex} (${range.side})`,
+              rects.push({
+                center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 },
+                width: Math.max(0.1, maxX - minX),
+                height: Math.max(0.1, maxY - minY),
+                strokeColor: `hsl(${(rangeIndex * 60) % 360}, 70%, 50%)`,
+                fillColor: `hsla(${(rangeIndex * 60) % 360}, 70%, 50%, 0.1)`,
+                strokeWidth: 2,
+                label: `Range ${rangeIndex} (${range.side})`,
+              })
             }
+
+            // Connected passive chips highlighting
+            if (range.connectedChips && range.connectedChips.length > 0) {
+              for (const connectedChipId of range.connectedChips) {
+                const placement = basicLayout.chipPlacements[connectedChipId]
+                const chip = partition.chipMap[connectedChipId]
+                
+                if (placement && chip) {
+                  rects.push({
+                    center: { x: placement.x, y: placement.y },
+                    width: chip.size.x + 0.2,
+                    height: chip.size.y + 0.2,
+                    strokeColor: `hsl(${(rangeIndex * 60) % 360}, 70%, 30%)`,
+                    fillColor: `hsla(${(rangeIndex * 60) % 360}, 70%, 30%, 0.1)`,
+                    strokeWidth: 1,
+                    strokeDashArray: [3, 3],
+                    label: `Connected: ${connectedChipId}`,
+                  })
+                }
+              }
+            }
+
+            return rects
           })
           .filter((rect) => rect !== null)
 
@@ -144,8 +169,10 @@ export class PinRangeMatchSolver extends BaseSolver {
 
     // Create titles for each partition
     const titles = this.partitions.map((_, index) => {
-      const rangeCount = this.partitionResults[index]?.length || 0
-      return `Partition ${index} (${rangeCount} ranges)`
+      const ranges = this.partitionResults[index] || []
+      const rangeCount = ranges.length
+      const connectedCount = ranges.reduce((sum, range) => sum + (range.connectedChips?.length || 0), 0)
+      return `Partition ${index} (${rangeCount} ranges, ${connectedCount} passives)`
     })
 
     return stackGraphicsHorizontally(partitionVisualizations, { titles })
