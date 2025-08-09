@@ -17,6 +17,7 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
   inputProblem: InputProblem
   layoutApplied = false
   layout: OutputLayout | null = null
+  debugPackInput: any = null // For debugging - captures the pack input
 
   constructor(pinRange: PinRange, inputProblem: InputProblem) {
     super()
@@ -35,7 +36,82 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
     }
   }
 
-  private createPinRangeLayout(): OutputLayout {
+  /**
+   * Build a connectivity map that normalizes network IDs by finding connected components.
+   * All pins in the same connected component get the same network ID.
+   */
+  protected buildNetworkConnectivityMap(
+    relevantPins: Set<string>,
+  ): Map<string, string> {
+    // Build adjacency list from strong connections
+    const adjacency = new Map<string, Set<string>>()
+
+    // Initialize adjacency list
+    for (const pinId of relevantPins) {
+      adjacency.set(pinId, new Set())
+    }
+
+    // Add edges from strong connections
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (connected) {
+        const [pin1Id, pin2Id] = connKey.split("-")
+        if (
+          pin1Id &&
+          pin2Id &&
+          relevantPins.has(pin1Id) &&
+          relevantPins.has(pin2Id)
+        ) {
+          adjacency.get(pin1Id)?.add(pin2Id)
+          adjacency.get(pin2Id)?.add(pin1Id)
+        }
+      }
+    }
+
+    // Find connected components using DFS
+    const visited = new Set<string>()
+    const networkMap = new Map<string, string>()
+
+    const dfs = (pinId: string, networkId: string) => {
+      if (visited.has(pinId)) return
+      visited.add(pinId)
+      networkMap.set(pinId, networkId)
+
+      const neighbors = adjacency.get(pinId)
+      if (neighbors) {
+        for (const neighbor of neighbors) {
+          dfs(neighbor, networkId)
+        }
+      }
+    }
+
+    // Process each unvisited pin
+    for (const pinId of relevantPins) {
+      if (!visited.has(pinId)) {
+        // Use the lexicographically smallest pin ID as the network ID for consistency
+        const component = new Set<string>()
+        const findComponent = (id: string) => {
+          if (component.has(id)) return
+          component.add(id)
+          const neighbors = adjacency.get(id)
+          if (neighbors) {
+            for (const neighbor of neighbors) {
+              findComponent(neighbor)
+            }
+          }
+        }
+        findComponent(pinId)
+
+        const networkId = Array.from(component).sort()[0] || pinId
+        dfs(pinId, networkId)
+      }
+    }
+
+    return networkMap
+  }
+
+  protected createPinRangeLayout(): OutputLayout {
     // Create a focused InputProblem containing only the pin range chip and connected passives
     const relevantChipIds = new Set<string>()
 
@@ -62,6 +138,85 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
       }
     }
 
+    // Build network connectivity map for all relevant pins
+    const relevantPins = new Set<string>()
+    for (const chipId of relevantChipIds) {
+      const chip = this.inputProblem.chipMap[chipId]!
+      for (const pinId of chip.pins) {
+        relevantPins.add(pinId)
+      }
+    }
+
+    const networkMap = this.buildNetworkConnectivityMap(relevantPins)
+
+    // Identify networks that should be preserved (those involving pin range pins and their connected chips)
+    const preservedNetworks = new Set<string>()
+    const pinRangePins = new Set(this.pinRange.pinIds)
+    const connectedChips = new Set(this.pinRange.connectedChips || [])
+
+    // Find the chip containing the pin range
+    let pinRangeChipId: string | null = null
+    for (const pinId of this.pinRange.pinIds) {
+      const chipPin = this.inputProblem.chipPinMap[pinId]
+      if (chipPin) {
+        for (const [chipId, chip] of Object.entries(
+          this.inputProblem.chipMap,
+        )) {
+          if (chip.pins.includes(pinId)) {
+            pinRangeChipId = chipId
+            break
+          }
+        }
+        if (pinRangeChipId) break
+      }
+    }
+
+    // Only preserve networks where:
+    // 1. At least one pin is a pin range pin, AND
+    // 2. All other pins in the network are either pin range pins or connected chip pins
+
+    // Group pins by network
+    const networkToPins = new Map<string, string[]>()
+    for (const [pinId, networkId] of networkMap.entries()) {
+      if (!networkToPins.has(networkId)) {
+        networkToPins.set(networkId, [])
+      }
+      networkToPins.get(networkId)!.push(pinId)
+    }
+
+    for (const [networkId, pinsInNetwork] of networkToPins.entries()) {
+      // Check if this network has any pin range pins
+      const hasPinRangePin = pinsInNetwork.some((pinId) =>
+        pinRangePins.has(pinId),
+      )
+
+      if (hasPinRangePin) {
+        // Check if all pins in this network are either:
+        // - Pin range pins, OR
+        // - Connected chip pins
+        const allPinsAllowed = pinsInNetwork.every((pinId) => {
+          if (pinRangePins.has(pinId)) return true // Pin range pin is allowed
+
+          // Find which chip this pin belongs to
+          for (const [chipId, chip] of Object.entries(
+            this.inputProblem.chipMap,
+          )) {
+            if (chip.pins.includes(pinId)) {
+              return connectedChips.has(chipId) // Allow if from connected chip
+            }
+          }
+          return false
+        })
+
+        if (allPinsAllowed) {
+          preservedNetworks.add(networkId)
+        }
+      }
+    }
+
+    // Counter for disconnected network IDs
+    let disconnectedCounter = 0
+
     // Convert relevant chips to calculate-packing format
     const components = Array.from(relevantChipIds).map((chipId) => {
       const chip = this.inputProblem.chipMap[chipId]!
@@ -71,21 +226,61 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
 
       // Convert pins to pads with network information
       const pads = chipPins.map((pin) => {
-        // Find which network this pin connects to using strong connections
-        let networkId = pin.pinId // Default to unique network per pin
+        // Get normalized network ID from connectivity map
+        let networkId = networkMap.get(pin.pinId) || pin.pinId
 
-        // Look for strong connections to this pin
-        for (const [connKey, connected] of Object.entries(
-          this.inputProblem.pinStrongConnMap,
+        // Determine if this specific pin should keep its network connection
+        const isPinRangePin = pinRangePins.has(pin.pinId)
+
+        // Find which chip this pin belongs to
+        let pinChipId: string | null = null
+        for (const [chipId, chip] of Object.entries(
+          this.inputProblem.chipMap,
         )) {
-          if (connected && connKey.includes(pin.pinId)) {
-            const [pin1Id, pin2Id] = connKey.split("-")
-            if (pin1Id === pin.pinId || pin2Id === pin.pinId) {
-              // Create connectivity key from sorted pin IDs
-              networkId = [pin1Id, pin2Id].sort().join("_")
-              break
-            }
+          if (chip.pins.includes(pin.pinId)) {
+            pinChipId = chipId
+            break
           }
+        }
+        const isConnectedChipPin = pinChipId && connectedChips.has(pinChipId)
+
+        // Keep network ID if:
+        // 1. This is a pin range pin AND the network connects to connected chips, OR
+        // 2. This is a connected chip pin AND the network involves pin range pins
+        let shouldPreserveNetwork = false
+
+        if (isPinRangePin || isConnectedChipPin) {
+          // Check if this network connects pin range pins to connected chip pins
+          const pinsInThisNetwork = Array.from(networkMap.entries())
+            .filter(([, netId]) => netId === networkId)
+            .map(([pinId]) => pinId)
+
+          const hasPinRangePin = pinsInThisNetwork.some((pinId) =>
+            pinRangePins.has(pinId),
+          )
+          const hasConnectedChipPin = pinsInThisNetwork.some((pinId) => {
+            for (const [chipId, chip] of Object.entries(
+              this.inputProblem.chipMap,
+            )) {
+              if (chip.pins.includes(pinId)) {
+                return connectedChips.has(chipId)
+              }
+            }
+            return false
+          })
+
+          // Preserve if this network connects pin range pins to connected chips
+          if (
+            hasPinRangePin &&
+            hasConnectedChipPin &&
+            (isPinRangePin || isConnectedChipPin)
+          ) {
+            shouldPreserveNetwork = true
+          }
+        }
+
+        if (!shouldPreserveNetwork) {
+          networkId = `disconnected_${disconnectedCounter++}`
         }
 
         return {
@@ -93,14 +288,14 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
           networkId,
           type: "rect" as const,
           offset: pin.offset,
-          size: { x: 0.001, y: 0.001 }, // Small pad size
+          size: { x: 0.05, y: 0.05 },
         }
       })
 
-      // Create inner body pad
+      // Create inner body pad with disconnected network ID (bodies don't connect to networks)
       pads.push({
         padId: `${chipId}-body`,
-        networkId: chipId,
+        networkId: `disconnected_${disconnectedCounter++}`,
         type: "rect" as const,
         offset: { x: 0, y: 0 },
         size: { x: chip.size.x, y: chip.size.y },
@@ -120,12 +315,17 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
     }
 
     // Pack components with tighter spacing for pin range layouts
-    const packResult = pack({
+    const packInput = {
       components,
       minGap: 0.2, // Tighter gap than general layout
-      packOrderStrategy: "largest_to_smallest",
-      packPlacementStrategy: "shortest_connection_along_outline",
-    })
+      packOrderStrategy: "largest_to_smallest" as const,
+      packPlacementStrategy: "minimum_sum_distance_to_network" as any, // New strategy not yet in types
+    }
+
+    // Store for debugging
+    this.debugPackInput = packInput
+
+    const packResult = pack(packInput)
 
     // Convert pack result to OutputLayout
     const chipPlacements: Record<

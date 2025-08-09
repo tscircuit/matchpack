@@ -27,6 +27,13 @@ const GenericToolbar = (props: GenericToolbarProps) => {
 export const GenericSolverDebugger = ({ solver }: { solver: BaseSolver }) => {
   const [runCount, incRunCount] = useReducer((x) => x + 1, 0)
 
+  const graphics = solver.visualize()
+
+  const graphicsAreEmpty =
+    graphics.rects?.length === 0 &&
+    graphics.lines?.length === 0 &&
+    graphics.points?.length === 0
+
   return (
     <div>
       <GenericToolbar
@@ -41,7 +48,11 @@ export const GenericSolverDebugger = ({ solver }: { solver: BaseSolver }) => {
         }}
         activeSubSolverName={solver.constructor.name}
       />
-      <InteractiveGraphics graphics={solver.visualize()} />
+      {graphicsAreEmpty ? (
+        <div>No Graphics Yet</div>
+      ) : (
+        <InteractiveGraphics graphics={solver.visualize()} />
+      )}
     </div>
   )
 }
