@@ -4,6 +4,30 @@ import type { OutputLayout } from "lib/types/OutputLayout"
 import type { Point } from "@tscircuit/math-utils"
 
 /**
+ * Rotate a point around the origin by the given angle (counterclockwise)
+ */
+function rotatePoint(point: Point, angleDegrees: number): Point {
+  const angleRad = (angleDegrees * Math.PI) / 180
+  const cos = Math.cos(angleRad)
+  const sin = Math.sin(angleRad)
+  return {
+    x: point.x * cos - point.y * sin,
+    y: point.x * sin + point.y * cos,
+  }
+}
+
+/**
+ * Get rotated dimensions for a chip based on its rotation
+ */
+function getRotatedDimensions(width: number, height: number, rotation: number): { width: number; height: number } {
+  const normalizedRotation = ((rotation % 360) + 360) % 360
+  if (normalizedRotation === 90 || normalizedRotation === 270) {
+    return { width: height, height: width }
+  }
+  return { width, height }
+}
+
+/**
  * Build a simple visualization of the raw input problem: chips, pins, and
  * connectivity (both net-group connections and direct pin-to-pin connections).
  */
@@ -56,11 +80,14 @@ export function visualizeInputProblem(
     // Position chip at its placement location
     const chipCenterX = placement.x
     const chipCenterY = placement.y
+    
+    // Get rotated dimensions for the chip rectangle
+    const rotatedDims = getRotatedDimensions(width, height, placement.ccwRotationDegrees)
 
     inputViz.rects!.push({
       center: { x: chipCenterX, y: chipCenterY },
-      width,
-      height,
+      width: rotatedDims.width,
+      height: rotatedDims.height,
       label: chipId,
     })
 
@@ -68,8 +95,10 @@ export function visualizeInputProblem(
     inputViz.texts!.push({ x: chipCenterX, y: chipCenterY, text: chipId })
 
     for (const pin of chipPins) {
-      const pinAbsX = placement.x + pin.offset.x
-      const pinAbsY = placement.y + pin.offset.y
+      // Rotate pin offset around chip center based on chip rotation
+      const rotatedOffset = rotatePoint(pin.offset, placement.ccwRotationDegrees)
+      const pinAbsX = placement.x + rotatedOffset.x
+      const pinAbsY = placement.y + rotatedOffset.y
       const netId = pinToNetMap[pin.pinId]
       const label = netId ? `${pin.pinId} (${netId})` : pin.pinId
       inputViz.points!.push({
@@ -96,9 +125,11 @@ export function visualizeInputProblem(
             if (chip.pins.includes(pinId)) {
               const placement = basicLayout.chipPlacements[chipId]
               if (placement) {
+                // Rotate pin offset around chip center based on chip rotation
+                const rotatedOffset = rotatePoint(chipPin.offset, placement.ccwRotationDegrees)
                 return {
-                  x: placement.x + chipPin.offset.x,
-                  y: placement.y + chipPin.offset.y,
+                  x: placement.x + rotatedOffset.x,
+                  y: placement.y + rotatedOffset.y,
                 }
               }
             }

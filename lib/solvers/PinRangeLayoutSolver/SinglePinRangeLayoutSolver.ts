@@ -371,9 +371,17 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
           if (chipId && this.layout) {
             const placement = this.layout.chipPlacements[chipId]
             if (placement) {
+              // Rotate pin offset around chip center based on chip rotation
+              const angleRad = (placement.ccwRotationDegrees * Math.PI) / 180
+              const cos = Math.cos(angleRad)
+              const sin = Math.sin(angleRad)
+              const rotatedOffset = {
+                x: offset.x * cos - offset.y * sin,
+                y: offset.x * sin + offset.y * cos,
+              }
               return {
-                x: placement.x + offset.x,
-                y: placement.y + offset.y,
+                x: placement.x + rotatedOffset.x,
+                y: placement.y + rotatedOffset.y,
               }
             }
           }
