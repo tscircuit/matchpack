@@ -4,6 +4,7 @@ export const LayoutPipelineToolbar = (props: {
   onSolve: () => void
   onChangeTab: (tab: "pipeline" | "circuit") => void
   activeSubSolverName?: string
+  iterationCount?: number
 }) => {
   return (
     <div className="flex gap-2 p-2">
@@ -12,6 +13,11 @@ export const LayoutPipelineToolbar = (props: {
       {props.activeSubSolverName && (
         <div className="flex items-center px-3 py-1 bg-gray-100 rounded text-sm">
           Active: {props.activeSubSolverName}
+        </div>
+      )}
+      {props.iterationCount !== undefined && (
+        <div className="flex items-center px-3 py-1 bg-blue-100 rounded text-sm">
+          Iteration: {props.iterationCount}
         </div>
       )}
       <div className="flex-grow" />

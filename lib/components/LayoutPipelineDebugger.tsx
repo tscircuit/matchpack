@@ -34,6 +34,7 @@ export const LayoutPipelineDebugger = ({
           incRunCount()
         }}
         activeSubSolverName={solver.activeSubSolver?.constructor.name}
+        iterationCount={solver.iterations}
       />
       {currentTab === "pipeline" && (
         <>
