@@ -5,13 +5,7 @@
   "partitionGroups": [
     {
       "partitionIndex": 0,
-      "chipIds": [
-        "C6",
-        "U1",
-        "C5",
-        "C2",
-        "C1"
-      ],
+      "chipIds": ["C6", "U1", "C5", "C2", "C1"],
       "bounds": {
         "minX": 0,
         "maxX": 2.6167286449535703,
@@ -21,9 +15,7 @@
     },
     {
       "partitionIndex": 1,
-      "chipIds": [
-        "U2"
-      ],
+      "chipIds": ["U2"],
       "bounds": {
         "minX": 7.61672864495357,
         "maxX": 7.61672864495357,

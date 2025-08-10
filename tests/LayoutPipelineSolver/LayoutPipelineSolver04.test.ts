@@ -6,7 +6,7 @@ import { getExampleCircuitJson } from "../assets/ExampleCircuit04"
 test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline", () => {
   // Get circuit json from ExampleCircuit04
   const circuitJson = getExampleCircuitJson()
-  
+
   // Convert to InputProblem with readable IDs for easier debugging
   const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
     useReadableIds: true,
@@ -14,7 +14,7 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline", () => {
 
   // Create and run the solver
   const solver = new LayoutPipelineSolver(problem)
-  
+
   // Test initial state
   expect(solver.solved).toBe(false)
   expect(solver.failed).toBe(false)

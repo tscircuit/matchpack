@@ -4,7 +4,7 @@
  */
 
 import type { GraphicsObject } from "graphics-debug"
-import { pack, type PackInput } from "calculate-packing"
+import { type PackInput, PhasedPackSolver } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem } from "../../types/InputProblem"
@@ -15,6 +15,7 @@ export class PartitionPackingSolver extends BaseSolver {
   pinRangeOverlapSolver: PinRangeOverlapSolver | null = null
   inputProblems: InputProblem[]
   finalLayout: OutputLayout | null = null
+  phasedPackSolver: PhasedPackSolver | null = null
 
   constructor(
     pinRangeOverlapSolver: PinRangeOverlapSolver,
@@ -48,14 +49,33 @@ export class PartitionPackingSolver extends BaseSolver {
         return
       }
 
-      // Apply global packing to organize partitions efficiently
-      const packedLayout = this.applyGlobalPacking(
-        partitionGroups,
-        resolvedLayout,
-      )
+      // Initialize PhasedPackSolver if not already created
+      if (!this.phasedPackSolver) {
+        const packInput = this.createPackInput(partitionGroups)
+        this.phasedPackSolver = new PhasedPackSolver(packInput)
+        this.activeSubSolver = this.phasedPackSolver
+      }
 
-      this.finalLayout = packedLayout
-      this.solved = true
+      // Run one step of the PhasedPackSolver
+      this.phasedPackSolver.step()
+
+      if (this.phasedPackSolver.failed) {
+        this.failed = true
+        this.error = `PhasedPackSolver failed: ${this.phasedPackSolver.error}`
+        return
+      }
+
+      if (this.phasedPackSolver.solved) {
+        // Apply the packing result to the layout
+        const packedLayout = this.applyPackingResult(
+          this.phasedPackSolver.getResult(),
+          partitionGroups,
+          resolvedLayout,
+        )
+        this.finalLayout = packedLayout
+        this.solved = true
+        this.activeSubSolver = null
+      }
     } catch (error) {
       this.failed = true
       this.error = `Failed to pack partitions: ${error}`
@@ -122,7 +142,7 @@ export class PartitionPackingSolver extends BaseSolver {
     return partitionGroups
   }
 
-  private applyGlobalPacking(
+  private createPackInput(
     partitionGroups: Array<{
       partitionIndex: number
       chipIds: string[]
@@ -133,13 +153,7 @@ export class PartitionPackingSolver extends BaseSolver {
         maxY: number
       }
     }>,
-    currentLayout: OutputLayout,
-  ): OutputLayout {
-    if (partitionGroups.length <= 1) {
-      // No need to repack if only one partition
-      return currentLayout
-    }
-
+  ): PackInput {
     // Create pack components for each partition group
     const packComponents = partitionGroups.map((group, index) => {
       const width = group.bounds.maxX - group.bounds.minX + 2 // Add padding
@@ -159,20 +173,32 @@ export class PartitionPackingSolver extends BaseSolver {
       }
     })
 
-    // Pack the partitions
-    const packInput: PackInput = {
+    return {
       components: packComponents,
       minGap: 2, // Generous gap between partitions
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
+  }
 
-    const packResult = pack(packInput)
-
+  private applyPackingResult(
+    packedComponents: any[],
+    partitionGroups: Array<{
+      partitionIndex: number
+      chipIds: string[]
+      bounds: {
+        minX: number
+        maxX: number
+        minY: number
+        maxY: number
+      }
+    }>,
+    currentLayout: OutputLayout,
+  ): OutputLayout {
     // Apply the partition offsets to individual components
     const newChipPlacements: Record<string, Placement> = {}
 
-    for (const packedComponent of packResult.components) {
+    for (const packedComponent of packedComponents) {
       const partitionIndex = parseInt(
         packedComponent.componentId.replace("partition_", ""),
       )
@@ -209,6 +235,10 @@ export class PartitionPackingSolver extends BaseSolver {
   }
 
   override visualize(): GraphicsObject {
+    if (this.phasedPackSolver && !this.solved) {
+      return this.phasedPackSolver.visualize()
+    }
+
     if (!this.finalLayout) {
       return super.visualize()
     }
