@@ -154,22 +154,64 @@ export class PartitionPackingSolver extends BaseSolver {
       }
     }>,
   ): PackInput {
+    // Get the resolved layout to access chip placements
+    const resolvedLayout = this.pinRangeOverlapSolver!.resolvedLayout!
+    
     // Create pack components for each partition group
-    const packComponents = partitionGroups.map((group, index) => {
-      const width = group.bounds.maxX - group.bounds.minX + 2 // Add padding
-      const height = group.bounds.maxY - group.bounds.minY + 2 // Add padding
+    const packComponents = partitionGroups.map((group) => {
+      // Create pads for all pins of all chips in this partition
+      const pads: Array<{
+        padId: string
+        networkId: string
+        type: "rect"
+        offset: { x: number; y: number }
+        size: { x: number; y: number }
+      }> = []
+      
+      for (const chipId of group.chipIds) {
+        const chipPlacement = resolvedLayout.chipPlacements[chipId]!
+        const chip = this.inputProblems[group.partitionIndex]!.chipMap[chipId]!
+        const chipPinMap = this.inputProblems[group.partitionIndex]!.chipPinMap
+        
+        // Calculate relative chip position from partition bounds
+        const relativeChipX = chipPlacement.x - group.bounds.minX
+        const relativeChipY = chipPlacement.y - group.bounds.minY
+        
+        // Create a pad for each pin on this chip
+        for (const pinId of chip.pins) {
+          const pin = chipPinMap[pinId]
+          if (!pin) continue
+          
+          // Calculate pin position relative to partition bounds
+          const pinX = relativeChipX + pin.offset.x
+          const pinY = relativeChipY + pin.offset.y
+          
+          // Find network for this pin by checking strong connections
+          let networkId = pinId // default to pin ID
+          const pinStrongConnMap = this.inputProblems[group.partitionIndex]!.pinStrongConnMap
+          
+          // Look for strong connections involving this pin
+          for (const [connKey, connected] of Object.entries(pinStrongConnMap)) {
+            if (connected && connKey.includes(pinId)) {
+              // Use the connection key as network ID (represents the connected pins)
+              networkId = connKey
+              break
+            }
+          }
+          
+          pads.push({
+            padId: pinId,
+            networkId: networkId,
+            type: "rect" as const,
+            offset: { x: pinX, y: pinY },
+            size: { x: 0.2, y: 0.2 }, // Small size for pins
+          })
+        }
+      }
 
       return {
         componentId: `partition_${group.partitionIndex}`,
-        pads: [
-          {
-            padId: `partition_${group.partitionIndex}_body`,
-            networkId: `partition_${group.partitionIndex}_disconnected`,
-            type: "rect" as const,
-            offset: { x: 0, y: 0 },
-            size: { x: width, y: height },
-          },
-        ],
+        pads,
       }
     })
 
