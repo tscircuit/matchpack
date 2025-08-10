@@ -162,7 +162,7 @@ export class PartitionPackingSolver extends BaseSolver {
     // Pack the partitions
     const packInput: PackInput = {
       components: packComponents,
-      minGap: 5, // Generous gap between partitions
+      minGap: 2, // Generous gap between partitions
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
