@@ -110,3 +110,41 @@ test("LayoutPipelineSolver02 step-by-step execution", () => {
   // Should have completed pin range match phase
   expect(solver.pinRangeMatchSolver?.solved).toBe(true)
 })
+
+test("LayoutPipelineSolver02 PinRangeLayoutSolver should not error on undefined pinRanges", () => {
+  // Convert ExampleCircuit02 to InputProblem
+  const circuitJson = getExampleCircuitJson()
+  const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
+    useReadableIds: true,
+  })
+
+  // Create solver
+  const solver = new LayoutPipelineSolver(problem)
+
+  // Step until we reach pinRangeLayoutSolver phase
+  solver.solveUntilPhase("pinRangeLayoutSolver")
+
+  // Now step into the pinRangeLayoutSolver phase - should not error
+  let stepCount = 0
+
+  // This should no longer throw an error
+  while (
+    solver.getCurrentPhase() === "pinRangeLayoutSolver" &&
+    stepCount < 50
+  ) {
+    solver.step()
+    stepCount++
+
+    // Make sure we're making progress and not stuck
+    if (
+      solver.pinRangeLayoutSolver?.solved ||
+      solver.pinRangeLayoutSolver?.failed
+    ) {
+      break
+    }
+  }
+
+  // Should have processed without the undefined error
+  expect(solver.pinRangeLayoutSolver).toBeDefined()
+  expect(solver.pinRangeLayoutSolver?.failed).toBeFalsy()
+})

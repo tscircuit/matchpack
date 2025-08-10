@@ -19,7 +19,11 @@ function rotatePoint(point: Point, angleDegrees: number): Point {
 /**
  * Get rotated dimensions for a chip based on its rotation
  */
-function getRotatedDimensions(width: number, height: number, rotation: number): { width: number; height: number } {
+function getRotatedDimensions(
+  width: number,
+  height: number,
+  rotation: number,
+): { width: number; height: number } {
   const normalizedRotation = ((rotation % 360) + 360) % 360
   if (normalizedRotation === 90 || normalizedRotation === 270) {
     return { width: height, height: width }
@@ -80,9 +84,13 @@ export function visualizeInputProblem(
     // Position chip at its placement location
     const chipCenterX = placement.x
     const chipCenterY = placement.y
-    
+
     // Get rotated dimensions for the chip rectangle
-    const rotatedDims = getRotatedDimensions(width, height, placement.ccwRotationDegrees)
+    const rotatedDims = getRotatedDimensions(
+      width,
+      height,
+      placement.ccwRotationDegrees,
+    )
 
     inputViz.rects!.push({
       center: { x: chipCenterX, y: chipCenterY },
@@ -96,7 +104,10 @@ export function visualizeInputProblem(
 
     for (const pin of chipPins) {
       // Rotate pin offset around chip center based on chip rotation
-      const rotatedOffset = rotatePoint(pin.offset, placement.ccwRotationDegrees)
+      const rotatedOffset = rotatePoint(
+        pin.offset,
+        placement.ccwRotationDegrees,
+      )
       const pinAbsX = placement.x + rotatedOffset.x
       const pinAbsY = placement.y + rotatedOffset.y
       const netId = pinToNetMap[pin.pinId]
@@ -126,7 +137,10 @@ export function visualizeInputProblem(
               const placement = basicLayout.chipPlacements[chipId]
               if (placement) {
                 // Rotate pin offset around chip center based on chip rotation
-                const rotatedOffset = rotatePoint(chipPin.offset, placement.ccwRotationDegrees)
+                const rotatedOffset = rotatePoint(
+                  chipPin.offset,
+                  placement.ccwRotationDegrees,
+                )
                 return {
                   x: placement.x + rotatedOffset.x,
                   y: placement.y + rotatedOffset.y,

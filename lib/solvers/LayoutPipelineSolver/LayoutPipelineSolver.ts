@@ -59,6 +59,7 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   inputProblem: InputProblem
   chipPartitions?: ChipPartitionsSolver["partitions"]
+  pinRanges?: ReturnType<PinRangeMatchSolver["getAllPinRanges"]>
 
   pipelineDef = [
     definePipelineStep(
@@ -78,14 +79,20 @@ export class LayoutPipelineSolver extends BaseSolver {
       {
         onSolved: (solver) => {
           // Store matched layouts for next phase
+          this.pinRanges = this.pinRangeMatchSolver!.getAllPinRanges()
         },
       },
     ),
-    definePipelineStep("pinRangeLayoutSolver", PinRangeLayoutSolver, () => [], {
-      onSolved: (solver) => {
-        // Store laid out pin ranges for next phase
+    definePipelineStep(
+      "pinRangeLayoutSolver",
+      PinRangeLayoutSolver,
+      () => [this.pinRanges || [], this.chipPartitions || [this.inputProblem]],
+      {
+        onSolved: (solver) => {
+          // Store laid out pin ranges for next phase
+        },
       },
-    }),
+    ),
     definePipelineStep(
       "pinRangeOverlapSolver",
       PinRangeOverlapSolver,

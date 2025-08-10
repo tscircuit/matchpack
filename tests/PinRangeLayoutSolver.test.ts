@@ -103,11 +103,11 @@ describe("PinRangeLayoutSolver", () => {
 
     // Process each pin range and capture the pack input from the debug property
     const capturedInputs: any[] = []
-    
+
     for (const pinRange of pinRanges) {
       const singleSolver = new SinglePinRangeLayoutSolver(pinRange, problem)
       singleSolver.step()
-      
+
       if (singleSolver.debugPackInput) {
         capturedInputs.push(singleSolver.debugPackInput)
       }
@@ -117,15 +117,18 @@ describe("PinRangeLayoutSolver", () => {
     capturedInputs.forEach((packInput, index) => {
       const filename = `pin-range-${index}-pack-input.json`
       const outputPath = join(outputDir, filename)
-      
+
       const outputData = {
         pinRangeIndex: index,
-        pinRange: index < pinRanges.length ? {
-          pinIds: pinRanges[index]!.pinIds,
-          side: pinRanges[index]!.side,
-          chipId: pinRanges[index]!.chipId,
-          connectedChips: pinRanges[index]!.connectedChips || [],
-        } : null,
+        pinRange:
+          index < pinRanges.length
+            ? {
+                pinIds: pinRanges[index]!.pinIds,
+                side: pinRanges[index]!.side,
+                chipId: pinRanges[index]!.chipId,
+                connectedChips: pinRanges[index]!.connectedChips || [],
+              }
+            : null,
         packInput,
       }
 

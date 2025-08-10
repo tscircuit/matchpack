@@ -105,7 +105,8 @@ export class PinRangeMatchSolver extends BaseSolver {
                   const placement = basicLayout.chipPlacements[chipId]
                   if (placement) {
                     // Rotate pin offset around chip center based on chip rotation
-                    const angleRad = (placement.ccwRotationDegrees * Math.PI) / 180
+                    const angleRad =
+                      (placement.ccwRotationDegrees * Math.PI) / 180
                     const cos = Math.cos(angleRad)
                     const sin = Math.sin(angleRad)
                     const rotatedOffset = {
