@@ -3,18 +3,17 @@
  * Coordinates the entire layout process from chip partitioning through final packing.
  */
 
-import { BaseSolver } from "lib/solvers/BaseSolver"
 import type { GraphicsObject } from "graphics-debug"
+import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
-import { PinRangeMatchSolver } from "lib/solvers/PinRangeMatchSolver/PinRangeMatchSolver"
-import { PinRangeLayoutSolver } from "lib/solvers/PinRangeLayoutSolver/PinRangeLayoutSolver"
-import { PinRangeOverlapSolver } from "lib/solvers/PinRangeOverlapSolver/PinRangeOverlapSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import { PinRangeLayoutSolver } from "lib/solvers/PinRangeLayoutSolver/PinRangeLayoutSolver"
+import { PinRangeMatchSolver } from "lib/solvers/PinRangeMatchSolver/PinRangeMatchSolver"
+import { PinRangeOverlapSolver } from "lib/solvers/PinRangeOverlapSolver/PinRangeOverlapSolver"
 import type { InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
-import { pack } from "calculate-packing"
-import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
+import { visualizeInputProblem } from "./visualizeInputProblem"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -67,7 +66,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       ChipPartitionsSolver,
       () => [this.inputProblem],
       {
-        onSolved: (layoutSolver) => {
+        onSolved: (_layoutSolver) => {
           this.chipPartitions = this.chipPartitionsSolver!.partitions
         },
       },
@@ -77,7 +76,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       PinRangeMatchSolver,
       () => [this.chipPartitions || []],
       {
-        onSolved: (solver) => {
+        onSolved: (_solver) => {
           // Store matched layouts for next phase
           this.pinRanges = this.pinRangeMatchSolver!.getAllPinRanges()
         },
@@ -88,7 +87,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       PinRangeLayoutSolver,
       () => [this.pinRanges || [], this.chipPartitions || [this.inputProblem]],
       {
-        onSolved: (solver) => {
+        onSolved: (_solver) => {
           // Store laid out pin ranges for next phase
         },
       },

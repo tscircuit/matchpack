@@ -37,12 +37,40 @@ test("LayoutPipelineSolver01 visualization example", () => {
   }
 
   const solver = new LayoutPipelineSolver(problem)
-  // solver.solve() // Don't solve, just check initial visualization
 
-  const viz = solver.visualize()
+  // Test initial visualization (before solving)
+  const initialViz = solver.visualize()
+  expect(initialViz.rects?.length).toBe(1) // 1 chip
+  expect(initialViz.points?.length).toBe(2) // 2 chip pins
+  expect(initialViz.lines?.length).toBe(1) // 1 net
+  expect(initialViz.texts?.length).toBe(1) // 1 for chip
 
-  expect(viz.rects?.length).toBe(1) // 1 chip
-  expect(viz.points?.length).toBe(2) // 2 chip pins
-  expect(viz.lines?.length).toBe(1) // 1 net
-  expect(viz.texts?.length).toBe(1) // 1 for chip
+  // Now run the full pipeline
+  solver.solve()
+
+  // Verify pipeline completed successfully
+  expect(solver.solved).toBe(true)
+  expect(solver.failed).toBe(false)
+
+  // Test getOutputLayout
+  const outputLayout = solver.getOutputLayout()
+  expect(outputLayout).toBeDefined()
+  expect(outputLayout.chipPlacements).toBeDefined()
+  expect(outputLayout.groupPlacements).toBeDefined()
+
+  // Should have placement for our chip
+  expect(outputLayout.chipPlacements["C1"]).toBeDefined()
+  const placement = outputLayout.chipPlacements["C1"]!
+  expect(typeof placement.x).toBe("number")
+  expect(typeof placement.y).toBe("number")
+  expect(typeof placement.ccwRotationDegrees).toBe("number")
+
+  // Check for overlaps - should have none
+  const overlaps = solver.checkForOverlaps(outputLayout)
+  expect(overlaps.length).toBe(0)
+
+  // Final visualization should work
+  const finalViz = solver.visualize()
+  expect(finalViz).toBeDefined()
+  expect(finalViz.rects).toBeDefined()
 })
