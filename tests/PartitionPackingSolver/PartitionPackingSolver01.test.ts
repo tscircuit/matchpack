@@ -24,7 +24,7 @@ const STATIC_INPUT: PartitionPackingSolverInput = {
     },
     groupPlacements: {},
   },
-  inputProblems: [
+  laidOutPartitions: [
     // Partition 0: R7, Q1
     {
       chipMap: {
@@ -54,7 +54,7 @@ const STATIC_INPUT: PartitionPackingSolverInput = {
 }
 
 test("PartitionPackingSolver creates correct pack input with pin pads", () => {
-  console.log(`Using static input with ${STATIC_INPUT.inputProblems.length} partition(s)`)
+  console.log(`Using static input with ${STATIC_INPUT.laidOutPartitions.length} partition(s)`)
   
   const solver = new PartitionPackingSolver(STATIC_INPUT)
 

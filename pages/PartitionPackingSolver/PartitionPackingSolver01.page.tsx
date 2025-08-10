@@ -25,7 +25,7 @@ const STATIC_INPUT: PartitionPackingSolverInput = {
     },
     groupPlacements: {},
   },
-  inputProblems: [
+  laidOutPartitions: [
     // Partition 0: R7, Q1
     {
       chipMap: {

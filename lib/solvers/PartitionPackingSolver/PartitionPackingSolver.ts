@@ -10,21 +10,24 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
+// Each partition is an InputProblem representing a connected component that was laid out independently
+export type LaidOutPartition = InputProblem
+
 export interface PartitionPackingSolverInput {
   resolvedLayout: OutputLayout
-  inputProblems: InputProblem[]
+  laidOutPartitions: LaidOutPartition[]
 }
 
 export class PartitionPackingSolver extends BaseSolver {
   resolvedLayout: OutputLayout
-  inputProblems: InputProblem[]
+  laidOutPartitions: LaidOutPartition[]
   finalLayout: OutputLayout | null = null
   phasedPackSolver: PhasedPackSolver | null = null
 
   constructor(input: PartitionPackingSolverInput) {
     super()
     this.resolvedLayout = input.resolvedLayout
-    this.inputProblems = input.inputProblems
+    this.laidOutPartitions = input.laidOutPartitions
   }
 
   override _step() {
@@ -90,7 +93,7 @@ export class PartitionPackingSolver extends BaseSolver {
       maxY: number
     }
   }> {
-    // Group chips by partition based on which input problem they belong to
+    // Group chips by partition based on which laid out partition they belong to
     const partitionGroups: Array<{
       partitionIndex: number
       chipIds: string[]
@@ -102,12 +105,12 @@ export class PartitionPackingSolver extends BaseSolver {
       }
     }> = []
 
-    for (let i = 0; i < this.inputProblems.length; i++) {
-      const inputProblem = this.inputProblems[i]!
+    for (let i = 0; i < this.laidOutPartitions.length; i++) {
+      const laidOutPartition = this.laidOutPartitions[i]!
       const partitionChipIds: string[] = []
 
       // Find chips from this partition that are in the layout
-      for (const chipId of Object.keys(inputProblem.chipMap)) {
+      for (const chipId of Object.keys(laidOutPartition.chipMap)) {
         if (layout.chipPlacements[chipId]) {
           partitionChipIds.push(chipId)
         }
@@ -168,8 +171,8 @@ export class PartitionPackingSolver extends BaseSolver {
       
       for (const chipId of group.chipIds) {
         const chipPlacement = resolvedLayout.chipPlacements[chipId]!
-        const chip = this.inputProblems[group.partitionIndex]!.chipMap[chipId]!
-        const chipPinMap = this.inputProblems[group.partitionIndex]!.chipPinMap
+        const chip = this.laidOutPartitions[group.partitionIndex]!.chipMap[chipId]!
+        const chipPinMap = this.laidOutPartitions[group.partitionIndex]!.chipPinMap
         
         // Calculate relative chip position from partition bounds
         const relativeChipX = chipPlacement.x - group.bounds.minX
@@ -195,7 +198,7 @@ export class PartitionPackingSolver extends BaseSolver {
           
           // Find network for this pin by checking strong connections
           let networkId = pinId // default to pin ID
-          const pinStrongConnMap = this.inputProblems[group.partitionIndex]!.pinStrongConnMap
+          const pinStrongConnMap = this.laidOutPartitions[group.partitionIndex]!.pinStrongConnMap
           
           // Look for strong connections involving this pin
           for (const [connKey, connected] of Object.entries(pinStrongConnMap)) {
@@ -292,7 +295,7 @@ export class PartitionPackingSolver extends BaseSolver {
       return super.visualize()
     }
 
-    // Create a combined input problem for visualization
+    // Create a combined problem for visualization from all laid out partitions
     const combinedProblem: InputProblem = {
       chipMap: {},
       groupMap: {},
@@ -303,18 +306,18 @@ export class PartitionPackingSolver extends BaseSolver {
       netConnMap: {},
     }
 
-    // Combine all input problems
-    for (const inputProblem of this.inputProblems) {
-      Object.assign(combinedProblem.chipMap, inputProblem.chipMap)
-      Object.assign(combinedProblem.groupMap, inputProblem.groupMap)
-      Object.assign(combinedProblem.chipPinMap, inputProblem.chipPinMap)
-      Object.assign(combinedProblem.groupPinMap, inputProblem.groupPinMap)
+    // Combine all laid out partitions
+    for (const laidOutPartition of this.laidOutPartitions) {
+      Object.assign(combinedProblem.chipMap, laidOutPartition.chipMap)
+      Object.assign(combinedProblem.groupMap, laidOutPartition.groupMap)
+      Object.assign(combinedProblem.chipPinMap, laidOutPartition.chipPinMap)
+      Object.assign(combinedProblem.groupPinMap, laidOutPartition.groupPinMap)
       Object.assign(
         combinedProblem.pinStrongConnMap,
-        inputProblem.pinStrongConnMap,
+        laidOutPartition.pinStrongConnMap,
       )
-      Object.assign(combinedProblem.netMap, inputProblem.netMap)
-      Object.assign(combinedProblem.netConnMap, inputProblem.netConnMap)
+      Object.assign(combinedProblem.netMap, laidOutPartition.netMap)
+      Object.assign(combinedProblem.netConnMap, laidOutPartition.netConnMap)
     }
 
     return visualizeInputProblem(combinedProblem, this.finalLayout)
@@ -323,7 +326,7 @@ export class PartitionPackingSolver extends BaseSolver {
   override getConstructorParams(): PartitionPackingSolverInput {
     return {
       resolvedLayout: this.resolvedLayout,
-      inputProblems: this.inputProblems,
+      laidOutPartitions: this.laidOutPartitions,
     }
   }
 }

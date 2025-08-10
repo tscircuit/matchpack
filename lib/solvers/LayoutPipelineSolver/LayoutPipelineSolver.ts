@@ -109,10 +109,10 @@ export class LayoutPipelineSolver extends BaseSolver {
     definePipelineStep(
       "partitionPackingSolver",
       PartitionPackingSolver,
-      () => [
-        this.pinRangeOverlapSolver!,
-        this.chipPartitions || [this.inputProblem],
-      ],
+      () => [{
+        resolvedLayout: this.pinRangeOverlapSolver!.resolvedLayout!,
+        laidOutPartitions: this.chipPartitions || [this.inputProblem],
+      }],
       {
         onSolved: (_solver) => {
           // Store final packed layout as output
