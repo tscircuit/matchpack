@@ -96,9 +96,12 @@ export class LayoutPipelineSolver extends BaseSolver {
     definePipelineStep(
       "pinRangeOverlapSolver",
       PinRangeOverlapSolver,
-      () => [],
+      () => [
+        this.pinRangeLayoutSolver!,
+        this.chipPartitions || [this.inputProblem],
+      ],
       {
-        onSolved: (solver) => {
+        onSolved: (_solver) => {
           // Store overlap-resolved layout for next phase
         },
       },
@@ -106,9 +109,12 @@ export class LayoutPipelineSolver extends BaseSolver {
     definePipelineStep(
       "partitionPackingSolver",
       PartitionPackingSolver,
-      () => [],
+      () => [
+        this.pinRangeOverlapSolver!,
+        this.chipPartitions || [this.inputProblem],
+      ],
       {
-        onSolved: (solver) => {
+        onSolved: (_solver) => {
           // Store final packed layout as output
         },
       },
@@ -253,6 +259,67 @@ export class LayoutPipelineSolver extends BaseSolver {
   }
 
   getOutputLayout(): OutputLayout {
-    throw new Error("Not implemented")
+    if (!this.solved) {
+      throw new Error(
+        "Pipeline not solved yet. Call solve() or step() until solved.",
+      )
+    }
+
+    // Get the final layout from the last solver
+    if (
+      this.partitionPackingSolver?.solved &&
+      this.partitionPackingSolver.finalLayout
+    ) {
+      return this.partitionPackingSolver.finalLayout
+    }
+
+    // Fall back to overlap solver if partition packing didn't run
+    if (
+      this.pinRangeOverlapSolver?.solved &&
+      this.pinRangeOverlapSolver.resolvedLayout
+    ) {
+      return this.pinRangeOverlapSolver.resolvedLayout
+    }
+
+    // Fall back to basic layout if earlier phases completed
+    if (this.pinRangeLayoutSolver?.solved) {
+      // Collect layouts from all completed pin range solvers
+      const allChipPlacements: Record<
+        string,
+        { x: number; y: number; ccwRotationDegrees: number }
+      > = {}
+      const allGroupPlacements: Record<
+        string,
+        { x: number; y: number; ccwRotationDegrees: number }
+      > = {}
+
+      for (const singleSolver of this.pinRangeLayoutSolver.completedSolvers) {
+        if (singleSolver.layout) {
+          Object.assign(allChipPlacements, singleSolver.layout.chipPlacements)
+          Object.assign(allGroupPlacements, singleSolver.layout.groupPlacements)
+        }
+      }
+
+      // Include active solver if it has a layout
+      if (this.pinRangeLayoutSolver.activeSolver?.layout) {
+        Object.assign(
+          allChipPlacements,
+          this.pinRangeLayoutSolver.activeSolver.layout.chipPlacements,
+        )
+        Object.assign(
+          allGroupPlacements,
+          this.pinRangeLayoutSolver.activeSolver.layout.groupPlacements,
+        )
+      }
+
+      return {
+        chipPlacements: allChipPlacements,
+        groupPlacements: allGroupPlacements,
+      }
+    }
+
+    throw new Error(
+      "No layout available. Pipeline may have failed or not progressed far enough.",
+    )
   }
 }

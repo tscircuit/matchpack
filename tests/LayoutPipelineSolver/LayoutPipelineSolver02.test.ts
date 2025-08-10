@@ -148,3 +148,59 @@ test("LayoutPipelineSolver02 PinRangeLayoutSolver should not error on undefined 
   expect(solver.pinRangeLayoutSolver).toBeDefined()
   expect(solver.pinRangeLayoutSolver?.failed).toBeFalsy()
 })
+
+test("LayoutPipelineSolver02 complete pipeline execution", () => {
+  // Convert ExampleCircuit02 to InputProblem
+  const circuitJson = getExampleCircuitJson()
+  const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
+    useReadableIds: true,
+  })
+
+  // Create solver
+  const solver = new LayoutPipelineSolver(problem)
+
+  // Solve the complete pipeline
+  solver.solve()
+
+  // Should be solved successfully
+  expect(solver.solved).toBe(true)
+  expect(solver.failed).toBe(false)
+
+  // Verify all phases completed
+  expect(solver.chipPartitionsSolver?.solved).toBe(true)
+  expect(solver.pinRangeMatchSolver?.solved).toBe(true)
+  expect(solver.pinRangeLayoutSolver?.solved).toBe(true)
+  expect(solver.pinRangeOverlapSolver?.solved).toBe(true)
+  expect(solver.partitionPackingSolver?.solved).toBe(true)
+
+  // Test getOutputLayout method
+  const outputLayout = solver.getOutputLayout()
+  expect(outputLayout).toBeDefined()
+  expect(outputLayout.chipPlacements).toBeDefined()
+  expect(outputLayout.groupPlacements).toBeDefined()
+
+  // Should have placements for all chips
+  const chipIds = Object.keys(problem.chipMap)
+  for (const chipId of chipIds) {
+    expect(outputLayout.chipPlacements[chipId]).toBeDefined()
+    const placement = outputLayout.chipPlacements[chipId]!
+    expect(typeof placement.x).toBe("number")
+    expect(typeof placement.y).toBe("number")
+    expect(typeof placement.ccwRotationDegrees).toBe("number")
+  }
+
+  // Test final visualization
+  const finalViz = solver.visualize()
+  expect(finalViz).toBeDefined()
+  expect(finalViz.rects).toBeDefined()
+  expect(finalViz.rects!.length).toBeGreaterThan(0)
+
+  // Verify no components are at origin (should be properly placed)
+  let nonOriginPlacements = 0
+  for (const placement of Object.values(outputLayout.chipPlacements)) {
+    if (placement.x !== 0 || placement.y !== 0) {
+      nonOriginPlacements++
+    }
+  }
+  expect(nonOriginPlacements).toBeGreaterThan(0)
+})
