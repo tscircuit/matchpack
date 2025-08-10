@@ -4,6 +4,7 @@
  */
 
 import type { GraphicsObject } from "graphics-debug"
+import { stackGraphicsHorizontally } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { PinRange } from "../PinRangeMatchSolver/PartitionPinRangeMatchSolver/PartitionPinRangeMatchSolver"
@@ -44,47 +45,200 @@ export class PinRangeOverlapSolver extends BaseSolver {
         return
       }
 
-      // Collect all component placements from completed solvers
-      const allChipPlacements: Record<string, Placement> = {}
-      const allGroupPlacements: Record<string, Placement> = {}
+      // Group placements by partition (InputProblem)
+      const partitionLayouts = this.groupPlacementsByPartition()
 
-      // Merge layouts from all completed pin range solvers
-      for (const singleSolver of this.pinRangeLayoutSolver.completedSolvers) {
-        if (singleSolver.layout) {
-          Object.assign(allChipPlacements, singleSolver.layout.chipPlacements)
-          Object.assign(allGroupPlacements, singleSolver.layout.groupPlacements)
-        }
-      }
+      // Resolve overlaps within each partition independently
+      const resolvedPartitionLayouts = partitionLayouts.map((partitionLayout) =>
+        this.resolvePartitionOverlaps(partitionLayout),
+      )
 
-      // Include active solver if it has a layout
-      if (this.pinRangeLayoutSolver.activeSolver?.layout) {
-        Object.assign(
-          allChipPlacements,
-          this.pinRangeLayoutSolver.activeSolver.layout.chipPlacements,
-        )
-        Object.assign(
-          allGroupPlacements,
-          this.pinRangeLayoutSolver.activeSolver.layout.groupPlacements,
-        )
-      }
+      // Position partitions horizontally separated
+      const finalLayout = this.positionPartitionsHorizontally(
+        resolvedPartitionLayouts,
+      )
 
-      // Find overlapping components
-      const overlaps = this.findOverlaps(allChipPlacements)
-
-      if (overlaps.length > 0) {
-        // Resolve overlaps by shifting components
-        this.resolveOverlaps(allChipPlacements, overlaps)
-      }
-
-      this.resolvedLayout = {
-        chipPlacements: allChipPlacements,
-        groupPlacements: allGroupPlacements,
-      }
-
+      this.resolvedLayout = finalLayout
       this.solved = true
     } catch (error) {
       this.failed = true
       this.error = `Failed to resolve pin range overlaps: ${error}`
+    }
+  }
+
+  private groupPlacementsByPartition(): Array<{
+    partitionIndex: number
+    inputProblem: InputProblem
+    chipPlacements: Record<string, Placement>
+    groupPlacements: Record<string, Placement>
+  }> {
+    const partitionLayouts: Array<{
+      partitionIndex: number
+      inputProblem: InputProblem
+      chipPlacements: Record<string, Placement>
+      groupPlacements: Record<string, Placement>
+    }> = []
+
+    // Initialize partition layouts
+    for (let i = 0; i < this.inputProblems.length; i++) {
+      partitionLayouts.push({
+        partitionIndex: i,
+        inputProblem: this.inputProblems[i]!,
+        chipPlacements: {},
+        groupPlacements: {},
+      })
+    }
+
+    // Collect placements from completed solvers and group by partition
+    for (const singleSolver of this.pinRangeLayoutSolver!.completedSolvers) {
+      if (singleSolver.layout) {
+        // Find which partition this solver belongs to based on its input problem
+        const partitionIndex = this.findPartitionIndexForSolver(singleSolver)
+        if (partitionIndex >= 0) {
+          Object.assign(
+            partitionLayouts[partitionIndex]!.chipPlacements,
+            singleSolver.layout.chipPlacements,
+          )
+          Object.assign(
+            partitionLayouts[partitionIndex]!.groupPlacements,
+            singleSolver.layout.groupPlacements,
+          )
+        }
+      }
+    }
+
+    // Include active solver if it has a layout
+    if (this.pinRangeLayoutSolver!.activeSolver?.layout) {
+      const partitionIndex = this.findPartitionIndexForSolver(
+        this.pinRangeLayoutSolver!.activeSolver,
+      )
+      if (partitionIndex >= 0) {
+        Object.assign(
+          partitionLayouts[partitionIndex]!.chipPlacements,
+          this.pinRangeLayoutSolver!.activeSolver.layout.chipPlacements,
+        )
+        Object.assign(
+          partitionLayouts[partitionIndex]!.groupPlacements,
+          this.pinRangeLayoutSolver!.activeSolver.layout.groupPlacements,
+        )
+      }
+    }
+
+    return partitionLayouts
+  }
+
+  private findPartitionIndexForSolver(singleSolver: any): number {
+    // Find which input problem contains the chips/groups from this solver's layout
+    if (!singleSolver.layout) return -1
+
+    const layoutChipIds = Object.keys(singleSolver.layout.chipPlacements)
+    const layoutGroupIds = Object.keys(singleSolver.layout.groupPlacements)
+
+    for (let i = 0; i < this.inputProblems.length; i++) {
+      const inputProblem = this.inputProblems[i]!
+
+      // Check if this partition contains any of the chips/groups from the layout
+      const hasAnyChip = layoutChipIds.some(
+        (chipId) => inputProblem.chipMap[chipId],
+      )
+      const hasAnyGroup = layoutGroupIds.some(
+        (groupId) => inputProblem.groupMap[groupId],
+      )
+
+      if (hasAnyChip || hasAnyGroup) {
+        return i
+      }
+    }
+
+    return -1
+  }
+
+  private resolvePartitionOverlaps(partitionLayout: {
+    partitionIndex: number
+    inputProblem: InputProblem
+    chipPlacements: Record<string, Placement>
+    groupPlacements: Record<string, Placement>
+  }): {
+    partitionIndex: number
+    inputProblem: InputProblem
+    chipPlacements: Record<string, Placement>
+    groupPlacements: Record<string, Placement>
+  } {
+    // Create a copy to avoid modifying the original
+    const resolvedLayout = {
+      ...partitionLayout,
+      chipPlacements: { ...partitionLayout.chipPlacements },
+      groupPlacements: { ...partitionLayout.groupPlacements },
+    }
+
+    // Find overlaps within this partition only
+    const overlaps = this.findOverlaps(resolvedLayout.chipPlacements)
+
+    if (overlaps.length > 0) {
+      // Resolve overlaps by shifting components
+      this.resolveOverlaps(resolvedLayout.chipPlacements, overlaps)
+    }
+
+    return resolvedLayout
+  }
+
+  private positionPartitionsHorizontally(
+    partitionLayouts: Array<{
+      partitionIndex: number
+      inputProblem: InputProblem
+      chipPlacements: Record<string, Placement>
+      groupPlacements: Record<string, Placement>
+    }>,
+  ): OutputLayout {
+    const finalChipPlacements: Record<string, Placement> = {}
+    const finalGroupPlacements: Record<string, Placement> = {}
+
+    let currentOffsetX = 0
+    const partitionGap = 5 // Gap between partitions
+
+    for (const partitionLayout of partitionLayouts) {
+      // Calculate partition bounds
+      const chipIds = Object.keys(partitionLayout.chipPlacements)
+      if (chipIds.length === 0) continue
+
+      const xs = chipIds.map(
+        (chipId) => partitionLayout.chipPlacements[chipId]!.x,
+      )
+      const partitionMinX = Math.min(...xs)
+      const partitionMaxX = Math.max(...xs)
+      const partitionWidth = partitionMaxX - partitionMinX
+
+      // Calculate offset to position this partition
+      const offsetX = currentOffsetX - partitionMinX
+
+      // Apply offset to all components in this partition
+      for (const [chipId, placement] of Object.entries(
+        partitionLayout.chipPlacements,
+      )) {
+        finalChipPlacements[chipId] = {
+          x: placement.x + offsetX,
+          y: placement.y,
+          ccwRotationDegrees: placement.ccwRotationDegrees,
+        }
+      }
+
+      for (const [groupId, placement] of Object.entries(
+        partitionLayout.groupPlacements,
+      )) {
+        finalGroupPlacements[groupId] = {
+          x: placement.x + offsetX,
+          y: placement.y,
+          ccwRotationDegrees: placement.ccwRotationDegrees,
+        }
+      }
+
+      // Update offset for next partition
+      currentOffsetX += partitionWidth + partitionGap
+    }
+
+    return {
+      chipPlacements: finalChipPlacements,
+      groupPlacements: finalGroupPlacements,
     }
   }
 
@@ -228,32 +382,53 @@ export class PinRangeOverlapSolver extends BaseSolver {
       return super.visualize()
     }
 
-    // Create a combined input problem for visualization
-    const combinedProblem: InputProblem = {
-      chipMap: {},
-      groupMap: {},
-      chipPinMap: {},
-      groupPinMap: {},
-      pinStrongConnMap: {},
-      netMap: {},
-      netConnMap: {},
-    }
+    // Group placements by partition to visualize each separately
+    const partitionLayouts = this.groupPlacementsByPartition()
+    const partitionVisualizations: GraphicsObject[] = []
 
-    // Combine all input problems
-    for (const inputProblem of this.inputProblems) {
-      Object.assign(combinedProblem.chipMap, inputProblem.chipMap)
-      Object.assign(combinedProblem.groupMap, inputProblem.groupMap)
-      Object.assign(combinedProblem.chipPinMap, inputProblem.chipPinMap)
-      Object.assign(combinedProblem.groupPinMap, inputProblem.groupPinMap)
-      Object.assign(
-        combinedProblem.pinStrongConnMap,
-        inputProblem.pinStrongConnMap,
+    for (const partitionLayout of partitionLayouts) {
+      if (Object.keys(partitionLayout.chipPlacements).length === 0) continue
+
+      // Create layout just for this partition with resolved positions
+      const partitionOutputLayout: OutputLayout = {
+        chipPlacements: {},
+        groupPlacements: {},
+      }
+
+      // Get resolved positions for this partition's components
+      for (const chipId of Object.keys(partitionLayout.chipPlacements)) {
+        if (this.resolvedLayout.chipPlacements[chipId]) {
+          partitionOutputLayout.chipPlacements[chipId] =
+            this.resolvedLayout.chipPlacements[chipId]!
+        }
+      }
+
+      for (const groupId of Object.keys(partitionLayout.groupPlacements)) {
+        if (this.resolvedLayout.groupPlacements[groupId]) {
+          partitionOutputLayout.groupPlacements[groupId] =
+            this.resolvedLayout.groupPlacements[groupId]!
+        }
+      }
+
+      const viz = visualizeInputProblem(
+        partitionLayout.inputProblem,
+        partitionOutputLayout,
       )
-      Object.assign(combinedProblem.netMap, inputProblem.netMap)
-      Object.assign(combinedProblem.netConnMap, inputProblem.netConnMap)
+      partitionVisualizations.push({
+        ...viz,
+        title: `Partition ${partitionLayout.partitionIndex + 1}`,
+      })
     }
 
-    return visualizeInputProblem(combinedProblem, this.resolvedLayout)
+    if (partitionVisualizations.length === 0) {
+      return super.visualize()
+    }
+
+    if (partitionVisualizations.length === 1) {
+      return partitionVisualizations[0]!
+    }
+
+    return stackGraphicsHorizontally(partitionVisualizations)
   }
 
   override getConstructorParams() {
