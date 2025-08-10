@@ -8,37 +8,35 @@ import { type PackInput, PhasedPackSolver } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem } from "../../types/InputProblem"
-import { PinRangeOverlapSolver } from "../PinRangeOverlapSolver/PinRangeOverlapSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
+export interface PartitionPackingSolverInput {
+  resolvedLayout: OutputLayout
+  inputProblems: InputProblem[]
+}
+
 export class PartitionPackingSolver extends BaseSolver {
-  pinRangeOverlapSolver: PinRangeOverlapSolver | null = null
+  resolvedLayout: OutputLayout
   inputProblems: InputProblem[]
   finalLayout: OutputLayout | null = null
   phasedPackSolver: PhasedPackSolver | null = null
 
-  constructor(
-    pinRangeOverlapSolver: PinRangeOverlapSolver,
-    inputProblems: InputProblem[],
-  ) {
+  constructor(input: PartitionPackingSolverInput) {
     super()
-    this.pinRangeOverlapSolver = pinRangeOverlapSolver
-    this.inputProblems = inputProblems
+    this.resolvedLayout = input.resolvedLayout
+    this.inputProblems = input.inputProblems
   }
 
   override _step() {
     try {
-      if (
-        !this.pinRangeOverlapSolver?.solved ||
-        !this.pinRangeOverlapSolver.resolvedLayout
-      ) {
+      if (!this.resolvedLayout) {
         this.failed = true
-        this.error = "PinRangeOverlapSolver not solved or no resolved layout"
+        this.error = "No resolved layout provided"
         return
       }
 
       // Get the overlap-resolved layout
-      const resolvedLayout = this.pinRangeOverlapSolver.resolvedLayout
+      const resolvedLayout = this.resolvedLayout
 
       // Create groups of components by partition for better organization
       const partitionGroups = this.organizeComponentsByPartition(resolvedLayout)
@@ -155,7 +153,7 @@ export class PartitionPackingSolver extends BaseSolver {
     }>,
   ): PackInput {
     // Get the resolved layout to access chip placements
-    const resolvedLayout = this.pinRangeOverlapSolver!.resolvedLayout!
+    const resolvedLayout = this.resolvedLayout
     
     // Create pack components for each partition group
     const packComponents = partitionGroups.map((group) => {
@@ -176,6 +174,15 @@ export class PartitionPackingSolver extends BaseSolver {
         // Calculate relative chip position from partition bounds
         const relativeChipX = chipPlacement.x - group.bounds.minX
         const relativeChipY = chipPlacement.y - group.bounds.minY
+        
+        // Add chip body pad (disconnected from any network)
+        pads.push({
+          padId: `${chipId}_body`,
+          networkId: `${chipId}_body_disconnected`,
+          type: "rect" as const,
+          offset: { x: relativeChipX, y: relativeChipY },
+          size: { x: chip.size.x, y: chip.size.y },
+        })
         
         // Create a pad for each pin on this chip
         for (const pinId of chip.pins) {
@@ -313,9 +320,9 @@ export class PartitionPackingSolver extends BaseSolver {
     return visualizeInputProblem(combinedProblem, this.finalLayout)
   }
 
-  override getConstructorParams() {
+  override getConstructorParams(): PartitionPackingSolverInput {
     return {
-      pinRangeOverlapSolver: this.pinRangeOverlapSolver,
+      resolvedLayout: this.resolvedLayout,
       inputProblems: this.inputProblems,
     }
   }

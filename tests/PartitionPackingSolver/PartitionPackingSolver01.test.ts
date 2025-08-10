@@ -1,9 +1,8 @@
-import { useMemo } from "react"
-import { GenericSolverDebugger } from "lib/components/GenericSolverDebugger"
-import { PartitionPackingSolver, type PartitionPackingSolverInput } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
-import type { InputProblem } from "lib/types/InputProblem"
+import { test, expect } from "bun:test"
+import { PartitionPackingSolver, type PartitionPackingSolverInput } from "../../lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import type { InputProblem } from "../../lib/types/InputProblem"
 
-// Static input data - generated from running the solver chain (see corresponding test)
+// Static input data - same as used in the page
 const STATIC_INPUT: PartitionPackingSolverInput = {
   resolvedLayout: {
     chipPlacements: {
@@ -50,14 +49,57 @@ const STATIC_INPUT: PartitionPackingSolverInput = {
       pinStrongConnMap: { "R7.2-Q1.3": true, "Q1.3-R7.2": true },
       netConnMap: { "R7.1-GND": true, "Q1.1-V3_3": true, "Q1.2-V3_3_SW": true, "Q1.3-DISABLE": true },
     },
-    // Additional partitions would go here but truncated for brevity
+    // Additional partitions would normally go here but truncated for test brevity
   ] as InputProblem[],
 }
 
-export default function PartitionPackingSolver01Page() {
-  const solver = useMemo(() => {
-    return new PartitionPackingSolver(STATIC_INPUT)
-  }, [])
+test("PartitionPackingSolver creates correct pack input with pin pads", () => {
+  console.log(`Using static input with ${STATIC_INPUT.inputProblems.length} partition(s)`)
+  
+  const solver = new PartitionPackingSolver(STATIC_INPUT)
 
-  return <GenericSolverDebugger solver={solver} />
-}
+  // Step a few times to see what happens
+  console.log("Initial state:")
+  console.log("- Solved:", solver.solved)
+  console.log("- Failed:", solver.failed)
+  console.log("- Error:", solver.error)
+
+  // Take several steps
+  for (let i = 0; i < 5; i++) {
+    console.log(`\nStep ${i + 1}:`)
+    solver.step()
+    console.log("- Solved:", solver.solved)
+    console.log("- Failed:", solver.failed)
+    console.log("- Error:", solver.error)
+    
+    if (solver.solved || solver.failed) {
+      break
+    }
+  }
+
+  // Check if we have a phasedPackSolver and inspect its pack input
+  if (solver.phasedPackSolver) {
+    const packInput = (solver as any).phasedPackSolver.packInput
+    console.log("\nPack input components count:", packInput.components.length)
+    
+    // Verify pack input structure
+    expect(packInput.components).toBeDefined()
+    expect(Array.isArray(packInput.components)).toBe(true)
+    
+    for (const component of packInput.components) {
+      console.log(`\nComponent ${component.componentId}:`)
+      console.log(`- Pads count: ${component.pads.length}`)
+      
+      // Check that pads have proper names (not partition names)
+      for (const pad of component.pads.slice(0, 3)) { // Just show first few
+        console.log(`  - Pad: ${pad.padId}, Network: ${pad.networkId}`)
+        expect(pad.padId).not.toMatch(/^partition_/)
+        // Should be either pin format "U1.1" or body format "U1_body"
+        expect(pad.padId).toMatch(/\w+[._]\w+/)
+      }
+    }
+  }
+
+  // Should not fail immediately
+  expect(solver.failed).toBe(false)
+})
