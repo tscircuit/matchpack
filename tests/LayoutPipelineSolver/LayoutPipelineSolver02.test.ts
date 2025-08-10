@@ -27,14 +27,12 @@ test("LayoutPipelineSolver02 runs pipeline phases for ExampleCircuit02", () => {
   expect(initialViz.points).toBeDefined()
 
   // Test just the chip partitions phase
-  console.log("Testing ChipPartitionsSolver phase...")
   solver.solveUntilPhase("pinRangeMatchSolver")
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
   expect(solver.chipPartitions).toBeDefined()
   expect(solver.chipPartitions!.length).toBeGreaterThan(0)
 
   // Test the pin range match phase
-  console.log("Testing PinRangeMatchSolver phase...")
   solver.solveUntilPhase("pinRangeLayoutSolver")
   expect(solver.pinRangeMatchSolver?.solved).toBe(true)
 

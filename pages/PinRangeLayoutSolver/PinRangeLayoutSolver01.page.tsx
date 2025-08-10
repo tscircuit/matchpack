@@ -27,7 +27,6 @@ export default () => {
     pinRangeMatchSolver.solve()
 
     if (pinRangeMatchSolver.failed) {
-      console.error("PinRangeMatchSolver failed:", pinRangeMatchSolver.error)
     }
 
     // Get all pin ranges for layout

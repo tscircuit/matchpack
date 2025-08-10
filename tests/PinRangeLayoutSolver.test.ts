@@ -105,7 +105,6 @@ describe("PinRangeLayoutSolver", () => {
     const capturedInputs: any[] = []
     
     for (const pinRange of pinRanges) {
-      console.log(`Processing pin range ${pinRanges.indexOf(pinRange)}: pins ${pinRange.pinIds.join(", ")}`)
       const singleSolver = new SinglePinRangeLayoutSolver(pinRange, problem)
       singleSolver.step()
       
@@ -131,10 +130,8 @@ describe("PinRangeLayoutSolver", () => {
       }
 
       writeFileSync(outputPath, JSON.stringify(outputData, null, 2))
-      console.log(`Wrote calculate-packing input to: ${outputPath}`)
     })
 
-    console.log(`Generated ${capturedInputs.length} calculate-packing input files in ${outputDir}`)
     expect(capturedInputs.length).toBeGreaterThan(0)
   })
 })
