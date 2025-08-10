@@ -3,6 +3,7 @@ import type { InputProblem } from "lib/types/InputProblem"
 import { useMemo, useReducer, useState } from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
 import { LayoutPipelineToolbar } from "./LayoutPipelineToolbar"
+import { PipelineStatusTable } from "./PipelineStatusTable"
 import type { CircuitJson } from "circuit-json"
 import { SchematicViewer } from "@tscircuit/schematic-viewer"
 
@@ -35,7 +36,10 @@ export const LayoutPipelineDebugger = ({
         activeSubSolverName={solver.activeSubSolver?.constructor.name}
       />
       {currentTab === "pipeline" && (
-        <InteractiveGraphics graphics={solver.visualize()} />
+        <>
+          <InteractiveGraphics graphics={solver.visualize()} />
+          <PipelineStatusTable solver={solver} runCount={runCount} />
+        </>
       )}
       {currentTab === "circuit" &&
         (problemCircuitJson ? (

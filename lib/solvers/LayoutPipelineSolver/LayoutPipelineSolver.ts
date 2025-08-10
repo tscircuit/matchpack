@@ -55,6 +55,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
   timeSpentOnPhase: Record<string, number>
+  firstIterationOfPhase: Record<string, number>
 
   inputProblem: InputProblem
   chipPartitions?: ChipPartitionsSolver["partitions"]
@@ -127,6 +128,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     this.startTimeOfPhase = {}
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}
+    this.firstIterationOfPhase = {}
   }
 
   currentPipelineStepIndex = 0
@@ -162,6 +164,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     ;(this as any)[pipelineStepDef.solverName] = this.activeSubSolver
     this.timeSpentOnPhase[pipelineStepDef.solverName] = 0
     this.startTimeOfPhase[pipelineStepDef.solverName] = performance.now()
+    this.firstIterationOfPhase[pipelineStepDef.solverName] = this.iterations
   }
 
   solveUntilPhase(phase: string) {
