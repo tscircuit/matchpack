@@ -71,4 +71,10 @@ export const ExampleCircuit = () => (
   </board>
 )
 
-export default <ExampleCircuit />
+export const getExampleCircuitJson = () => {
+  const circuit = new RootCircuit()
+
+  circuit.add(<ExampleCircuit />)
+
+  return circuit.getCircuitJson()
+}
