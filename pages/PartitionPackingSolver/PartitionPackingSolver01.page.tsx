@@ -3823,30 +3823,30 @@ export const partitionPackingSolverInputs = [
       },
     },
   ],
-]
+] as const
 
 export default () => {
   const solver = useMemo(() => {
     // Use the first input from the partitionPackingSolverInputs data
-    const inputData = partitionPackingSolverInputs[0]!
-    
+    const inputData = partitionPackingSolverInputs[0]
+
     // Create a mock PinRangeOverlapSolver with the resolved layout
     const pinRangeOverlapSolver = new PinRangeOverlapSolver(
       inputData.pinRangeLayoutSolver as any,
-      inputData.pinRangeLayoutSolver.inputProblems
+      inputData.pinRangeLayoutSolver.inputProblems as any,
     )
-    
+
     // Set the solver state to solved with the resolved layout
     pinRangeOverlapSolver.solved = true
     pinRangeOverlapSolver.resolvedLayout = {
       chipPlacements: inputData.resolvedLayout.chipPlacements,
-      groupPlacements: inputData.resolvedLayout.groupPlacements
+      groupPlacements: inputData.resolvedLayout.groupPlacements,
     }
 
     // Create PartitionPackingSolver with the mock overlap solver and input problems
     const partitionSolver = new PartitionPackingSolver(
       pinRangeOverlapSolver,
-      inputData.pinRangeLayoutSolver.inputProblems
+      inputData.pinRangeLayoutSolver.inputProblems as any,
     )
 
     return partitionSolver
