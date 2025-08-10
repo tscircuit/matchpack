@@ -203,4 +203,68 @@ test("LayoutPipelineSolver02 complete pipeline execution", () => {
     }
   }
   expect(nonOriginPlacements).toBeGreaterThan(0)
+
+  // Test overlap detection - should have no overlaps in final layout
+  const overlaps = solver.checkForOverlaps(outputLayout)
+  expect(overlaps).toBeDefined()
+  expect(Array.isArray(overlaps)).toBe(true)
+
+  // Log overlap details for debugging if any are found
+  if (overlaps.length > 0) {
+    console.log("Overlaps found:", overlaps)
+  }
+
+  // The pipeline should produce a layout with no overlapping components
+  expect(overlaps.length).toBe(0)
+})
+
+test("LayoutPipelineSolver02 overlap detection functionality", () => {
+  // Convert ExampleCircuit02 to InputProblem
+  const circuitJson = getExampleCircuitJson()
+  const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
+    useReadableIds: true,
+  })
+
+  // Create solver
+  const solver = new LayoutPipelineSolver(problem)
+
+  // Create a test layout with known overlaps
+  const testLayout = {
+    chipPlacements: {
+      U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+      C1: { x: 0.5, y: 0, ccwRotationDegrees: 0 }, // Very close to U1, likely overlapping
+      C2: { x: 5, y: 5, ccwRotationDegrees: 45 }, // Far away, no overlap
+    },
+    groupPlacements: {},
+  }
+
+  // Test overlap detection
+  const overlaps = solver.checkForOverlaps(testLayout)
+  expect(overlaps).toBeDefined()
+  expect(Array.isArray(overlaps)).toBe(true)
+
+  // Should detect at least one overlap between U1 and C1
+  expect(overlaps.length).toBeGreaterThan(0)
+
+  // Verify overlap details
+  const u1c1Overlap = overlaps.find(
+    (overlap) =>
+      (overlap.chip1 === "U1" && overlap.chip2 === "C1") ||
+      (overlap.chip1 === "C1" && overlap.chip2 === "U1"),
+  )
+  expect(u1c1Overlap).toBeDefined()
+  expect(u1c1Overlap!.overlapArea).toBeGreaterThan(0)
+
+  // Test with no overlaps
+  const noOverlapLayout = {
+    chipPlacements: {
+      U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+      C1: { x: 10, y: 10, ccwRotationDegrees: 0 }, // Far away
+      C2: { x: -10, y: -10, ccwRotationDegrees: 90 }, // Far away with rotation
+    },
+    groupPlacements: {},
+  }
+
+  const noOverlaps = solver.checkForOverlaps(noOverlapLayout)
+  expect(noOverlaps.length).toBe(0)
 })
