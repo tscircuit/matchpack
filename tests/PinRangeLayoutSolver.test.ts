@@ -1,6 +1,4 @@
 import { describe, it, expect } from "bun:test"
-import { writeFileSync, mkdirSync } from "fs"
-import { join } from "path"
 import { ChipPartitionsSolver } from "../lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { PinRangeMatchSolver } from "../lib/solvers/PinRangeMatchSolver/PinRangeMatchSolver"
 import { PinRangeLayoutSolver } from "../lib/solvers/PinRangeLayoutSolver/PinRangeLayoutSolver"
@@ -74,67 +72,4 @@ describe("PinRangeLayoutSolver", () => {
     expect(visualization.rects).toBeDefined()
   })
 
-  it("should capture calculate-packing input data for debugging", () => {
-    const circuitJson = getExampleCircuitJson()
-    const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
-      useReadableIds: true,
-    })
-
-    // Create partitions
-    const chipPartitionsSolver = new ChipPartitionsSolver(problem)
-    chipPartitionsSolver.solve()
-    const partitions =
-      chipPartitionsSolver.partitions.length > 0
-        ? chipPartitionsSolver.partitions
-        : [problem]
-
-    // Get pin ranges
-    const pinRangeMatchSolver = new PinRangeMatchSolver(partitions)
-    pinRangeMatchSolver.solve()
-    const pinRanges = pinRangeMatchSolver.getAllPinRanges()
-
-    // Create output directory
-    const outputDir = join(process.cwd(), "debug-output")
-    try {
-      mkdirSync(outputDir, { recursive: true })
-    } catch {
-      // Directory might already exist
-    }
-
-    // Process each pin range and capture the pack input from the debug property
-    const capturedInputs: any[] = []
-
-    for (const pinRange of pinRanges) {
-      const singleSolver = new SinglePinRangeLayoutSolver(pinRange, problem)
-      singleSolver.step()
-
-      if (singleSolver.debugPackInput) {
-        capturedInputs.push(singleSolver.debugPackInput)
-      }
-    }
-
-    // Write captured inputs to files
-    capturedInputs.forEach((packInput, index) => {
-      const filename = `pin-range-${index}-pack-input.json`
-      const outputPath = join(outputDir, filename)
-
-      const outputData = {
-        pinRangeIndex: index,
-        pinRange:
-          index < pinRanges.length
-            ? {
-                pinIds: pinRanges[index]!.pinIds,
-                side: pinRanges[index]!.side,
-                chipId: pinRanges[index]!.chipId,
-                connectedChips: pinRanges[index]!.connectedChips || [],
-              }
-            : null,
-        packInput,
-      }
-
-      writeFileSync(outputPath, JSON.stringify(outputData, null, 2))
-    })
-
-    expect(capturedInputs.length).toBeGreaterThan(0)
-  })
 })

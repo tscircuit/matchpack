@@ -17,7 +17,6 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
   inputProblem: InputProblem
   layoutApplied = false
   layout: OutputLayout | null = null
-  debugPackInput: any = null // For debugging - captures the pack input
 
   constructor(pinRange: PinRange, inputProblem: InputProblem) {
     super()
@@ -322,8 +321,6 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
 
-    // Store for debugging
-    this.debugPackInput = packInput
 
     const packResult = pack(packInput)
 
