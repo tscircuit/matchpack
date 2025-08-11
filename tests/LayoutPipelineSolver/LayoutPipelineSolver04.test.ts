@@ -13,27 +13,352 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
     useReadableIds: true,
   })
 
+  expect(problem).toMatchInlineSnapshot(`
+    {
+      "chipMap": {
+        "C1": {
+          "chipId": "C1",
+          "pins": [
+            "C1.1",
+            "C1.2",
+          ],
+          "size": {
+            "x": 0.5291665999999999,
+            "y": 1.0583333000000001,
+          },
+        },
+        "C2": {
+          "chipId": "C2",
+          "pins": [
+            "C2.1",
+            "C2.2",
+          ],
+          "size": {
+            "x": 0.5291665999999999,
+            "y": 1.0583333000000001,
+          },
+        },
+        "C5": {
+          "chipId": "C5",
+          "pins": [
+            "C5.1",
+            "C5.2",
+          ],
+          "size": {
+            "x": 0.5291665999999999,
+            "y": 1.0583333000000001,
+          },
+        },
+        "C6": {
+          "chipId": "C6",
+          "pins": [
+            "C6.1",
+            "C6.2",
+          ],
+          "size": {
+            "x": 0.5291665999999999,
+            "y": 1.0583333000000001,
+          },
+        },
+        "U1": {
+          "chipId": "U1",
+          "pins": [
+            "U1.1",
+            "U1.2",
+            "U1.3",
+            "U1.4",
+            "U1.5",
+            "U1.6",
+            "U1.7",
+            "U1.8",
+          ],
+          "size": {
+            "x": 1.2000000000000002,
+            "y": 1,
+          },
+        },
+        "U2": {
+          "chipId": "U2",
+          "pins": [
+            "U2.1",
+            "U2.2",
+            "U2.3",
+            "U2.4",
+            "U2.5",
+            "U2.6",
+            "U2.7",
+            "U2.8",
+          ],
+          "size": {
+            "x": 1.2000000000000002,
+            "y": 1,
+          },
+        },
+      },
+      "chipPinMap": {
+        "C1.1": {
+          "offset": {
+            "x": -0.00027335000000006104,
+            "y": 0.5512093000000002,
+          },
+          "pinId": "C1.1",
+          "side": "y+",
+        },
+        "C1.2": {
+          "offset": {
+            "x": 0.00027334999999961695,
+            "y": -0.5512093000000002,
+          },
+          "pinId": "C1.2",
+          "side": "y-",
+        },
+        "C2.1": {
+          "offset": {
+            "x": -0.00027334999999961695,
+            "y": 0.5512093000000002,
+          },
+          "pinId": "C2.1",
+          "side": "y+",
+        },
+        "C2.2": {
+          "offset": {
+            "x": 0.00027335000000006104,
+            "y": -0.5512093000000002,
+          },
+          "pinId": "C2.2",
+          "side": "y-",
+        },
+        "C5.1": {
+          "offset": {
+            "x": -0.000273349999999839,
+            "y": 0.5512093000000002,
+          },
+          "pinId": "C5.1",
+          "side": "y+",
+        },
+        "C5.2": {
+          "offset": {
+            "x": 0.00027334999999961695,
+            "y": -0.5512093000000002,
+          },
+          "pinId": "C5.2",
+          "side": "y-",
+        },
+        "C6.1": {
+          "offset": {
+            "x": -0.00027334999999961695,
+            "y": 0.5512093000000002,
+          },
+          "pinId": "C6.1",
+          "side": "y+",
+        },
+        "C6.2": {
+          "offset": {
+            "x": 0.00027334999999961695,
+            "y": -0.5512093000000002,
+          },
+          "pinId": "C6.2",
+          "side": "y-",
+        },
+        "U1.1": {
+          "offset": {
+            "x": -1,
+            "y": 0.30000000000000004,
+          },
+          "pinId": "U1.1",
+          "side": "x-",
+        },
+        "U1.2": {
+          "offset": {
+            "x": -1,
+            "y": 0.10000000000000003,
+          },
+          "pinId": "U1.2",
+          "side": "x-",
+        },
+        "U1.3": {
+          "offset": {
+            "x": -1,
+            "y": -0.09999999999999998,
+          },
+          "pinId": "U1.3",
+          "side": "x-",
+        },
+        "U1.4": {
+          "offset": {
+            "x": -1,
+            "y": -0.30000000000000004,
+          },
+          "pinId": "U1.4",
+          "side": "x-",
+        },
+        "U1.5": {
+          "offset": {
+            "x": 1,
+            "y": -0.30000000000000004,
+          },
+          "pinId": "U1.5",
+          "side": "x+",
+        },
+        "U1.6": {
+          "offset": {
+            "x": 1,
+            "y": -0.10000000000000003,
+          },
+          "pinId": "U1.6",
+          "side": "x+",
+        },
+        "U1.7": {
+          "offset": {
+            "x": 1,
+            "y": 0.09999999999999998,
+          },
+          "pinId": "U1.7",
+          "side": "x+",
+        },
+        "U1.8": {
+          "offset": {
+            "x": 1,
+            "y": 0.30000000000000004,
+          },
+          "pinId": "U1.8",
+          "side": "x+",
+        },
+        "U2.1": {
+          "offset": {
+            "x": -1,
+            "y": 0.30000000000000004,
+          },
+          "pinId": "U2.1",
+          "side": "x-",
+        },
+        "U2.2": {
+          "offset": {
+            "x": -1,
+            "y": 0.10000000000000003,
+          },
+          "pinId": "U2.2",
+          "side": "x-",
+        },
+        "U2.3": {
+          "offset": {
+            "x": -1,
+            "y": -0.09999999999999998,
+          },
+          "pinId": "U2.3",
+          "side": "x-",
+        },
+        "U2.4": {
+          "offset": {
+            "x": -1,
+            "y": -0.30000000000000004,
+          },
+          "pinId": "U2.4",
+          "side": "x-",
+        },
+        "U2.5": {
+          "offset": {
+            "x": 1,
+            "y": -0.30000000000000004,
+          },
+          "pinId": "U2.5",
+          "side": "x+",
+        },
+        "U2.6": {
+          "offset": {
+            "x": 1,
+            "y": -0.10000000000000003,
+          },
+          "pinId": "U2.6",
+          "side": "x+",
+        },
+        "U2.7": {
+          "offset": {
+            "x": 1,
+            "y": 0.09999999999999998,
+          },
+          "pinId": "U2.7",
+          "side": "x+",
+        },
+        "U2.8": {
+          "offset": {
+            "x": 1,
+            "y": 0.30000000000000004,
+          },
+          "pinId": "U2.8",
+          "side": "x+",
+        },
+      },
+      "groupMap": {},
+      "groupPinMap": {},
+      "netConnMap": {
+        "C5.2-GND": true,
+        "U1.1-VSYS": true,
+        "U1.2-GND": true,
+        "U1.4-V3_3": true,
+        "U2.1-VCC": true,
+        "U2.2-GND": true,
+      },
+      "netMap": {
+        "GND": {
+          "netId": "GND",
+        },
+        "V3_3": {
+          "netId": "V3_3",
+        },
+        "VCC": {
+          "netId": "VCC",
+        },
+        "VSYS": {
+          "netId": "VSYS",
+        },
+      },
+      "pinStrongConnMap": {
+        "C1.1-U1.1": true,
+        "C1.2-U1.2": true,
+        "C2.1-U1.1": true,
+        "C2.2-U1.2": true,
+        "C5.1-U1.4": true,
+        "C6.1-U1.1": true,
+        "C6.2-U1.2": true,
+        "U1.1-C1.1": true,
+        "U1.1-C2.1": true,
+        "U1.1-C6.1": true,
+        "U1.1-U1.3": true,
+        "U1.2-C1.2": true,
+        "U1.2-C2.2": true,
+        "U1.2-C6.2": true,
+        "U1.3-U1.1": true,
+        "U1.4-C5.1": true,
+      },
+    }
+  `)
+
   // Create the solver
   const solver = new LayoutPipelineSolver(problem)
 
   // Test initial state
   expect(solver.solved).toBe(false)
   expect(solver.failed).toBe(false)
-  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(`"chipPartitionsSolver"`)
+  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(
+    `"chipPartitionsSolver"`,
+  )
 
   // Run pipeline stage by stage and capture snapshots
-  
+
   // Stage 1: ChipPartitionsSolver
   solver.solveUntilPhase("pinRangeMatchSolver")
-  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(`"pinRangeMatchSolver"`)
+  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(
+    `"pinRangeMatchSolver"`,
+  )
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
   expect(solver.chipPartitions?.length).toMatchInlineSnapshot(`2`)
-  
+
   // Capture chip partitions structure
-  const partitionSummary = solver.chipPartitions?.map(partition => ({
+  const partitionSummary = solver.chipPartitions?.map((partition) => ({
     chipCount: Object.keys(partition.chipMap).length,
     chipIds: Object.keys(partition.chipMap).sort(),
-    strongConnections: Object.keys(partition.pinStrongConnMap).length
+    strongConnections: Object.keys(partition.pinStrongConnMap).length,
   }))
   expect(partitionSummary).toMatchInlineSnapshot(`
     [
@@ -58,18 +383,20 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
     ]
   `)
 
-  // Stage 2: PinRangeMatchSolver  
+  // Stage 2: PinRangeMatchSolver
   solver.solveUntilPhase("pinRangeLayoutSolver")
-  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(`"pinRangeLayoutSolver"`)
+  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(
+    `"pinRangeLayoutSolver"`,
+  )
   expect(solver.pinRangeMatchSolver?.solved).toBe(true)
-  
+
   const pinRanges = solver.pinRangeMatchSolver?.getAllPinRanges()
-  const pinRangeSummary = pinRanges?.map(range => ({
+  const pinRangeSummary = pinRanges?.map((range) => ({
     chipId: range.chipId,
     side: range.side,
     pinCount: range.pinIds.length,
     pinIds: range.pinIds.sort(),
-    connectedChipsCount: range.connectedChips?.length || 0
+    connectedChipsCount: range.connectedChips?.length || 0,
   }))
   expect(pinRangeSummary).toMatchInlineSnapshot(`
     [
@@ -157,12 +484,17 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
   `)
 
   // Stage 3: PinRangeLayoutSolver
-  solver.solveUntilPhase("pinRangeOverlapSolver") 
-  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(`"pinRangeOverlapSolver"`)
+  solver.solveUntilPhase("pinRangeOverlapSolver")
+  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(
+    `"pinRangeOverlapSolver"`,
+  )
   expect(solver.pinRangeLayoutSolver?.solved).toBe(true)
-  
+
   // Capture layout state after pin range layout - combine all completed solver layouts
-  const allChipPlacements: Record<string, { x: number; y: number; ccwRotationDegrees: number }> = {}
+  const allChipPlacements: Record<
+    string,
+    { x: number; y: number; ccwRotationDegrees: number }
+  > = {}
   for (const singleSolver of solver.pinRangeLayoutSolver.completedSolvers) {
     if (singleSolver.layout) {
       Object.assign(allChipPlacements, singleSolver.layout.chipPlacements)
@@ -170,15 +502,18 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
   }
   // Include active solver if it has a layout
   if (solver.pinRangeLayoutSolver.activeSolver?.layout) {
-    Object.assign(allChipPlacements, solver.pinRangeLayoutSolver.activeSolver.layout.chipPlacements)
+    Object.assign(
+      allChipPlacements,
+      solver.pinRangeLayoutSolver.activeSolver.layout.chipPlacements,
+    )
   }
-  
+
   const chipPlacementSummary = Object.entries(allChipPlacements)
     .map(([chipId, placement]) => ({
       chipId,
       x: Math.round(placement.x * 1000) / 1000, // Round to 3 decimals for stable snapshots
       y: Math.round(placement.y * 1000) / 1000,
-      rotation: placement.ccwRotationDegrees
+      rotation: placement.ccwRotationDegrees,
     }))
     .sort((a, b) => a.chipId.localeCompare(b.chipId))
   expect(chipPlacementSummary).toMatchInlineSnapshot(`
@@ -224,17 +559,21 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
 
   // Stage 4: PinRangeOverlapSolver
   solver.solveUntilPhase("partitionPackingSolver")
-  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(`"partitionPackingSolver"`) 
+  expect(solver.getCurrentPhase()).toMatchInlineSnapshot(
+    `"partitionPackingSolver"`,
+  )
   expect(solver.pinRangeOverlapSolver?.solved).toBe(true)
-  
+
   // Capture overlap resolution results
   const resolvedLayout = solver.pinRangeOverlapSolver?.resolvedLayout
-  const resolvedPlacementSummary = Object.entries(resolvedLayout?.chipPlacements || {})
+  const resolvedPlacementSummary = Object.entries(
+    resolvedLayout?.chipPlacements || {},
+  )
     .map(([chipId, placement]) => ({
       chipId,
       x: Math.round(placement.x * 1000) / 1000,
-      y: Math.round(placement.y * 1000) / 1000, 
-      rotation: placement.ccwRotationDegrees
+      y: Math.round(placement.y * 1000) / 1000,
+      rotation: placement.ccwRotationDegrees,
     }))
     .sort((a, b) => a.chipId.localeCompare(b.chipId))
   expect(resolvedPlacementSummary).toMatchInlineSnapshot(`
@@ -287,14 +626,17 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
 
   // Capture and write the PackInput used by PartitionPackingSolver
   if (solver.partitionPackingSolver?.phasedPackSolver) {
-    const packInput = (solver.partitionPackingSolver as any).phasedPackSolver.packInput
+    const packInput = (solver.partitionPackingSolver as any).phasedPackSolver
+      .packInput
     if (packInput) {
       try {
         writeFileSync(
           "debug-outputs/LayoutPipelineSolver04-paritionpacking-packinput.json",
-          JSON.stringify(packInput, null, 2)
+          JSON.stringify(packInput, null, 2),
         )
-        console.log("✅ PackInput written to debug-outputs/LayoutPipelineSolver04-paritionpacking-packinput.json")
+        console.log(
+          "✅ PackInput written to debug-outputs/LayoutPipelineSolver04-paritionpacking-packinput.json",
+        )
       } catch (error) {
         console.warn("⚠️ Failed to write PackInput:", error)
       }
@@ -312,7 +654,7 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
       chipId,
       x: Math.round(placement.x * 1000) / 1000,
       y: Math.round(placement.y * 1000) / 1000,
-      rotation: placement.ccwRotationDegrees
+      rotation: placement.ccwRotationDegrees,
     }))
     .sort((a, b) => a.chipId.localeCompare(b.chipId))
   expect(finalPlacementSummary).toMatchInlineSnapshot(`
