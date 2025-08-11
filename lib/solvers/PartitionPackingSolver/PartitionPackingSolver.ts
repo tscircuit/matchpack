@@ -158,6 +158,39 @@ export class PartitionPackingSolver extends BaseSolver {
     // Get the resolved layout to access chip placements
     const resolvedLayout = this.resolvedLayout
     
+    // Build a global connectivity map to properly assign networkIds
+    const pinToNetworkMap = new Map<string, string>()
+    
+    // First, process all partitions to build the connectivity map
+    for (const laidOutPartition of this.laidOutPartitions) {
+      // Process net connections
+      for (const [connKey, connected] of Object.entries(laidOutPartition.netConnMap)) {
+        if (!connected) continue
+        const [pinId, netId] = connKey.split('-')
+        if (pinId && netId) {
+          pinToNetworkMap.set(pinId, netId)
+        }
+      }
+      
+      // Process strong connections - these form their own networks
+      for (const [connKey, connected] of Object.entries(laidOutPartition.pinStrongConnMap)) {
+        if (!connected) continue
+        const pins = connKey.split('-')
+        if (pins.length === 2 && pins[0] && pins[1]) {
+          // If either pin already has a net connection, use that network for both
+          const existingNet = pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
+          if (existingNet) {
+            pinToNetworkMap.set(pins[0], existingNet)
+            pinToNetworkMap.set(pins[1], existingNet)
+          } else {
+            // Otherwise, use the connection itself as the network
+            pinToNetworkMap.set(pins[0], connKey)
+            pinToNetworkMap.set(pins[1], connKey)
+          }
+        }
+      }
+    }
+    
     // Create pack components for each partition group
     const packComponents = partitionGroups.map((group) => {
       // Create pads for all pins of all chips in this partition
@@ -196,18 +229,8 @@ export class PartitionPackingSolver extends BaseSolver {
           const pinX = relativeChipX + pin.offset.x
           const pinY = relativeChipY + pin.offset.y
           
-          // Find network for this pin by checking strong connections
-          let networkId = pinId // default to pin ID
-          const pinStrongConnMap = this.laidOutPartitions[group.partitionIndex]!.pinStrongConnMap
-          
-          // Look for strong connections involving this pin
-          for (const [connKey, connected] of Object.entries(pinStrongConnMap)) {
-            if (connected && connKey.includes(pinId)) {
-              // Use the connection key as network ID (represents the connected pins)
-              networkId = connKey
-              break
-            }
-          }
+          // Find network for this pin from our global connectivity map
+          const networkId = pinToNetworkMap.get(pinId) || pinId
           
           pads.push({
             padId: pinId,

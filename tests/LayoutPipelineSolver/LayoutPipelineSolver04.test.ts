@@ -692,8 +692,8 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
       {
         "chipId": "U2",
         "rotation": 0,
-        "x": 5,
-        "y": 5,
+        "x": 1.863,
+        "y": -3.351,
       },
     ]
   `)
