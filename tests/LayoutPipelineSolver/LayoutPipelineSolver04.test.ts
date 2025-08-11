@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { writeFileSync } from "fs"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputProblemFromCircuitJsonSchematic"
 import { getExampleCircuitJson } from "../assets/ExampleCircuit04"
@@ -283,6 +284,26 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
   expect(solver.solved).toBe(true)
   expect(solver.failed).toBe(false)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
+
+  // Capture and write the PackInput used by PartitionPackingSolver
+  if (solver.partitionPackingSolver?.phasedPackSolver) {
+    const packInput = (solver.partitionPackingSolver as any).phasedPackSolver.packInput
+    if (packInput) {
+      try {
+        writeFileSync(
+          "debug-outputs/LayoutPipelineSolver04-paritionpacking-packinput.json",
+          JSON.stringify(packInput, null, 2)
+        )
+        console.log("✅ PackInput written to debug-outputs/LayoutPipelineSolver04-paritionpacking-packinput.json")
+      } catch (error) {
+        console.warn("⚠️ Failed to write PackInput:", error)
+      }
+    } else {
+      console.warn("⚠️ No PackInput found in phasedPackSolver")
+    }
+  } else {
+    console.warn("⚠️ No phasedPackSolver found in partitionPackingSolver")
+  }
 
   // Final output layout
   const finalLayout = solver.getOutputLayout()
