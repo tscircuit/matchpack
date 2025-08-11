@@ -1,9 +1,14 @@
 {
-  "name": "matchpack",
-  "module": "index.ts",
+  "name": "@tscircuit/matchpack",
+  "main": "dist/index.js",
   "type": "module",
+  "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "start": "cosmos",
+    "build": "tsup --format esm --dts --clean ./lib/index.ts",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
@@ -20,7 +25,8 @@
     "graphics-debug": "^0.0.62",
     "react-cosmos": "^7.0.0",
     "react-cosmos-plugin-vite": "^7.0.0",
-    "tscircuit": "^0.0.581"
+    "tscircuit": "^0.0.581",
+    "tsup": "^8.5.0"
   },
   "peerDependencies": {
     "typescript": "^5"

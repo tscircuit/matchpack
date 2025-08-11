@@ -161,13 +161,13 @@ export class ChipPartitionsSolver extends BaseSolver {
     const relevantPinIds = new Set<PinId>()
     for (const chipId of chipIds) {
       const chip = originalProblem.chipMap[chipId]
-      for (const pinId of chip.pins) {
+      for (const pinId of chip!.pins) {
         relevantPinIds.add(pinId)
       }
     }
     for (const groupId of groupIds) {
       const group = originalProblem.groupMap[groupId]
-      for (const pinId of group.pins) {
+      for (const pinId of group!.pins) {
         relevantPinIds.add(pinId)
       }
     }
@@ -206,7 +206,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       originalProblem.pinStrongConnMap,
     )) {
       const [pin1Id, pin2Id] = connKey.split("-")
-      if (relevantPinIds.has(pin1Id) && relevantPinIds.has(pin2Id)) {
+      if (relevantPinIds.has(pin1Id!) && relevantPinIds.has(pin2Id!)) {
         pinStrongConnMap[connKey] = isConnected
       }
     }
@@ -219,8 +219,8 @@ export class ChipPartitionsSolver extends BaseSolver {
       if (!isConnected) continue
 
       const [pinId, netId] = connKey.split("-")
-      if (relevantPinIds.has(pinId)) {
-        relevantNetIds.add(netId)
+      if (relevantPinIds.has(pinId!)) {
+        relevantNetIds.add(netId!)
         netConnMap[connKey] = isConnected
       }
     }

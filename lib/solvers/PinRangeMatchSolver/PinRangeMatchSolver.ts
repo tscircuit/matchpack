@@ -17,7 +17,7 @@ import {
 export class PinRangeMatchSolver extends BaseSolver {
   partitions: InputProblem[]
   currentPartitionIndex = 0
-  activeSubSolver: PartitionPinRangeMatchSolver | null = null
+  override activeSubSolver: PartitionPinRangeMatchSolver | null = null
   partitionResults: PinRange[][] = []
 
   constructor(partitions: InputProblem[]) {
