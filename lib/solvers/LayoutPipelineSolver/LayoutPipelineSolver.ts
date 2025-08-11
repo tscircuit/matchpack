@@ -181,6 +181,12 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
+    // If the pipeline is complete and we have a partition packing solver,
+    // show only the final chip placements
+    if (this.solved && this.partitionPackingSolver?.solved) {
+      return this.partitionPackingSolver.visualize()
+    }
+
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const pinRangeMatchViz = this.pinRangeMatchSolver?.visualize()
     const pinRangeLayoutViz = this.pinRangeLayoutSolver?.visualize()
