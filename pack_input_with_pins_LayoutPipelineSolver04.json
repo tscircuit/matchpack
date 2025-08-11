@@ -1,0 +1,423 @@
+{
+  "description": "Pack algorithm input with pins and cross-partition networks from LayoutPipelineSolver04 test",
+  "testFile": "tests/LayoutPipelineSolver/LayoutPipelineSolver04.test.ts",
+  "extractedAt": "2025-08-10T15:36:19.876Z",
+  "partitionGroups": [
+    {
+      "partitionIndex": 0,
+      "chipIds": ["C6", "U1", "C5", "C2", "C1"],
+      "bounds": {
+        "minX": 0,
+        "maxX": 2.6167286449535703,
+        "minY": -1.004771698352237,
+        "maxY": 1.2288933605067471
+      }
+    },
+    {
+      "partitionIndex": 1,
+      "chipIds": ["U2"],
+      "bounds": {
+        "minX": 7.61672864495357,
+        "maxX": 7.61672864495357,
+        "minY": 0,
+        "maxY": 0
+      }
+    }
+  ],
+  "crossPartitionConnections": [
+    {
+      "networkId": "weak_GND",
+      "partitions": [0, 1]
+    }
+  ],
+  "packInput": {
+    "components": [
+      {
+        "componentId": "partition_0",
+        "pads": [
+          {
+            "padId": "C6.1",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -0.4460756775232144,
+              "y": 0.6927100705705083
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "C6.2",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -0.4455289775232152,
+              "y": -0.4097085294294922
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.1",
+            "networkId": "weak_VSYS",
+            "type": "rect",
+            "offset": {
+              "x": 0.30836432247678514,
+              "y": 0.18793916892274498
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.2",
+            "networkId": "weak_GND",
+            "type": "rect",
+            "offset": {
+              "x": 0.30836432247678514,
+              "y": -0.01206083107725503
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.3",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 0.30836432247678514,
+              "y": -0.21206083107725504
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.4",
+            "networkId": "weak_V3_3",
+            "type": "rect",
+            "offset": {
+              "x": 0.30836432247678514,
+              "y": -0.4120608310772551
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.5",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 2.308364322476785,
+              "y": -0.4120608310772551
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.6",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 2.308364322476785,
+              "y": -0.2120608310772551
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.7",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 2.308364322476785,
+              "y": -0.012060831077255085
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U1.8",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 2.308364322476785,
+              "y": 0.18793916892274498
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "C5.1",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -0.4458023275232148,
+              "y": -0.5656232294294918
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "C5.2",
+            "networkId": "weak_GND",
+            "type": "rect",
+            "offset": {
+              "x": -0.44525562752321535,
+              "y": -1.6680418294294923
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "C2.1",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -1.3086376724767848,
+              "y": 1.293314730237964
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "C2.2",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -1.308090972476785,
+              "y": 0.19089613023796348
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "C1.1",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -0.0035350275232151063,
+              "y": 1.6680418294294923
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "C1.2",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -0.0029883275232154283,
+              "y": 0.5656232294294918
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "partition_0_body",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 4.61672864495357,
+              "y": 4.233665058858984
+            }
+          }
+        ]
+      },
+      {
+        "componentId": "partition_1",
+        "pads": [
+          {
+            "padId": "U2.1",
+            "networkId": "weak_VCC",
+            "type": "rect",
+            "offset": {
+              "x": -1,
+              "y": 0.30000000000000004
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U2.2",
+            "networkId": "weak_GND",
+            "type": "rect",
+            "offset": {
+              "x": -1,
+              "y": 0.10000000000000003
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U2.3",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -1,
+              "y": -0.09999999999999998
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U2.4",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": -1,
+              "y": -0.30000000000000004
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U2.5",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 1,
+              "y": -0.30000000000000004
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U2.6",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 1,
+              "y": -0.10000000000000003
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U2.7",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 1,
+              "y": 0.09999999999999998
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "U2.8",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 1,
+              "y": 0.30000000000000004
+            },
+            "size": {
+              "x": 0.1,
+              "y": 0.1
+            }
+          },
+          {
+            "padId": "partition_1_body",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 2,
+              "y": 2
+            }
+          }
+        ]
+      }
+    ],
+    "minGap": 2,
+    "packOrderStrategy": "largest_to_smallest",
+    "packPlacementStrategy": "minimum_sum_squared_distance_to_network"
+  },
+  "resolvedLayoutBefore": {
+    "chipPlacements": {
+      "U1": {
+        "x": 2.6167286449535703,
+        "y": 0,
+        "ccwRotationDegrees": 0
+      },
+      "C5": {
+        "x": 0.8628353449535702,
+        "y": -1.004771698352237,
+        "ccwRotationDegrees": 0
+      },
+      "C6": {
+        "x": 0.8625619949535703,
+        "y": 0.2535616016477631,
+        "ccwRotationDegrees": 180
+      },
+      "C1": {
+        "x": 1.30510264495357,
+        "y": 1.2288933605067471,
+        "ccwRotationDegrees": 270
+      },
+      "C2": {
+        "x": 0,
+        "y": 0.8541662613152188,
+        "ccwRotationDegrees": 180
+      },
+      "U2": {
+        "x": 7.61672864495357,
+        "y": 0,
+        "ccwRotationDegrees": 0
+      }
+    },
+    "groupPlacements": {}
+  }
+}

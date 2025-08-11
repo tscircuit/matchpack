@@ -21,7 +21,6 @@ export class BaseSolver {
       this._step()
     } catch (e) {
       this.error = `${this.constructor.name} error: ${e}`
-      console.error(this.error)
       this.failed = true
       throw e
     }
@@ -30,7 +29,6 @@ export class BaseSolver {
     }
     if (!this.solved && this.iterations > this.MAX_ITERATIONS) {
       this.error = `${this.constructor.name} ran out of iterations`
-      console.error(this.error)
       this.failed = true
     }
     if ("computeProgress" in this) {

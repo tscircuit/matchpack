@@ -1,0 +1,105 @@
+{
+  "description": "Pack algorithm input from LayoutPipelineSolver04 test",
+  "testFile": "tests/LayoutPipelineSolver/LayoutPipelineSolver04.test.ts",
+  "extractedAt": "2025-08-10T04:26:02.795Z",
+  "partitionGroups": [
+    {
+      "partitionIndex": 0,
+      "chipIds": ["C6", "U1", "C5", "C2", "C1"],
+      "bounds": {
+        "minX": 0,
+        "maxX": 2.6167286449535703,
+        "minY": -1.004771698352237,
+        "maxY": 1.2288933605067471
+      }
+    },
+    {
+      "partitionIndex": 1,
+      "chipIds": ["U2"],
+      "bounds": {
+        "minX": 7.61672864495357,
+        "maxX": 7.61672864495357,
+        "minY": 0,
+        "maxY": 0
+      }
+    }
+  ],
+  "packInput": {
+    "components": [
+      {
+        "componentId": "partition_0",
+        "pads": [
+          {
+            "padId": "partition_0_body",
+            "networkId": "partition_0_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 4.61672864495357,
+              "y": 4.233665058858984
+            }
+          }
+        ]
+      },
+      {
+        "componentId": "partition_1",
+        "pads": [
+          {
+            "padId": "partition_1_body",
+            "networkId": "partition_1_disconnected",
+            "type": "rect",
+            "offset": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 2,
+              "y": 2
+            }
+          }
+        ]
+      }
+    ],
+    "minGap": 2,
+    "packOrderStrategy": "largest_to_smallest",
+    "packPlacementStrategy": "minimum_sum_squared_distance_to_network"
+  },
+  "resolvedLayoutBefore": {
+    "chipPlacements": {
+      "U1": {
+        "x": 2.6167286449535703,
+        "y": 0,
+        "ccwRotationDegrees": 0
+      },
+      "C5": {
+        "x": 0.8628353449535702,
+        "y": -1.004771698352237,
+        "ccwRotationDegrees": 0
+      },
+      "C6": {
+        "x": 0.8625619949535703,
+        "y": 0.2535616016477631,
+        "ccwRotationDegrees": 180
+      },
+      "C1": {
+        "x": 1.30510264495357,
+        "y": 1.2288933605067471,
+        "ccwRotationDegrees": 270
+      },
+      "C2": {
+        "x": 0,
+        "y": 0.8541662613152188,
+        "ccwRotationDegrees": 180
+      },
+      "U2": {
+        "x": 7.61672864495357,
+        "y": 0,
+        "ccwRotationDegrees": 0
+      }
+    },
+    "groupPlacements": {}
+  }
+}

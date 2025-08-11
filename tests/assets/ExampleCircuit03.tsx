@@ -1,17 +1,21 @@
 import { sel, RootCircuit } from "tscircuit"
 import type { ChipProps } from "@tscircuit/props"
 
-const rt9013PinLabels = {
+const soicPinLabels = {
   pin1: ["VIN"],
   pin2: ["GND"],
   pin3: ["EN"],
   pin4: ["VOUT"],
+  pin5: ["GP1"],
+  pin6: ["GP2"],
+  pin7: ["GP3"],
+  pin8: ["GP4"],
 } as const
 
-const RT9013_33GB = (props: ChipProps<typeof rt9013PinLabels>) => {
+const SOIC = (props: ChipProps<typeof soicPinLabels>) => {
   return (
     <chip
-      pinLabels={rt9013PinLabels}
+      pinLabels={soicPinLabels}
       supplierPartNumbers={{
         jlcpcb: ["C82342"],
       }}
@@ -52,7 +56,7 @@ export const ExampleCircuit = () => (
         capacitance="1uF"
         schX={2}
       />
-      <RT9013_33GB
+      <SOIC
         name="U1"
         connections={{
           VIN: ["C6.1", "C1.1", "C2.1", "net.VSYS"],
