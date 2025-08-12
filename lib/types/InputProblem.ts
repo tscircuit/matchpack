@@ -11,6 +11,7 @@ export type Chip = {
   chipId: ChipId
   pins: PinId[]
   size: Point
+  availableRotations?: Array<0 | 90 | 180 | 270>
 }
 export type Group = {
   groupId: GroupId
