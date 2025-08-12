@@ -25,6 +25,8 @@ export const getInputProblemFromCircuitJsonSchematic = (
     netMap: {},
     pinStrongConnMap: {},
     netConnMap: {},
+    chipGap: 0.2,
+    partitionGap: 2,
   }
 
   const cjChips = db.schematic_component.list().map((schematic_component) => ({

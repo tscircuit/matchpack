@@ -316,7 +316,7 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
     // Pack components with tighter spacing for pin range layouts
     const packInput: PackInput = {
       components,
-      minGap: 0.2, // Tighter gap than general layout
+      minGap: this.inputProblem.chipGap, // Use chipGap from input problem
       packOrderStrategy: "largest_to_smallest" as const,
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }

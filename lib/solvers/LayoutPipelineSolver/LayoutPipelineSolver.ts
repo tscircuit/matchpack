@@ -112,6 +112,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       () => [{
         resolvedLayout: this.pinRangeOverlapSolver!.resolvedLayout!,
         laidOutPartitions: this.chipPartitions || [this.inputProblem],
+        inputProblem: this.inputProblem,
       }],
       {
         onSolved: (_solver) => {

@@ -16,11 +16,13 @@ export type LaidOutPartition = InputProblem
 export interface PartitionPackingSolverInput {
   resolvedLayout: OutputLayout
   laidOutPartitions: LaidOutPartition[]
+  inputProblem: InputProblem
 }
 
 export class PartitionPackingSolver extends BaseSolver {
   resolvedLayout: OutputLayout
   laidOutPartitions: LaidOutPartition[]
+  inputProblem: InputProblem
   finalLayout: OutputLayout | null = null
   phasedPackSolver: PhasedPackSolver | null = null
 
@@ -28,6 +30,7 @@ export class PartitionPackingSolver extends BaseSolver {
     super()
     this.resolvedLayout = input.resolvedLayout
     this.laidOutPartitions = input.laidOutPartitions
+    this.inputProblem = input.inputProblem
   }
 
   override _step() {
@@ -250,7 +253,7 @@ export class PartitionPackingSolver extends BaseSolver {
 
     return {
       components: packComponents,
-      minGap: 2, // Generous gap between partitions
+      minGap: this.inputProblem.partitionGap, // Use partitionGap from input problem
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
@@ -350,6 +353,7 @@ export class PartitionPackingSolver extends BaseSolver {
     return {
       resolvedLayout: this.resolvedLayout,
       laidOutPartitions: this.laidOutPartitions,
+      inputProblem: this.inputProblem,
     }
   }
 }
