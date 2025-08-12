@@ -625,7 +625,6 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
   expect(solver.failed).toBe(false)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
 
-
   // Final output layout
   const finalLayout = solver.getOutputLayout()
   const finalPlacementSummary = Object.entries(finalLayout.chipPlacements)

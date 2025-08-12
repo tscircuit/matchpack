@@ -71,5 +71,4 @@ describe("PinRangeLayoutSolver", () => {
     expect(visualization).toBeDefined()
     expect(visualization.rects).toBeDefined()
   })
-
 })

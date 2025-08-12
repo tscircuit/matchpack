@@ -321,7 +321,6 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
 
-
     const packResult = pack(packInput)
 
     // Convert pack result to OutputLayout
