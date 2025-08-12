@@ -303,7 +303,8 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
       return {
         componentId: chipId,
         pads,
-      }
+        // availableRotationDegrees: [...]
+      } as PackInput["components"][number]
     })
 
     if (components.length === 0) {
