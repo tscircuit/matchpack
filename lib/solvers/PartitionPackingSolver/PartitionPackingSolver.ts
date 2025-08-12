@@ -252,9 +252,31 @@ export class PartitionPackingSolver extends BaseSolver {
         }
       }
 
+      // Calculate intersection of availableRotations for all chips in this partition
+      let availableRotationDegrees: Array<0 | 90 | 180 | 270> = [
+        0, 90, 180, 270,
+      ]
+
+      for (const chipId of group.chipIds) {
+        const chip =
+          this.laidOutPartitions[group.partitionIndex]!.chipMap[chipId]!
+        const chipRotations = chip.availableRotations || [0, 90, 180, 270]
+
+        // Take intersection with current available rotations
+        availableRotationDegrees = availableRotationDegrees.filter((rotation) =>
+          chipRotations.includes(rotation),
+        )
+      }
+
+      // If intersection is empty, default to [0]
+      if (availableRotationDegrees.length === 0) {
+        availableRotationDegrees = [0]
+      }
+
       return {
         componentId: `partition_${group.partitionIndex}`,
         pads,
+        availableRotationDegrees,
       }
     })
 
