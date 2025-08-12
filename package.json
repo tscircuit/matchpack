@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "start": "cosmos",
-    "build": "tsup --format esm --dts --clean ./lib/index.ts",
+    "build": "tsup-node --format esm --dts --clean ./lib/index.ts",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
