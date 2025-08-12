@@ -17,7 +17,6 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
   inputProblem: InputProblem
   layoutApplied = false
   layout: OutputLayout | null = null
-  debugPackInput: any = null // For debugging - captures the pack input
 
   constructor(pinRange: PinRange, inputProblem: InputProblem) {
     super()
@@ -317,13 +316,10 @@ export class SinglePinRangeLayoutSolver extends BaseSolver {
     // Pack components with tighter spacing for pin range layouts
     const packInput: PackInput = {
       components,
-      minGap: 0.2, // Tighter gap than general layout
+      minGap: this.inputProblem.chipGap, // Use chipGap from input problem
       packOrderStrategy: "largest_to_smallest" as const,
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
-
-    // Store for debugging
-    this.debugPackInput = packInput
 
     const packResult = pack(packInput)
 

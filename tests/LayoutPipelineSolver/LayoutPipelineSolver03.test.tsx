@@ -41,7 +41,7 @@ test("LayoutPipelineSolver03 - chip with multiple capacitors", () => {
   expect(
     Object.keys(problem.chipMap).filter((k) => k.startsWith("C")).length,
   ).toBe(10)
-  expect(problem.chipMap["U1"].pins.length).toBe(8)
+  expect(problem.chipMap["U1"]!.pins.length).toBe(8)
 
   const solver = new LayoutPipelineSolver(problem)
   const viz = solver.visualize()

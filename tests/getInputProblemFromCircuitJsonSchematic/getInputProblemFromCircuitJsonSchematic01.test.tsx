@@ -10,6 +10,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
   })
   expect(problem).toMatchInlineSnapshot(`
     {
+      "chipGap": 0.2,
       "chipMap": {
         "C1": {
           "chipId": "C1",
@@ -609,6 +610,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           "netId": "V3_3_SW",
         },
       },
+      "partitionGap": 2,
       "pinStrongConnMap": {
         "D1.1-R3.1": true,
         "D1.2-LED.1": true,

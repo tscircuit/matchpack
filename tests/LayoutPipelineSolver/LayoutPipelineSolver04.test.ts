@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test"
-import { writeFileSync } from "fs"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputProblemFromCircuitJsonSchematic"
 import { getExampleCircuitJson } from "../assets/ExampleCircuit04"
@@ -15,6 +14,7 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
 
   expect(problem).toMatchInlineSnapshot(`
     {
+      "chipGap": 0.2,
       "chipMap": {
         "C1": {
           "chipId": "C1",
@@ -313,6 +313,7 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
           "netId": "VSYS",
         },
       },
+      "partitionGap": 2,
       "pinStrongConnMap": {
         "C1.1-U1.1": true,
         "C1.2-U1.2": true,
@@ -495,16 +496,16 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
     string,
     { x: number; y: number; ccwRotationDegrees: number }
   > = {}
-  for (const singleSolver of solver.pinRangeLayoutSolver.completedSolvers) {
+  for (const singleSolver of solver.pinRangeLayoutSolver!.completedSolvers) {
     if (singleSolver.layout) {
       Object.assign(allChipPlacements, singleSolver.layout.chipPlacements)
     }
   }
   // Include active solver if it has a layout
-  if (solver.pinRangeLayoutSolver.activeSolver?.layout) {
+  if (solver.pinRangeLayoutSolver!.activeSolver?.layout) {
     Object.assign(
       allChipPlacements,
-      solver.pinRangeLayoutSolver.activeSolver.layout.chipPlacements,
+      solver.pinRangeLayoutSolver!.activeSolver.layout.chipPlacements,
     )
   }
 
@@ -623,29 +624,6 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
   expect(solver.solved).toBe(true)
   expect(solver.failed).toBe(false)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
-
-  // Capture and write the PackInput used by PartitionPackingSolver
-  if (solver.partitionPackingSolver?.phasedPackSolver) {
-    const packInput = (solver.partitionPackingSolver as any).phasedPackSolver
-      .packInput
-    if (packInput) {
-      try {
-        writeFileSync(
-          "debug-outputs/LayoutPipelineSolver04-paritionpacking-packinput.json",
-          JSON.stringify(packInput, null, 2),
-        )
-        console.log(
-          "✅ PackInput written to debug-outputs/LayoutPipelineSolver04-paritionpacking-packinput.json",
-        )
-      } catch (error) {
-        console.warn("⚠️ Failed to write PackInput:", error)
-      }
-    } else {
-      console.warn("⚠️ No PackInput found in phasedPackSolver")
-    }
-  } else {
-    console.warn("⚠️ No phasedPackSolver found in partitionPackingSolver")
-  }
 
   // Final output layout
   const finalLayout = solver.getOutputLayout()

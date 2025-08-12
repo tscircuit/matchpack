@@ -16,11 +16,13 @@ export type LaidOutPartition = InputProblem
 export interface PartitionPackingSolverInput {
   resolvedLayout: OutputLayout
   laidOutPartitions: LaidOutPartition[]
+  inputProblem: InputProblem
 }
 
 export class PartitionPackingSolver extends BaseSolver {
   resolvedLayout: OutputLayout
   laidOutPartitions: LaidOutPartition[]
+  inputProblem: InputProblem
   finalLayout: OutputLayout | null = null
   phasedPackSolver: PhasedPackSolver | null = null
 
@@ -28,6 +30,7 @@ export class PartitionPackingSolver extends BaseSolver {
     super()
     this.resolvedLayout = input.resolvedLayout
     this.laidOutPartitions = input.laidOutPartitions
+    this.inputProblem = input.inputProblem
   }
 
   override _step() {
@@ -157,28 +160,33 @@ export class PartitionPackingSolver extends BaseSolver {
   ): PackInput {
     // Get the resolved layout to access chip placements
     const resolvedLayout = this.resolvedLayout
-    
+
     // Build a global connectivity map to properly assign networkIds
     const pinToNetworkMap = new Map<string, string>()
-    
+
     // First, process all partitions to build the connectivity map
     for (const laidOutPartition of this.laidOutPartitions) {
       // Process net connections
-      for (const [connKey, connected] of Object.entries(laidOutPartition.netConnMap)) {
+      for (const [connKey, connected] of Object.entries(
+        laidOutPartition.netConnMap,
+      )) {
         if (!connected) continue
-        const [pinId, netId] = connKey.split('-')
+        const [pinId, netId] = connKey.split("-")
         if (pinId && netId) {
           pinToNetworkMap.set(pinId, netId)
         }
       }
-      
+
       // Process strong connections - these form their own networks
-      for (const [connKey, connected] of Object.entries(laidOutPartition.pinStrongConnMap)) {
+      for (const [connKey, connected] of Object.entries(
+        laidOutPartition.pinStrongConnMap,
+      )) {
         if (!connected) continue
-        const pins = connKey.split('-')
+        const pins = connKey.split("-")
         if (pins.length === 2 && pins[0] && pins[1]) {
           // If either pin already has a net connection, use that network for both
-          const existingNet = pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
+          const existingNet =
+            pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
           if (existingNet) {
             pinToNetworkMap.set(pins[0], existingNet)
             pinToNetworkMap.set(pins[1], existingNet)
@@ -190,7 +198,7 @@ export class PartitionPackingSolver extends BaseSolver {
         }
       }
     }
-    
+
     // Create pack components for each partition group
     const packComponents = partitionGroups.map((group) => {
       // Create pads for all pins of all chips in this partition
@@ -201,16 +209,18 @@ export class PartitionPackingSolver extends BaseSolver {
         offset: { x: number; y: number }
         size: { x: number; y: number }
       }> = []
-      
+
       for (const chipId of group.chipIds) {
         const chipPlacement = resolvedLayout.chipPlacements[chipId]!
-        const chip = this.laidOutPartitions[group.partitionIndex]!.chipMap[chipId]!
-        const chipPinMap = this.laidOutPartitions[group.partitionIndex]!.chipPinMap
-        
+        const chip =
+          this.laidOutPartitions[group.partitionIndex]!.chipMap[chipId]!
+        const chipPinMap =
+          this.laidOutPartitions[group.partitionIndex]!.chipPinMap
+
         // Calculate relative chip position from partition bounds
         const relativeChipX = chipPlacement.x - group.bounds.minX
         const relativeChipY = chipPlacement.y - group.bounds.minY
-        
+
         // Add chip body pad (disconnected from any network)
         pads.push({
           padId: `${chipId}_body`,
@@ -219,19 +229,19 @@ export class PartitionPackingSolver extends BaseSolver {
           offset: { x: relativeChipX, y: relativeChipY },
           size: { x: chip.size.x, y: chip.size.y },
         })
-        
+
         // Create a pad for each pin on this chip
         for (const pinId of chip.pins) {
           const pin = chipPinMap[pinId]
           if (!pin) continue
-          
+
           // Calculate pin position relative to partition bounds
           const pinX = relativeChipX + pin.offset.x
           const pinY = relativeChipY + pin.offset.y
-          
+
           // Find network for this pin from our global connectivity map
           const networkId = pinToNetworkMap.get(pinId) || pinId
-          
+
           pads.push({
             padId: pinId,
             networkId: networkId,
@@ -250,7 +260,7 @@ export class PartitionPackingSolver extends BaseSolver {
 
     return {
       components: packComponents,
-      minGap: 2, // Generous gap between partitions
+      minGap: this.inputProblem.partitionGap, // Use partitionGap from input problem
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
@@ -327,6 +337,8 @@ export class PartitionPackingSolver extends BaseSolver {
       pinStrongConnMap: {},
       netMap: {},
       netConnMap: {},
+      chipGap: this.inputProblem.chipGap,
+      partitionGap: this.inputProblem.partitionGap,
     }
 
     // Combine all laid out partitions
@@ -350,6 +362,7 @@ export class PartitionPackingSolver extends BaseSolver {
     return {
       resolvedLayout: this.resolvedLayout,
       laidOutPartitions: this.laidOutPartitions,
+      inputProblem: this.inputProblem,
     }
   }
 }

@@ -34,6 +34,8 @@ test("LayoutPipelineSolver01 visualization example", () => {
       "P1-N1": true,
       "P3-N1": true,
     },
+    chipGap: 0.2,
+    partitionGap: 2,
   }
 
   const solver = new LayoutPipelineSolver(problem)
