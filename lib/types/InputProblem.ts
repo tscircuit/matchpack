@@ -31,4 +31,9 @@ export type InputProblem = {
   /** This is a two-way map */
   pinStrongConnMap: Record<`${PinId}-${PinId}`, boolean>
   netConnMap: Record<`${PinId}-${NetId}`, boolean>
+
+  /** The minimum gap between chips within a partition */
+  chipGap: number
+  /** The minimum gap between two partitions */
+  partitionGap: number
 }
