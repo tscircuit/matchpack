@@ -27,6 +27,8 @@ describe("PinRangeMatchSolver", () => {
       netMap: {},
       pinStrongConnMap: {},
       netConnMap: {},
+      chipGap: 0.2,
+      partitionGap: 2,
     }
 
     const solver = new PartitionPinRangeMatchSolver(testPartition)
@@ -68,6 +70,8 @@ describe("PinRangeMatchSolver", () => {
       netMap: {},
       pinStrongConnMap: {},
       netConnMap: {},
+      chipGap: 0.2,
+      partitionGap: 2,
     }
 
     const solver = new PartitionPinRangeMatchSolver(testPartition)
@@ -101,6 +105,8 @@ describe("PinRangeMatchSolver", () => {
       netMap: {},
       pinStrongConnMap: {},
       netConnMap: {},
+      chipGap: 0.2,
+      partitionGap: 2,
     }
 
     const solver = new PartitionPinRangeMatchSolver(testPartition)
@@ -135,6 +141,8 @@ describe("PinRangeMatchSolver", () => {
       netMap: {},
       pinStrongConnMap: {},
       netConnMap: {},
+      chipGap: 0.2,
+      partitionGap: 2,
     }
 
     const partition2: InputProblem = {
@@ -153,6 +161,8 @@ describe("PinRangeMatchSolver", () => {
       netMap: {},
       pinStrongConnMap: {},
       netConnMap: {},
+      chipGap: 0.2,
+      partitionGap: 2,
     }
 
     const solver = new PinRangeMatchSolver([partition1, partition2])

@@ -5,6 +5,17 @@ import type { InputProblem } from "lib/types/InputProblem"
 
 // Static input data - generated from running the solver chain (see corresponding test)
 const STATIC_INPUT: PartitionPackingSolverInput = {
+  inputProblem: {
+    chipMap: {},
+    chipPinMap: {},
+    groupMap: {},
+    groupPinMap: {},
+    netMap: {},
+    pinStrongConnMap: {},
+    netConnMap: {},
+    chipGap: 0.2,
+    partitionGap: 2,
+  },
   resolvedLayout: {
     chipPlacements: {
       Q1: { x: 1.1761957854999991, y: 0, ccwRotationDegrees: 0 },
@@ -49,6 +60,8 @@ const STATIC_INPUT: PartitionPackingSolverInput = {
       },
       pinStrongConnMap: { "R7.2-Q1.3": true, "Q1.3-R7.2": true },
       netConnMap: { "R7.1-GND": true, "Q1.1-V3_3": true, "Q1.2-V3_3_SW": true, "Q1.3-DISABLE": true },
+      chipGap: 0.2,
+      partitionGap: 2,
     },
     // Additional partitions would go here but truncated for brevity
   ] as InputProblem[],

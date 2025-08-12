@@ -496,16 +496,16 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
     string,
     { x: number; y: number; ccwRotationDegrees: number }
   > = {}
-  for (const singleSolver of solver.pinRangeLayoutSolver.completedSolvers) {
+  for (const singleSolver of solver.pinRangeLayoutSolver!.completedSolvers) {
     if (singleSolver.layout) {
       Object.assign(allChipPlacements, singleSolver.layout.chipPlacements)
     }
   }
   // Include active solver if it has a layout
-  if (solver.pinRangeLayoutSolver.activeSolver?.layout) {
+  if (solver.pinRangeLayoutSolver!.activeSolver?.layout) {
     Object.assign(
       allChipPlacements,
-      solver.pinRangeLayoutSolver.activeSolver.layout.chipPlacements,
+      solver.pinRangeLayoutSolver!.activeSolver.layout.chipPlacements,
     )
   }
 
@@ -523,24 +523,24 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
         "chipId": "C1",
         "rotation": 270,
         "x": -1.312,
-        "y": 1.029,
+        "y": 1.229,
       },
       {
         "chipId": "C2",
         "rotation": 180,
-        "x": -2.348,
-        "y": 0.1,
+        "x": -2.617,
+        "y": 0.854,
       },
       {
         "chipId": "C5",
         "rotation": 0,
-        "x": -1,
-        "y": -1.029,
+        "x": -1.754,
+        "y": -0.851,
       },
       {
         "chipId": "C6",
         "rotation": 180,
-        "x": -1.554,
+        "x": -1.754,
         "y": 0.1,
       },
       {
@@ -582,37 +582,37 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
       {
         "chipId": "C1",
         "rotation": 270,
-        "x": 1.037,
-        "y": 1.194,
+        "x": 1.305,
+        "y": 1.229,
       },
       {
         "chipId": "C2",
         "rotation": 180,
         "x": 0,
-        "y": 0.1,
+        "y": 0.854,
       },
       {
         "chipId": "C5",
         "rotation": 0,
-        "x": 1.348,
-        "y": -1.029,
+        "x": 0.863,
+        "y": -1.005,
       },
       {
         "chipId": "C6",
         "rotation": 180,
-        "x": 0.794,
-        "y": -0.065,
+        "x": 0.863,
+        "y": 0.254,
       },
       {
         "chipId": "U1",
         "rotation": 0,
-        "x": 2.348,
+        "x": 2.617,
         "y": 0,
       },
       {
         "chipId": "U2",
         "rotation": 0,
-        "x": 7.348,
+        "x": 7.617,
         "y": 0,
       },
     ]
@@ -641,37 +641,37 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 full pipeline with stage snapsho
       {
         "chipId": "C1",
         "rotation": 270,
-        "x": -0.138,
-        "y": 1.111,
+        "x": -0.003,
+        "y": 1.117,
       },
       {
         "chipId": "C2",
         "rotation": 180,
-        "x": -1.174,
-        "y": 0.018,
+        "x": -1.308,
+        "y": 0.742,
       },
       {
         "chipId": "C5",
         "rotation": 0,
-        "x": 0.174,
-        "y": -1.111,
+        "x": -0.446,
+        "y": -1.117,
       },
       {
         "chipId": "C6",
         "rotation": 180,
-        "x": -0.38,
-        "y": -0.147,
+        "x": -0.446,
+        "y": 0.142,
       },
       {
         "chipId": "U1",
         "rotation": 0,
-        "x": 1.174,
-        "y": -0.082,
+        "x": 1.308,
+        "y": -0.112,
       },
       {
         "chipId": "U2",
         "rotation": 0,
-        "x": 2.348,
+        "x": 1.863,
         "y": -3.351,
       },
     ]

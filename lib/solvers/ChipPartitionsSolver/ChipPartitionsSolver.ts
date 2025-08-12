@@ -239,6 +239,8 @@ export class ChipPartitionsSolver extends BaseSolver {
       netMap,
       pinStrongConnMap,
       netConnMap,
+      chipGap: originalProblem.chipGap,
+      partitionGap: originalProblem.partitionGap,
     }
   }
 

@@ -330,6 +330,8 @@ export class PartitionPackingSolver extends BaseSolver {
       pinStrongConnMap: {},
       netMap: {},
       netConnMap: {},
+      chipGap: this.inputProblem.chipGap,
+      partitionGap: this.inputProblem.partitionGap,
     }
 
     // Combine all laid out partitions

@@ -37,6 +37,8 @@ test("ChipPartitionsSolver creates single partition for connected components", (
       "pin2-pin1": true,
     },
     netConnMap: {},
+    chipGap: 0.2,
+    partitionGap: 2,
   }
 
   const solver = new ChipPartitionsSolver(inputProblem)
@@ -44,7 +46,7 @@ test("ChipPartitionsSolver creates single partition for connected components", (
 
   expect(solver.solved).toBe(true)
   expect(solver.partitions).toHaveLength(1)
-  expect(solver.partitions[0].chipMap).toEqual(inputProblem.chipMap)
+  expect(solver.partitions[0]!.chipMap).toEqual(inputProblem.chipMap)
 })
 
 test("ChipPartitionsSolver creates separate partitions for disconnected components", () => {
@@ -79,6 +81,8 @@ test("ChipPartitionsSolver creates separate partitions for disconnected componen
     netMap: {},
     pinStrongConnMap: {}, // No connections between pins
     netConnMap: {},
+    chipGap: 0.2,
+    partitionGap: 2,
   }
 
   const solver = new ChipPartitionsSolver(inputProblem)
@@ -88,8 +92,8 @@ test("ChipPartitionsSolver creates separate partitions for disconnected componen
   expect(solver.partitions).toHaveLength(2)
 
   // Each partition should contain one chip
-  const partition1ChipIds = Object.keys(solver.partitions[0].chipMap)
-  const partition2ChipIds = Object.keys(solver.partitions[1].chipMap)
+  const partition1ChipIds = Object.keys(solver.partitions[0]!.chipMap)
+  const partition2ChipIds = Object.keys(solver.partitions[1]!.chipMap)
 
   expect(partition1ChipIds).toHaveLength(1)
   expect(partition2ChipIds).toHaveLength(1)
@@ -151,6 +155,8 @@ test("ChipPartitionsSolver handles complex connected graph", () => {
       "pin4-pin3": true,
     },
     netConnMap: {},
+    chipGap: 0.2,
+    partitionGap: 2,
   }
 
   const solver = new ChipPartitionsSolver(inputProblem)
@@ -158,8 +164,8 @@ test("ChipPartitionsSolver handles complex connected graph", () => {
 
   expect(solver.solved).toBe(true)
   expect(solver.partitions).toHaveLength(1) // All chips are connected, so single partition
-  expect(Object.keys(solver.partitions[0].chipMap)).toHaveLength(3)
-  expect(solver.partitions[0].chipMap).toEqual(inputProblem.chipMap)
+  expect(Object.keys(solver.partitions[0]!.chipMap)).toHaveLength(3)
+  expect(solver.partitions[0]!.chipMap).toEqual(inputProblem.chipMap)
 })
 
 test("ChipPartitionsSolver visualization contains partition components", () => {
@@ -177,6 +183,8 @@ test("ChipPartitionsSolver visualization contains partition components", () => {
     netMap: {},
     pinStrongConnMap: {},
     netConnMap: {},
+    chipGap: 0.2,
+    partitionGap: 2,
   }
 
   const solver = new ChipPartitionsSolver(inputProblem)
@@ -185,6 +193,6 @@ test("ChipPartitionsSolver visualization contains partition components", () => {
   const visualization = solver.visualize()
 
   // Should contain visualization elements
-  expect(visualization.rects.length).toBeGreaterThan(0)
-  expect(visualization.texts.length).toBeGreaterThan(0)
+  expect(visualization.rects?.length).toBeGreaterThan(0)
+  expect(visualization.texts?.length).toBeGreaterThan(0)
 })

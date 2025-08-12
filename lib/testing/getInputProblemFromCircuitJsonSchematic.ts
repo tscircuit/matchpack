@@ -167,8 +167,8 @@ export const getInputProblemFromCircuitJsonSchematic = (
       // Create pin-to-pin connections for direct component-to-component connections
       for (let i = 0; i < connectedPorts.length; i++) {
         for (let j = i + 1; j < connectedPorts.length; j++) {
-          const originalPin1 = connectedPorts[i]
-          const originalPin2 = connectedPorts[j]
+          const originalPin1 = connectedPorts[i]!
+          const originalPin2 = connectedPorts[j]!
 
           const pin1 = useReadableIds
             ? sourcePortIdToReadableId.get(originalPin1) || originalPin1
