@@ -1,4 +1,5 @@
 import type { ChipProps } from "@tscircuit/props"
+import { Circuit } from "tscircuit"
 
 const pinLabels = {
   pin1: ["IOVDD1"],
@@ -171,7 +172,7 @@ const RP2040 = (props: ChipProps<typeof pinLabels>) => {
 }
 
 export const RP2040Circuit = () => (
-  <group>
+  <board routingDisabled>
     <RP2040
       name="U3"
       connections={{
@@ -238,5 +239,11 @@ export const RP2040Circuit = () => (
       schOrientation="vertical"
       connections={{ pin2: "net.GND" }}
     />
-  </group>
+  </board>
 )
+
+export const getExampleCircuitJson = () => {
+  const circuit = new Circuit()
+  circuit.add(<RP2040Circuit />)
+  return circuit.getCircuitJson()
+}
