@@ -150,8 +150,6 @@ export function visualizeInputProblem(
           }
           return chipPin.offset
         }
-        const groupPin = inputProblem.groupPinMap[pinId]
-        if (groupPin) return groupPin.offset
         return null
       })
       .filter(Boolean) as Point[]
@@ -183,8 +181,6 @@ export function visualizeInputProblem(
       }
       return chipPin.offset
     }
-    const groupPin = inputProblem.groupPinMap[pinId]
-    if (groupPin) return groupPin.offset
     return null
   }
 

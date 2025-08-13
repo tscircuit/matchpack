@@ -158,7 +158,7 @@ test("RP2040Circuit solver first phase execution", () => {
   const solver = new LayoutPipelineSolver(problem)
 
   // Test just the first phase (ChipPartitionsSolver)
-  solver.solveUntilPhase("pinRangeMatchSolver")
+  solver.solveUntilPhase("partitionPackingSolver")
 
   expect(solver.chipPartitionsSolver).toBeDefined()
   expect(solver.chipPartitionsSolver!.solved).toBe(true)
@@ -196,9 +196,6 @@ test("RP2040Circuit complete pipeline execution", () => {
 
   // Verify all phases completed
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
-  expect(solver.pinRangeMatchSolver?.solved).toBe(true)
-  expect(solver.pinRangeLayoutSolver?.solved).toBe(true)
-  expect(solver.pinRangeOverlapSolver?.solved).toBe(true)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
 
   // Test getOutputLayout method

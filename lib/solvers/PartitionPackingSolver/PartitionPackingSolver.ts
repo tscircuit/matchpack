@@ -14,13 +14,11 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 export type LaidOutPartition = InputProblem
 
 export interface PartitionPackingSolverInput {
-  resolvedLayout: OutputLayout
   laidOutPartitions: LaidOutPartition[]
   inputProblem: InputProblem
 }
 
 export class PartitionPackingSolver extends BaseSolver {
-  resolvedLayout: OutputLayout
   laidOutPartitions: LaidOutPartition[]
   inputProblem: InputProblem
   finalLayout: OutputLayout | null = null
@@ -28,34 +26,27 @@ export class PartitionPackingSolver extends BaseSolver {
 
   constructor(input: PartitionPackingSolverInput) {
     super()
-    this.resolvedLayout = input.resolvedLayout
     this.laidOutPartitions = input.laidOutPartitions
     this.inputProblem = input.inputProblem
   }
 
   override _step() {
     try {
-      if (!this.resolvedLayout) {
-        this.failed = true
-        this.error = "No resolved layout provided"
-        return
-      }
-
-      // Get the overlap-resolved layout
-      const resolvedLayout = this.resolvedLayout
+      // Create a basic layout from the partitions first
+      const basicLayout = this.createBasicLayoutFromPartitions()
 
       // Create groups of components by partition for better organization
-      const partitionGroups = this.organizeComponentsByPartition(resolvedLayout)
+      const partitionGroups = this.organizeComponentsByPartition(basicLayout)
 
       if (partitionGroups.length === 0) {
-        this.finalLayout = resolvedLayout
+        this.finalLayout = basicLayout
         this.solved = true
         return
       }
 
       // Initialize PhasedPackSolver if not already created
       if (!this.phasedPackSolver) {
-        const packInput = this.createPackInput(partitionGroups)
+        const packInput = this.createPackInput(partitionGroups, basicLayout)
         this.phasedPackSolver = new PhasedPackSolver(packInput)
         this.activeSubSolver = this.phasedPackSolver
       }
@@ -74,7 +65,7 @@ export class PartitionPackingSolver extends BaseSolver {
         const packedLayout = this.applyPackingResult(
           this.phasedPackSolver.getResult(),
           partitionGroups,
-          resolvedLayout,
+          basicLayout,
         )
         this.finalLayout = packedLayout
         this.solved = true
@@ -157,9 +148,9 @@ export class PartitionPackingSolver extends BaseSolver {
         maxY: number
       }
     }>,
+    resolvedLayout: OutputLayout,
   ): PackInput {
-    // Get the resolved layout to access chip placements
-    const resolvedLayout = this.resolvedLayout
+    // Use the provided resolved layout to access chip placements
 
     // Build a global connectivity map to properly assign networkIds
     const pinToNetworkMap = new Map<string, string>()
@@ -337,7 +328,7 @@ export class PartitionPackingSolver extends BaseSolver {
 
     return {
       chipPlacements: newChipPlacements,
-      groupPlacements: { ...currentLayout.groupPlacements }, // Copy group placements unchanged
+      groupPlacements: {},
     }
   }
 
@@ -353,9 +344,7 @@ export class PartitionPackingSolver extends BaseSolver {
     // Create a combined problem for visualization from all laid out partitions
     const combinedProblem: InputProblem = {
       chipMap: {},
-      groupMap: {},
       chipPinMap: {},
-      groupPinMap: {},
       pinStrongConnMap: {},
       netMap: {},
       netConnMap: {},
@@ -366,9 +355,7 @@ export class PartitionPackingSolver extends BaseSolver {
     // Combine all laid out partitions
     for (const laidOutPartition of this.laidOutPartitions) {
       Object.assign(combinedProblem.chipMap, laidOutPartition.chipMap)
-      Object.assign(combinedProblem.groupMap, laidOutPartition.groupMap)
       Object.assign(combinedProblem.chipPinMap, laidOutPartition.chipPinMap)
-      Object.assign(combinedProblem.groupPinMap, laidOutPartition.groupPinMap)
       Object.assign(
         combinedProblem.pinStrongConnMap,
         laidOutPartition.pinStrongConnMap,
@@ -380,9 +367,39 @@ export class PartitionPackingSolver extends BaseSolver {
     return visualizeInputProblem(combinedProblem, this.finalLayout)
   }
 
+  private createBasicLayoutFromPartitions(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const groupPlacements: Record<string, Placement> = {}
+
+    let currentY = 0
+
+    // Layout each partition horizontally, stacked vertically
+    for (const partition of this.laidOutPartitions) {
+      let currentX = 0
+      let maxHeight = 0
+
+      // Layout chips in this partition
+      for (const [chipId, chip] of Object.entries(partition.chipMap)) {
+        chipPlacements[chipId] = {
+          x: currentX + chip.size.x / 2,
+          y: currentY + chip.size.y / 2,
+          ccwRotationDegrees: 0,
+        }
+        currentX += chip.size.x + this.inputProblem.chipGap
+        maxHeight = Math.max(maxHeight, chip.size.y)
+      }
+
+      currentY += maxHeight + this.inputProblem.partitionGap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements,
+    }
+  }
+
   override getConstructorParams(): PartitionPackingSolverInput {
     return {
-      resolvedLayout: this.resolvedLayout,
       laidOutPartitions: this.laidOutPartitions,
       inputProblem: this.inputProblem,
     }

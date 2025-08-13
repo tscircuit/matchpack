@@ -4,13 +4,7 @@
  */
 
 import { BaseSolver } from "../BaseSolver"
-import type {
-  InputProblem,
-  ChipId,
-  PinId,
-  GroupId,
-  NetId,
-} from "lib/types/InputProblem"
+import type { InputProblem, ChipId, PinId, NetId } from "lib/types/InputProblem"
 import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
@@ -35,17 +29,13 @@ export class ChipPartitionsSolver extends BaseSolver {
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
-    const groupIds = Object.keys(inputProblem.groupMap)
 
     // Build adjacency graph based on strong pin connections
-    const adjacencyMap = new Map<ChipId | GroupId, Set<ChipId | GroupId>>()
+    const adjacencyMap = new Map<ChipId, Set<ChipId>>()
 
     // Initialize adjacency map
     for (const chipId of chipIds) {
       adjacencyMap.set(chipId, new Set())
-    }
-    for (const groupId of groupIds) {
-      adjacencyMap.set(groupId, new Set())
     }
 
     // Add edges based on strong pin connections
@@ -67,10 +57,10 @@ export class ChipPartitionsSolver extends BaseSolver {
     }
 
     // Find connected components using DFS
-    const visited = new Set<ChipId | GroupId>()
-    const partitions: (ChipId | GroupId)[][] = []
+    const visited = new Set<ChipId>()
+    const partitions: ChipId[][] = []
 
-    for (const componentId of [...chipIds, ...groupIds]) {
+    for (const componentId of chipIds) {
       if (!visited.has(componentId)) {
         const partition = this.dfs(componentId, adjacencyMap, visited)
         if (partition.length > 0) {
@@ -86,12 +76,12 @@ export class ChipPartitionsSolver extends BaseSolver {
   }
 
   /**
-   * Finds the owner (chip or group) of a given pin
+   * Finds the owner chip of a given pin
    */
   private findPinOwner(
     pinId: PinId,
     inputProblem: InputProblem,
-  ): ChipId | GroupId | null {
+  ): ChipId | null {
     // Check if it's a chip pin
     const chipPin = inputProblem.chipPinMap[pinId]
     if (chipPin) {
@@ -103,17 +93,6 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
-    // Check if it's a group pin
-    const groupPin = inputProblem.groupPinMap[pinId]
-    if (groupPin) {
-      // Find the group that owns this pin
-      for (const [groupId, group] of Object.entries(inputProblem.groupMap)) {
-        if (group.pins.includes(pinId)) {
-          return groupId
-        }
-      }
-    }
-
     return null
   }
 
@@ -121,11 +100,11 @@ export class ChipPartitionsSolver extends BaseSolver {
    * Depth-first search to find connected components
    */
   private dfs(
-    startId: ChipId | GroupId,
-    adjacencyMap: Map<ChipId | GroupId, Set<ChipId | GroupId>>,
-    visited: Set<ChipId | GroupId>,
-  ): (ChipId | GroupId)[] {
-    const partition: (ChipId | GroupId)[] = []
+    startId: ChipId,
+    adjacencyMap: Map<ChipId, Set<ChipId>>,
+    visited: Set<ChipId>,
+  ): ChipId[] {
+    const partition: ChipId[] = []
     const stack = [startId]
 
     while (stack.length > 0) {
@@ -151,11 +130,10 @@ export class ChipPartitionsSolver extends BaseSolver {
    * Creates a new InputProblem containing only the components in the given partition
    */
   private createInputProblemFromPartition(
-    partition: (ChipId | GroupId)[],
+    partition: ChipId[],
     originalProblem: InputProblem,
   ): InputProblem {
-    const chipIds = partition.filter((id) => originalProblem.chipMap[id])
-    const groupIds = partition.filter((id) => originalProblem.groupMap[id])
+    const chipIds = partition
 
     // Extract relevant pins
     const relevantPinIds = new Set<PinId>()
@@ -165,18 +143,10 @@ export class ChipPartitionsSolver extends BaseSolver {
         relevantPinIds.add(pinId)
       }
     }
-    for (const groupId of groupIds) {
-      const group = originalProblem.groupMap[groupId]
-      for (const pinId of group!.pins) {
-        relevantPinIds.add(pinId)
-      }
-    }
 
     // Build filtered maps
     const chipMap: Record<ChipId, any> = {}
     const chipPinMap: Record<PinId, any> = {}
-    const groupMap: Record<GroupId, any> = {}
-    const groupPinMap: Record<PinId, any> = {}
     const netMap: Record<NetId, any> = {}
     const pinStrongConnMap: Record<string, boolean> = {}
     const netConnMap: Record<string, boolean> = {}
@@ -188,16 +158,6 @@ export class ChipPartitionsSolver extends BaseSolver {
     for (const pinId of relevantPinIds) {
       if (originalProblem.chipPinMap[pinId]) {
         chipPinMap[pinId] = originalProblem.chipPinMap[pinId]
-      }
-    }
-
-    // Copy groups and group pins
-    for (const groupId of groupIds) {
-      groupMap[groupId] = originalProblem.groupMap[groupId]
-    }
-    for (const pinId of relevantPinIds) {
-      if (originalProblem.groupPinMap[pinId]) {
-        groupPinMap[pinId] = originalProblem.groupPinMap[pinId]
       }
     }
 
@@ -234,8 +194,6 @@ export class ChipPartitionsSolver extends BaseSolver {
     return {
       chipMap,
       chipPinMap,
-      groupMap,
-      groupPinMap,
       netMap,
       pinStrongConnMap,
       netConnMap,

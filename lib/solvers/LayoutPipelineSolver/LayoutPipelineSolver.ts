@@ -7,9 +7,6 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
-import { PinRangeLayoutSolver } from "lib/solvers/PinRangeLayoutSolver/PinRangeLayoutSolver"
-import { PinRangeMatchSolver } from "lib/solvers/PinRangeMatchSolver/PinRangeMatchSolver"
-import { PinRangeOverlapSolver } from "lib/solvers/PinRangeOverlapSolver/PinRangeOverlapSolver"
 import type { InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
@@ -47,9 +44,6 @@ function definePipelineStep<
 
 export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
-  pinRangeMatchSolver?: PinRangeMatchSolver
-  pinRangeLayoutSolver?: PinRangeLayoutSolver
-  pinRangeOverlapSolver?: PinRangeOverlapSolver
   partitionPackingSolver?: PartitionPackingSolver
 
   startTimeOfPhase: Record<string, number>
@@ -59,7 +53,6 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   inputProblem: InputProblem
   chipPartitions?: ChipPartitionsSolver["partitions"]
-  pinRanges?: ReturnType<PinRangeMatchSolver["getAllPinRanges"]>
 
   pipelineDef = [
     definePipelineStep(
@@ -73,45 +66,10 @@ export class LayoutPipelineSolver extends BaseSolver {
       },
     ),
     definePipelineStep(
-      "pinRangeMatchSolver",
-      PinRangeMatchSolver,
-      () => [this.chipPartitions || []],
-      {
-        onSolved: (_solver) => {
-          // Store matched layouts for next phase
-          this.pinRanges = this.pinRangeMatchSolver!.getAllPinRanges()
-        },
-      },
-    ),
-    definePipelineStep(
-      "pinRangeLayoutSolver",
-      PinRangeLayoutSolver,
-      () => [this.pinRanges || [], this.chipPartitions || [this.inputProblem]],
-      {
-        onSolved: (_solver) => {
-          // Store laid out pin ranges for next phase
-        },
-      },
-    ),
-    definePipelineStep(
-      "pinRangeOverlapSolver",
-      PinRangeOverlapSolver,
-      () => [
-        this.pinRangeLayoutSolver!,
-        this.chipPartitions || [this.inputProblem],
-      ],
-      {
-        onSolved: (_solver) => {
-          // Store overlap-resolved layout for next phase
-        },
-      },
-    ),
-    definePipelineStep(
       "partitionPackingSolver",
       PartitionPackingSolver,
       () => [
         {
-          resolvedLayout: this.pinRangeOverlapSolver!.resolvedLayout!,
           laidOutPartitions: this.chipPartitions || [this.inputProblem],
           inputProblem: this.inputProblem,
         },
@@ -191,23 +149,13 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
-    const pinRangeMatchViz = this.pinRangeMatchSolver?.visualize()
-    const pinRangeLayoutViz = this.pinRangeLayoutSolver?.visualize()
-    const pinRangeOverlapViz = this.pinRangeOverlapSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
     const inputViz = visualizeInputProblem(this.inputProblem, basicLayout)
 
-    const visualizations = [
-      inputViz,
-      chipPartitionsViz,
-      pinRangeMatchViz,
-      pinRangeLayoutViz,
-      pinRangeOverlapViz,
-      partitionPackingViz,
-    ]
+    const visualizations = [inputViz, chipPartitionsViz, partitionPackingViz]
       .filter(Boolean)
       .map((viz, stepIndex) => {
         for (const rect of viz!.rects ?? []) {
@@ -252,15 +200,6 @@ export class LayoutPipelineSolver extends BaseSolver {
     // Show the most recent solver's output
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
-    }
-    if (this.pinRangeOverlapSolver?.solved) {
-      return this.pinRangeOverlapSolver.visualize()
-    }
-    if (this.pinRangeLayoutSolver?.solved) {
-      return this.pinRangeLayoutSolver.visualize()
-    }
-    if (this.pinRangeMatchSolver?.solved) {
-      return this.pinRangeMatchSolver.visualize()
     }
     if (this.chipPartitionsSolver?.solved) {
       return this.chipPartitionsSolver.visualize()
@@ -400,52 +339,12 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the last solver
+    // Get the final layout from the partition packing solver
     if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
       finalLayout = this.partitionPackingSolver.finalLayout
-    } else if (
-      this.pinRangeOverlapSolver?.solved &&
-      this.pinRangeOverlapSolver.resolvedLayout
-    ) {
-      // Fall back to overlap solver if partition packing didn't run
-      finalLayout = this.pinRangeOverlapSolver.resolvedLayout
-    } else if (this.pinRangeLayoutSolver?.solved) {
-      // Fall back to basic layout if earlier phases completed
-      const allChipPlacements: Record<
-        string,
-        { x: number; y: number; ccwRotationDegrees: number }
-      > = {}
-      const allGroupPlacements: Record<
-        string,
-        { x: number; y: number; ccwRotationDegrees: number }
-      > = {}
-
-      for (const singleSolver of this.pinRangeLayoutSolver.completedSolvers) {
-        if (singleSolver.layout) {
-          Object.assign(allChipPlacements, singleSolver.layout.chipPlacements)
-          Object.assign(allGroupPlacements, singleSolver.layout.groupPlacements)
-        }
-      }
-
-      // Include active solver if it has a layout
-      if (this.pinRangeLayoutSolver.activeSolver?.layout) {
-        Object.assign(
-          allChipPlacements,
-          this.pinRangeLayoutSolver.activeSolver.layout.chipPlacements,
-        )
-        Object.assign(
-          allGroupPlacements,
-          this.pinRangeLayoutSolver.activeSolver.layout.groupPlacements,
-        )
-      }
-
-      finalLayout = {
-        chipPlacements: allChipPlacements,
-        groupPlacements: allGroupPlacements,
-      }
     } else {
       throw new Error(
         "No layout available. Pipeline may have failed or not progressed far enough.",

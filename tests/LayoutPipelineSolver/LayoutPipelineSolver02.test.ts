@@ -27,19 +27,24 @@ test("LayoutPipelineSolver02 runs pipeline phases for ExampleCircuit02", () => {
   expect(initialViz.points).toBeDefined()
 
   // Test just the chip partitions phase
-  solver.solveUntilPhase("pinRangeMatchSolver")
+  solver.solveUntilPhase("partitionPackingSolver")
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
   expect(solver.chipPartitions).toBeDefined()
   expect(solver.chipPartitions!.length).toBeGreaterThan(0)
 
-  // Test the pin range match phase
-  solver.solveUntilPhase("pinRangeLayoutSolver")
-  expect(solver.pinRangeMatchSolver?.solved).toBe(true)
+  // Test that we can complete the full pipeline
+  solver.solve()
+  expect(solver.solved).toBe(true)
+  expect(solver.partitionPackingSolver?.solved).toBe(true)
 
-  // Don't test remaining phases if they're not implemented
-  // Just verify we can visualize after each completed phase
-  const partitionViz = solver.visualize()
-  expect(partitionViz).toBeDefined()
+  // Test final layout can be retrieved
+  const finalLayout = solver.getOutputLayout()
+  expect(finalLayout).toBeDefined()
+  expect(finalLayout.chipPlacements).toBeDefined()
+
+  // Verify we can visualize the final result
+  const finalViz = solver.visualize()
+  expect(finalViz).toBeDefined()
 
   // Check that all chips in the problem have expected pin counts
   for (const [chipId, chip] of Object.entries(problem.chipMap)) {
@@ -97,21 +102,21 @@ test("LayoutPipelineSolver02 step-by-step execution", () => {
   expect(stepCount).toBeGreaterThan(0)
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
 
-  // Test one more phase (PinRangeMatchSolver)
+  // Test next phase (partitionPackingSolver)
   stepCount = 0
   while (
-    solver.getCurrentPhase() === "pinRangeMatchSolver" &&
+    solver.getCurrentPhase() === "partitionPackingSolver" &&
     stepCount < 100
   ) {
     solver.step()
     stepCount++
   }
 
-  // Should have completed pin range match phase
-  expect(solver.pinRangeMatchSolver?.solved).toBe(true)
+  // Should have completed partition packing phase
+  expect(solver.partitionPackingSolver?.solved).toBe(true)
 })
 
-test("LayoutPipelineSolver02 PinRangeLayoutSolver should not error on undefined pinRanges", () => {
+test("LayoutPipelineSolver02 should complete simplified pipeline without errors", () => {
   // Convert ExampleCircuit02 to InputProblem
   const circuitJson = getExampleCircuitJson()
   const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
@@ -121,32 +126,19 @@ test("LayoutPipelineSolver02 PinRangeLayoutSolver should not error on undefined 
   // Create solver
   const solver = new LayoutPipelineSolver(problem)
 
-  // Step until we reach pinRangeLayoutSolver phase
-  solver.solveUntilPhase("pinRangeLayoutSolver")
+  // Step through the entire simplified pipeline
+  solver.solve()
 
-  // Now step into the pinRangeLayoutSolver phase - should not error
-  let stepCount = 0
+  // Should complete successfully without errors
+  expect(solver.solved).toBe(true)
+  expect(solver.failed).toBe(false)
+  expect(solver.chipPartitionsSolver?.solved).toBe(true)
+  expect(solver.partitionPackingSolver?.solved).toBe(true)
 
-  // This should no longer throw an error
-  while (
-    solver.getCurrentPhase() === "pinRangeLayoutSolver" &&
-    stepCount < 50
-  ) {
-    solver.step()
-    stepCount++
-
-    // Make sure we're making progress and not stuck
-    if (
-      solver.pinRangeLayoutSolver?.solved ||
-      solver.pinRangeLayoutSolver?.failed
-    ) {
-      break
-    }
-  }
-
-  // Should have processed without the undefined error
-  expect(solver.pinRangeLayoutSolver).toBeDefined()
-  expect(solver.pinRangeLayoutSolver?.failed).toBeFalsy()
+  // Should be able to get final layout
+  const layout = solver.getOutputLayout()
+  expect(layout).toBeDefined()
+  expect(Object.keys(layout.chipPlacements).length).toBeGreaterThan(0)
 })
 
 test("LayoutPipelineSolver02 complete pipeline execution", () => {
@@ -168,9 +160,6 @@ test("LayoutPipelineSolver02 complete pipeline execution", () => {
 
   // Verify all phases completed
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
-  expect(solver.pinRangeMatchSolver?.solved).toBe(true)
-  expect(solver.pinRangeLayoutSolver?.solved).toBe(true)
-  expect(solver.pinRangeOverlapSolver?.solved).toBe(true)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
 
   // Test getOutputLayout method

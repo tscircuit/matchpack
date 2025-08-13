@@ -20,8 +20,6 @@ export const getInputProblemFromCircuitJsonSchematic = (
   const problem: InputProblem = {
     chipMap: {},
     chipPinMap: {},
-    groupMap: {},
-    groupPinMap: {},
     netMap: {},
     pinStrongConnMap: {},
     netConnMap: {},
