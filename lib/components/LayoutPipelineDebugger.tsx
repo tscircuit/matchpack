@@ -108,6 +108,30 @@ export const LayoutPipelineDebugger = ({
               >
                 show latest
               </span>
+              {(() => {
+                const currentIndex = visualizationHistory.findIndex(
+                  (viz) => viz.iteration === selectedIteration,
+                )
+                const hasNext = currentIndex >= 0 && currentIndex < visualizationHistory.length - 1
+                return hasNext && (
+                  <>
+                    <span style={{ margin: "0 5px" }}>|</span>
+                    <span
+                      onClick={() => {
+                        const nextIteration = visualizationHistory[currentIndex + 1].iteration
+                        setSelectedIteration(nextIteration)
+                      }}
+                      style={{
+                        color: "#007bff",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      next
+                    </span>
+                  </>
+                )
+              })()}
               <strong>)</strong>
             </div>
           )}

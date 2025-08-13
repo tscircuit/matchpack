@@ -24,13 +24,7 @@ export const PipelineStatusTable = ({
   selectedIteration,
   onSelectIteration,
 }: PipelineStatusTableProps) => {
-  const stageNames = [
-    "ChipPartitionsSolver",
-    "PinRangeMatchSolver",
-    "PinRangeLayoutSolver",
-    "PinRangeOverlapSolver",
-    "PartitionPackingSolver",
-  ]
+  const stageNames = solver.pipelineDef.map((stepDef) => stepDef.solverName)
 
   const getStageInfo = (): PipelineStageInfo[] => {
     return solver.pipelineDef.map((stepDef, index) => {
