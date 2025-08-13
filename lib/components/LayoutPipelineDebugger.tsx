@@ -26,10 +26,14 @@ export const LayoutPipelineDebugger = ({
   )
   const solver = useMemo(() => {
     const s = new LayoutPipelineSolver(problem)
-    // Capture initial state
-    setVisualizationHistory([{ iteration: 0, graphics: s.visualize() }])
     return s
-  }, [])
+  }, [problem])
+
+  // Initialize visualization history when solver changes
+  useMemo(() => {
+    setVisualizationHistory([{ iteration: 0, graphics: solver.visualize() }])
+    setSelectedIteration(null)
+  }, [solver])
 
   return (
     <div>
@@ -39,6 +43,7 @@ export const LayoutPipelineDebugger = ({
         onStep={() => {
           solver.step()
           const graphics = solver.visualize()
+          console.log(`Capturing step visualization for iteration ${solver.iterations}`)
           setVisualizationHistory((prev) => [
             ...prev,
             { iteration: solver.iterations, graphics },
@@ -46,26 +51,30 @@ export const LayoutPipelineDebugger = ({
           incRunCount()
         }}
         onSolve={() => {
-          solver.solve()
-          // After solve completes, capture the final state
-          const graphics = solver.visualize()
+          // Collect all intermediate visualizations during solve
+          const newVisualizations: Array<{ iteration: number; graphics: any }> = []
+          
+          while (!solver.solved && !solver.failed) {
+            solver.step()
+            const graphics = solver.visualize()
+            console.log(`Capturing solve visualization for iteration ${solver.iterations}`)
+            newVisualizations.push({ iteration: solver.iterations, graphics })
+          }
+          
+          // Update visualization history with all new visualizations
           setVisualizationHistory((prev) => {
-            // Check if this iteration already exists
-            const existingIndex = prev.findIndex(
-              (viz) => viz.iteration === solver.iterations,
-            )
-            if (existingIndex >= 0) {
-              // Update existing
-              const updated = [...prev]
-              updated[existingIndex] = {
-                iteration: solver.iterations,
-                graphics,
+            const updatedHistory = [...prev]
+            for (const newViz of newVisualizations) {
+              const existingIndex = updatedHistory.findIndex(
+                (viz) => viz.iteration === newViz.iteration,
+              )
+              if (existingIndex >= 0) {
+                updatedHistory[existingIndex] = newViz
+              } else {
+                updatedHistory.push(newViz)
               }
-              return updated
-            } else {
-              // Add new
-              return [...prev, { iteration: solver.iterations, graphics }]
             }
+            return updatedHistory.sort((a, b) => a.iteration - b.iteration)
           })
           incRunCount()
         }}
@@ -99,14 +108,18 @@ export const LayoutPipelineDebugger = ({
           )}
 
           <InteractiveGraphics
-            key={runCount}
-            graphics={
-              selectedIteration !== null
-                ? visualizationHistory.find(
-                    (viz) => viz.iteration === selectedIteration,
-                  )?.graphics || solver.visualize()
-                : solver.visualize()
-            }
+            key={`${runCount}-${selectedIteration ?? 'latest'}`}
+            graphics={(() => {
+              if (selectedIteration !== null) {
+                const found = visualizationHistory.find(
+                  (viz) => viz.iteration === selectedIteration,
+                )
+                console.log(`Looking for iteration ${selectedIteration}, found:`, !!found)
+                return found?.graphics || solver.visualize()
+              }
+              console.log('Using latest visualization')
+              return solver.visualize()
+            })()}
           />
           <PipelineStatusTable
             solver={solver}
@@ -114,6 +127,8 @@ export const LayoutPipelineDebugger = ({
             visualizationHistory={visualizationHistory}
             selectedIteration={selectedIteration}
             onSelectIteration={(iteration) => {
+              console.log('Selecting iteration:', iteration)
+              console.log('Available visualizations:', visualizationHistory.map(v => v.iteration))
               setSelectedIteration(iteration)
               incRunCount()
             }}
