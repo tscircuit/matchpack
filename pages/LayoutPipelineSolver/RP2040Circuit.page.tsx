@@ -11,6 +11,13 @@ export default function RP2040CircuitPage() {
     { useReadableIds: true },
   )
 
+  for (const chipId in problem.chipMap) {
+    const chip = problem.chipMap[chipId]
+    if (chip?.chipId.startsWith("C")) {
+      chip.availableRotations = [0]
+    }
+  }
+
   return (
     <LayoutPipelineDebugger
       problem={problem}

@@ -43,9 +43,6 @@ export const LayoutPipelineDebugger = ({
         onStep={() => {
           solver.step()
           const graphics = solver.visualize()
-          console.log(
-            `Capturing step visualization for iteration ${solver.iterations}`,
-          )
           setVisualizationHistory((prev) => [
             ...prev,
             { iteration: solver.iterations, graphics },
@@ -60,9 +57,6 @@ export const LayoutPipelineDebugger = ({
           while (!solver.solved && !solver.failed) {
             solver.step()
             const graphics = solver.visualize()
-            console.log(
-              `Capturing solve visualization for iteration ${solver.iterations}`,
-            )
             newVisualizations.push({ iteration: solver.iterations, graphics })
           }
 
