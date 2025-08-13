@@ -12,9 +12,6 @@ This is roughly the hierarchy of solvers:
 LayoutPipelineSolver: Runs pipeline
 ↳ ChipPartitionsSolver: Creates partitions (small subset groups) surrounding complex chips
   ↳ SingleChipPartitionSolver: Creates a single partition for a single chip
-↳ PinRangeMatchSolver: Finds pin ranges on each chip in the partition, constructs a subset group with just that pin range, then matches a laid out design from the corpus
-↳ PinRangeLayoutSolver: Applies the matched layout to the pin ranges, moving passives that are connected to each pin range
-↳ PinRangeOverlapSolver: Finds overlaps between laid out boxes from each pin range and fixes them
 ↳ PartitionPackingSolver: Packs the laid out chip partitions into a single layout
 ```
 
