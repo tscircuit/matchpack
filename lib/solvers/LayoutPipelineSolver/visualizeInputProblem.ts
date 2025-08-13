@@ -172,9 +172,14 @@ export function visualizeInputProblem(
         if (chip.pins.includes(pinId)) {
           const placement = basicLayout.chipPlacements[chipId]
           if (placement) {
+            // Rotate pin offset around chip center based on chip rotation
+            const rotatedOffset = rotatePoint(
+              chipPin.offset,
+              placement.ccwRotationDegrees,
+            )
             return {
-              x: placement.x + chipPin.offset.x,
-              y: placement.y + chipPin.offset.y,
+              x: placement.x + rotatedOffset.x,
+              y: placement.y + rotatedOffset.y,
             }
           }
         }
