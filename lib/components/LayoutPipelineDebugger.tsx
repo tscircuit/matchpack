@@ -142,7 +142,6 @@ export const LayoutPipelineDebugger = ({
           )}
 
           <InteractiveGraphics
-            key={`${runCount}-${selectedIteration ?? "latest"}`}
             graphics={(() => {
               if (selectedIteration !== null) {
                 const found = visualizationHistory.find(
