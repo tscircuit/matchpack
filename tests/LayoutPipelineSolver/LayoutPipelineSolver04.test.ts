@@ -21,15 +21,16 @@ test("LayoutPipelineSolver04 - ExampleCircuit04 simplified pipeline execution", 
   const solver = new LayoutPipelineSolver(problem)
 
   // Test chip partitions phase
-  solver.solveUntilPhase("partitionPackingSolver")
+  solver.solveUntilPhase("packInnerPartitionsSolver")
   expect(solver.getCurrentPhase()).toMatchInlineSnapshot(
-    `"partitionPackingSolver"`,
+    `"packInnerPartitionsSolver"`,
   )
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
 
   // Complete the pipeline
   solver.solve()
   expect(solver.solved).toBe(true)
+  expect(solver.packInnerPartitionsSolver?.solved).toBe(true)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
 
   // Test final layout

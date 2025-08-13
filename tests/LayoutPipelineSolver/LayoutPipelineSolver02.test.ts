@@ -27,7 +27,7 @@ test("LayoutPipelineSolver02 runs pipeline phases for ExampleCircuit02", () => {
   expect(initialViz.points).toBeDefined()
 
   // Test just the chip partitions phase
-  solver.solveUntilPhase("partitionPackingSolver")
+  solver.solveUntilPhase("packInnerPartitionsSolver")
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
   expect(solver.chipPartitions).toBeDefined()
   expect(solver.chipPartitions!.length).toBeGreaterThan(0)
@@ -102,7 +102,20 @@ test("LayoutPipelineSolver02 step-by-step execution", () => {
   expect(stepCount).toBeGreaterThan(0)
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
 
-  // Test next phase (partitionPackingSolver)
+  // Test next phase (packInnerPartitionsSolver)
+  stepCount = 0
+  while (
+    solver.getCurrentPhase() === "packInnerPartitionsSolver" &&
+    stepCount < 100
+  ) {
+    solver.step()
+    stepCount++
+  }
+
+  // Should have completed pack inner partitions phase
+  expect(solver.packInnerPartitionsSolver?.solved).toBe(true)
+
+  // Test final phase (partitionPackingSolver)
   stepCount = 0
   while (
     solver.getCurrentPhase() === "partitionPackingSolver" &&
@@ -133,6 +146,7 @@ test("LayoutPipelineSolver02 should complete simplified pipeline without errors"
   expect(solver.solved).toBe(true)
   expect(solver.failed).toBe(false)
   expect(solver.chipPartitionsSolver?.solved).toBe(true)
+  expect(solver.packInnerPartitionsSolver?.solved).toBe(true)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
 
   // Should be able to get final layout

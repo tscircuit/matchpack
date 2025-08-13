@@ -6,6 +6,10 @@
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
+import {
+  PackInnerPartitionsSolver,
+  type PackedPartition,
+} from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
 import type { InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
@@ -44,6 +48,7 @@ function definePipelineStep<
 
 export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
+  packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
 
   startTimeOfPhase: Record<string, number>
@@ -53,6 +58,7 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   inputProblem: InputProblem
   chipPartitions?: ChipPartitionsSolver["partitions"]
+  packedPartitions?: PackedPartition[]
 
   pipelineDef = [
     definePipelineStep(
@@ -66,11 +72,22 @@ export class LayoutPipelineSolver extends BaseSolver {
       },
     ),
     definePipelineStep(
+      "packInnerPartitionsSolver",
+      PackInnerPartitionsSolver,
+      () => [this.chipPartitions || [this.inputProblem]],
+      {
+        onSolved: (_solver) => {
+          this.packedPartitions =
+            this.packInnerPartitionsSolver!.packedPartitions
+        },
+      },
+    ),
+    definePipelineStep(
       "partitionPackingSolver",
       PartitionPackingSolver,
       () => [
         {
-          laidOutPartitions: this.chipPartitions || [this.inputProblem],
+          packedPartitions: this.packedPartitions || [],
           inputProblem: this.inputProblem,
         },
       ],
@@ -149,13 +166,19 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
+    const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
     const inputViz = visualizeInputProblem(this.inputProblem, basicLayout)
 
-    const visualizations = [inputViz, chipPartitionsViz, partitionPackingViz]
+    const visualizations = [
+      inputViz,
+      chipPartitionsViz,
+      packInnerPartitionsViz,
+      partitionPackingViz,
+    ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
         for (const rect of viz!.rects ?? []) {
@@ -200,6 +223,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     // Show the most recent solver's output
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
+    }
+    if (this.packInnerPartitionsSolver?.solved) {
+      return this.packInnerPartitionsSolver.visualize()
     }
     if (this.chipPartitionsSolver?.solved) {
       return this.chipPartitionsSolver.visualize()
