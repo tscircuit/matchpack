@@ -112,29 +112,51 @@ export const LayoutPipelineDebugger = ({
                 const currentIndex = visualizationHistory.findIndex(
                   (viz) => viz.iteration === selectedIteration,
                 )
+                const hasPrev = currentIndex > 0
                 const hasNext =
                   currentIndex >= 0 &&
                   currentIndex < visualizationHistory.length - 1
                 return (
-                  hasNext && (
-                    <>
-                      <span style={{ margin: "0 5px" }}>|</span>
-                      <span
-                        onClick={() => {
-                          const nextIteration =
-                            visualizationHistory[currentIndex + 1].iteration
-                          setSelectedIteration(nextIteration)
-                        }}
-                        style={{
-                          color: "#007bff",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                        }}
-                      >
-                        next
-                      </span>
-                    </>
-                  )
+                  <>
+                    {hasPrev && (
+                      <>
+                        <span style={{ margin: "0 5px" }}>|</span>
+                        <span
+                          onClick={() => {
+                            const prevIteration =
+                              visualizationHistory[currentIndex - 1].iteration
+                            setSelectedIteration(prevIteration)
+                          }}
+                          style={{
+                            color: "#007bff",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          prev
+                        </span>
+                      </>
+                    )}
+                    {hasNext && (
+                      <>
+                        <span style={{ margin: "0 5px" }}>|</span>
+                        <span
+                          onClick={() => {
+                            const nextIteration =
+                              visualizationHistory[currentIndex + 1]!.iteration
+                            setSelectedIteration(nextIteration)
+                          }}
+                          style={{
+                            color: "#007bff",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          next
+                        </span>
+                      </>
+                    )}
+                  </>
                 )
               })()}
               <strong>)</strong>
