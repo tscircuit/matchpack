@@ -5,17 +5,24 @@ interface PipelineStageInfo {
   stageName: string
   status: "Not Started" | "In Progress" | "Completed"
   firstIterationStarted: number | null
+  lastIterationEnded: number | null
   downloadInputsData: () => any[]
 }
 
 interface PipelineStatusTableProps {
   solver: LayoutPipelineSolver
   runCount: number // Used to trigger re-renders when solver state changes
+  visualizationHistory?: Array<{ iteration: number; graphics: any }>
+  selectedIteration?: number | null
+  onSelectIteration?: (iteration: number | null) => void
 }
 
 export const PipelineStatusTable = ({
   solver,
   runCount,
+  visualizationHistory = [],
+  selectedIteration,
+  onSelectIteration,
 }: PipelineStatusTableProps) => {
   const stageNames = [
     "ChipPartitionsSolver",
@@ -46,6 +53,30 @@ export const PipelineStatusTable = ({
       const firstIterationStarted =
         solver.firstIterationOfPhase[stepDef.solverName] ?? null
 
+      // Calculate last iteration ended (first iteration of next stage - 1)
+      let lastIterationEnded: number | null = null
+      if (firstIterationStarted !== null && status === "Completed") {
+        // Find the next stage's first iteration
+        const nextStageIndex = index + 1
+        if (nextStageIndex < solver.pipelineDef.length) {
+          const nextStageName = solver.pipelineDef[nextStageIndex].solverName
+          const nextStageFirstIteration =
+            solver.firstIterationOfPhase[nextStageName]
+          if (
+            nextStageFirstIteration !== undefined &&
+            nextStageFirstIteration !== null
+          ) {
+            lastIterationEnded = nextStageFirstIteration - 1
+          }
+        } else {
+          // This is the last stage, use current solver iteration
+          lastIterationEnded = solver.iterations
+        }
+      } else if (status === "In Progress") {
+        // For in-progress stages, use current iteration
+        lastIterationEnded = solver.iterations
+      }
+
       // Create download function for constructor parameters
       const downloadInputsData = () => {
         try {
@@ -64,6 +95,7 @@ export const PipelineStatusTable = ({
         stageName,
         status,
         firstIterationStarted,
+        lastIterationEnded,
         downloadInputsData,
       }
     })
@@ -137,6 +169,15 @@ export const PipelineStatusTable = ({
                 textAlign: "left",
               }}
             >
+              Iterations
+            </th>
+            <th
+              style={{
+                border: "1px solid #ccc",
+                padding: "8px",
+                textAlign: "left",
+              }}
+            >
               Input
             </th>
           </tr>
@@ -165,6 +206,65 @@ export const PipelineStatusTable = ({
                 {stageInfo.firstIterationStarted !== null
                   ? stageInfo.firstIterationStarted
                   : "-"}
+              </td>
+              <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                {stageInfo.firstIterationStarted !== null &&
+                  onSelectIteration && (
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button
+                        onClick={() =>
+                          onSelectIteration(stageInfo.firstIterationStarted)
+                        }
+                        style={{
+                          padding: "2px 6px",
+                          backgroundColor:
+                            selectedIteration ===
+                            stageInfo.firstIterationStarted
+                              ? "#007bff"
+                              : "#e9ecef",
+                          color:
+                            selectedIteration ===
+                            stageInfo.firstIterationStarted
+                              ? "white"
+                              : "black",
+                          border: "1px solid #ccc",
+                          borderRadius: "3px",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                        }}
+                      >
+                        (i_{stageInfo.firstIterationStarted})
+                      </button>
+                      {stageInfo.lastIterationEnded !== null &&
+                        stageInfo.lastIterationEnded !==
+                          stageInfo.firstIterationStarted && (
+                          <button
+                            onClick={() =>
+                              onSelectIteration(stageInfo.lastIterationEnded)
+                            }
+                            style={{
+                              padding: "2px 6px",
+                              backgroundColor:
+                                selectedIteration ===
+                                stageInfo.lastIterationEnded
+                                  ? "#007bff"
+                                  : "#e9ecef",
+                              color:
+                                selectedIteration ===
+                                stageInfo.lastIterationEnded
+                                  ? "white"
+                                  : "black",
+                              border: "1px solid #ccc",
+                              borderRadius: "3px",
+                              cursor: "pointer",
+                              fontSize: "11px",
+                            }}
+                          >
+                            (i_{stageInfo.lastIterationEnded})
+                          </button>
+                        )}
+                    </div>
+                  )}
               </td>
               <td style={{ border: "1px solid #ccc", padding: "8px" }}>
                 <button

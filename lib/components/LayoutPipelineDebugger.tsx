@@ -18,7 +18,18 @@ export const LayoutPipelineDebugger = ({
   const [currentTab, setCurrentTab] = useState<"pipeline" | "circuit">(
     "pipeline",
   )
-  const solver = useMemo(() => new LayoutPipelineSolver(problem), [])
+  const [visualizationHistory, setVisualizationHistory] = useState<
+    Array<{ iteration: number; graphics: any }>
+  >([])
+  const [selectedIteration, setSelectedIteration] = useState<number | null>(
+    null,
+  )
+  const solver = useMemo(() => {
+    const s = new LayoutPipelineSolver(problem)
+    // Capture initial state
+    setVisualizationHistory([{ iteration: 0, graphics: s.visualize() }])
+    return s
+  }, [])
 
   return (
     <div>
@@ -27,10 +38,35 @@ export const LayoutPipelineDebugger = ({
         onChangeTab={(tab) => setCurrentTab(tab)}
         onStep={() => {
           solver.step()
+          const graphics = solver.visualize()
+          setVisualizationHistory((prev) => [
+            ...prev,
+            { iteration: solver.iterations, graphics },
+          ])
           incRunCount()
         }}
         onSolve={() => {
           solver.solve()
+          // After solve completes, capture the final state
+          const graphics = solver.visualize()
+          setVisualizationHistory((prev) => {
+            // Check if this iteration already exists
+            const existingIndex = prev.findIndex(
+              (viz) => viz.iteration === solver.iterations,
+            )
+            if (existingIndex >= 0) {
+              // Update existing
+              const updated = [...prev]
+              updated[existingIndex] = {
+                iteration: solver.iterations,
+                graphics,
+              }
+              return updated
+            } else {
+              // Add new
+              return [...prev, { iteration: solver.iterations, graphics }]
+            }
+          })
           incRunCount()
         }}
         activeSubSolverName={solver.activeSubSolver?.constructor.name}
@@ -38,8 +74,50 @@ export const LayoutPipelineDebugger = ({
       />
       {currentTab === "pipeline" && (
         <>
-          <InteractiveGraphics graphics={solver.visualize()} />
-          <PipelineStatusTable solver={solver} runCount={runCount} />
+          {/* Viewing indicator */}
+          {selectedIteration !== null && visualizationHistory.length > 0 && (
+            <div
+              style={{
+                padding: "10px",
+                backgroundColor: "#f0f0f0",
+                marginBottom: "10px",
+              }}
+            >
+              <strong>Viewing i_{selectedIteration} (</strong>
+              <span
+                onClick={() => setSelectedIteration(null)}
+                style={{
+                  color: "#007bff",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+              >
+                show latest
+              </span>
+              <strong>)</strong>
+            </div>
+          )}
+
+          <InteractiveGraphics
+            key={runCount}
+            graphics={
+              selectedIteration !== null
+                ? visualizationHistory.find(
+                    (viz) => viz.iteration === selectedIteration,
+                  )?.graphics || solver.visualize()
+                : solver.visualize()
+            }
+          />
+          <PipelineStatusTable
+            solver={solver}
+            runCount={runCount}
+            visualizationHistory={visualizationHistory}
+            selectedIteration={selectedIteration}
+            onSelectIteration={(iteration) => {
+              setSelectedIteration(iteration)
+              incRunCount()
+            }}
+          />
         </>
       )}
       {currentTab === "circuit" &&
