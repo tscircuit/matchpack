@@ -111,20 +111,39 @@ export class PartitionPackingSolver extends BaseSolver {
       )
 
       if (partitionChipIds.length > 0) {
-        // Calculate bounding box for this partition
-        const xs = partitionChipIds.map(
-          (chipId) => packedPartition.layout.chipPlacements[chipId]!.x,
-        )
-        const ys = partitionChipIds.map(
-          (chipId) => packedPartition.layout.chipPlacements[chipId]!.y,
-        )
+        // Calculate bounding box for this partition including chip sizes
+        let minX = Infinity
+        let maxX = -Infinity
+        let minY = Infinity
+        let maxY = -Infinity
 
-        const bounds = {
-          minX: Math.min(...xs),
-          maxX: Math.max(...xs),
-          minY: Math.min(...ys),
-          maxY: Math.max(...ys),
+        for (const chipId of partitionChipIds) {
+          const placement = packedPartition.layout.chipPlacements[chipId]!
+          const chip = packedPartition.inputProblem.chipMap[chipId]!
+
+          // Account for chip size and rotation
+          let chipWidth = chip.size.x
+          let chipHeight = chip.size.y
+          if (
+            placement.ccwRotationDegrees === 90 ||
+            placement.ccwRotationDegrees === 270
+          ) {
+            // Swap width and height for 90/270 degree rotations
+            ;[chipWidth, chipHeight] = [chipHeight, chipWidth]
+          }
+
+          const chipMinX = placement.x - chipWidth / 2
+          const chipMaxX = placement.x + chipWidth / 2
+          const chipMinY = placement.y - chipHeight / 2
+          const chipMaxY = placement.y + chipHeight / 2
+
+          minX = Math.min(minX, chipMinX)
+          maxX = Math.max(maxX, chipMaxX)
+          minY = Math.min(minY, chipMinY)
+          maxY = Math.max(maxY, chipMaxY)
         }
+
+        const bounds = { minX, maxX, minY, maxY }
 
         partitionGroups.push({
           partitionIndex: i,
@@ -194,8 +213,10 @@ export class PartitionPackingSolver extends BaseSolver {
       // Calculate partition size from bounds
       const partitionWidth = group.bounds.maxX - group.bounds.minX
       const partitionHeight = group.bounds.maxY - group.bounds.minY
+      const centerX = (group.bounds.minX + group.bounds.maxX) / 2
+      const centerY = (group.bounds.minY + group.bounds.maxY) / 2
 
-      // Create a single pad representing the entire partition
+      // Start with the partition body pad
       const pads = [
         {
           padId: `partition_${group.partitionIndex}_body`,
@@ -203,44 +224,65 @@ export class PartitionPackingSolver extends BaseSolver {
           type: "rect" as const,
           offset: { x: 0, y: 0 },
           size: {
-            x: Math.max(partitionWidth, 1),
-            y: Math.max(partitionHeight, 1),
+            x: Math.max(partitionWidth, 0.1),
+            y: Math.max(partitionHeight, 0.1),
           },
         },
       ]
 
-      // Add connectivity pads for inter-partition connections
-      const interPartitionConnections = new Set<string>()
+      // Add all pins from this partition as pads
+      const addedNetworks = new Set<string>()
+      const pinPositions = new Map<string, { x: number; y: number }>()
 
-      // Find pins that connect to other partitions
-      for (const [connKey, connected] of Object.entries(
-        packedPartition.inputProblem.netConnMap,
-      )) {
-        if (!connected) continue
-        const [pinId, netId] = connKey.split("-")
-        if (pinId && netId) {
-          // Check if this net exists in other partitions
-          for (let i = 0; i < this.packedPartitions.length; i++) {
-            if (i === group.partitionIndex) continue
-            const otherPartition = this.packedPartitions[i]!
-            if (
-              Object.keys(otherPartition.inputProblem.netMap).includes(netId!)
-            ) {
-              interPartitionConnections.add(netId!)
-            }
+      // Calculate pin positions for all chips in the partition
+      for (const chipId of group.chipIds) {
+        const chipPlacement = packedPartition.layout.chipPlacements[chipId]!
+        const chip = packedPartition.inputProblem.chipMap[chipId]!
+
+        for (const pinId of chip.pins) {
+          const chipPin = packedPartition.inputProblem.chipPinMap[pinId]
+          if (!chipPin) continue
+
+          // Transform pin offset based on chip rotation
+          let transformedOffset = { x: chipPin.offset.x, y: chipPin.offset.y }
+
+          const rotation = chipPlacement.ccwRotationDegrees || 0
+          if (rotation === 90) {
+            transformedOffset = { x: -chipPin.offset.y, y: chipPin.offset.x }
+          } else if (rotation === 180) {
+            transformedOffset = { x: -chipPin.offset.x, y: -chipPin.offset.y }
+          } else if (rotation === 270) {
+            transformedOffset = { x: chipPin.offset.y, y: -chipPin.offset.x }
+          }
+
+          // Calculate absolute pin position
+          const absolutePinX = chipPlacement.x + transformedOffset.x
+          const absolutePinY = chipPlacement.y + transformedOffset.y
+
+          // Store pin position for use in pad offset calculation
+          pinPositions.set(pinId, { x: absolutePinX, y: absolutePinY })
+
+          // Get the network ID for this pin
+          const networkId =
+            pinToNetworkMap.get(pinId) || `${pinId}_disconnected`
+
+          // Only add one pad per network to avoid overlapping
+          if (!addedNetworks.has(networkId)) {
+            addedNetworks.add(networkId)
+
+            // Calculate offset relative to partition center
+            const padOffsetX = absolutePinX - centerX
+            const padOffsetY = absolutePinY - centerY
+
+            pads.push({
+              padId: `${group.partitionIndex}_pin_${pinId}`,
+              networkId: networkId,
+              type: "rect" as const,
+              offset: { x: padOffsetX, y: padOffsetY },
+              size: { x: 0.01, y: 0.01 }, // Small pin pad
+            })
           }
         }
-      }
-
-      // Add pads for inter-partition connections
-      for (const networkId of interPartitionConnections) {
-        pads.push({
-          padId: `${group.partitionIndex}_net_${networkId}`,
-          networkId: networkId,
-          type: "rect" as const,
-          offset: { x: partitionWidth / 2, y: partitionHeight / 2 },
-          size: { x: 0.1, y: 0.1 },
-        })
       }
 
       return {
