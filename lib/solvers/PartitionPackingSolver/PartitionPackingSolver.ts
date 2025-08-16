@@ -9,49 +9,46 @@ import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-
-// Each partition is an InputProblem representing a connected component that was laid out independently
-export type LaidOutPartition = InputProblem
+import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
 export interface PartitionPackingSolverInput {
-  resolvedLayout: OutputLayout
-  laidOutPartitions: LaidOutPartition[]
+  packedPartitions: PackedPartition[]
   inputProblem: InputProblem
 }
 
 export class PartitionPackingSolver extends BaseSolver {
-  resolvedLayout: OutputLayout
-  laidOutPartitions: LaidOutPartition[]
+  packedPartitions: PackedPartition[]
   inputProblem: InputProblem
   finalLayout: OutputLayout | null = null
   phasedPackSolver: PhasedPackSolver | null = null
 
   constructor(input: PartitionPackingSolverInput) {
     super()
-    this.resolvedLayout = input.resolvedLayout
-    this.laidOutPartitions = input.laidOutPartitions
+    this.packedPartitions = input.packedPartitions
     this.inputProblem = input.inputProblem
   }
 
   override _step() {
     try {
-      if (!this.resolvedLayout) {
-        this.failed = true
-        this.error = "No resolved layout provided"
-        return
-      }
-
-      // Get the overlap-resolved layout
-      const resolvedLayout = this.resolvedLayout
-
-      // Create groups of components by partition for better organization
-      const partitionGroups = this.organizeComponentsByPartition(resolvedLayout)
-
-      if (partitionGroups.length === 0) {
-        this.finalLayout = resolvedLayout
+      if (this.packedPartitions.length === 0) {
+        // No partitions to pack, create empty layout
+        this.finalLayout = {
+          chipPlacements: {},
+          groupPlacements: {},
+        }
         this.solved = true
         return
       }
+
+      if (this.packedPartitions.length === 1) {
+        // Only one partition, use its layout directly
+        this.finalLayout = this.packedPartitions[0]!.layout
+        this.solved = true
+        return
+      }
+
+      // Create groups of components by partition for better organization
+      const partitionGroups = this.organizePackedPartitions()
 
       // Initialize PhasedPackSolver if not already created
       if (!this.phasedPackSolver) {
@@ -74,7 +71,6 @@ export class PartitionPackingSolver extends BaseSolver {
         const packedLayout = this.applyPackingResult(
           this.phasedPackSolver.getResult(),
           partitionGroups,
-          resolvedLayout,
         )
         this.finalLayout = packedLayout
         this.solved = true
@@ -86,7 +82,7 @@ export class PartitionPackingSolver extends BaseSolver {
     }
   }
 
-  private organizeComponentsByPartition(layout: OutputLayout): Array<{
+  private organizePackedPartitions(): Array<{
     partitionIndex: number
     chipIds: string[]
     bounds: {
@@ -96,7 +92,7 @@ export class PartitionPackingSolver extends BaseSolver {
       maxY: number
     }
   }> {
-    // Group chips by partition based on which laid out partition they belong to
+    // Group chips by partition based on packed partitions
     const partitionGroups: Array<{
       partitionIndex: number
       chipIds: string[]
@@ -108,32 +104,46 @@ export class PartitionPackingSolver extends BaseSolver {
       }
     }> = []
 
-    for (let i = 0; i < this.laidOutPartitions.length; i++) {
-      const laidOutPartition = this.laidOutPartitions[i]!
-      const partitionChipIds: string[] = []
-
-      // Find chips from this partition that are in the layout
-      for (const chipId of Object.keys(laidOutPartition.chipMap)) {
-        if (layout.chipPlacements[chipId]) {
-          partitionChipIds.push(chipId)
-        }
-      }
+    for (let i = 0; i < this.packedPartitions.length; i++) {
+      const packedPartition = this.packedPartitions[i]!
+      const partitionChipIds = Object.keys(
+        packedPartition.layout.chipPlacements,
+      )
 
       if (partitionChipIds.length > 0) {
-        // Calculate bounding box for this partition
-        const xs = partitionChipIds.map(
-          (chipId) => layout.chipPlacements[chipId]!.x,
-        )
-        const ys = partitionChipIds.map(
-          (chipId) => layout.chipPlacements[chipId]!.y,
-        )
+        // Calculate bounding box for this partition including chip sizes
+        let minX = Infinity
+        let maxX = -Infinity
+        let minY = Infinity
+        let maxY = -Infinity
 
-        const bounds = {
-          minX: Math.min(...xs),
-          maxX: Math.max(...xs),
-          minY: Math.min(...ys),
-          maxY: Math.max(...ys),
+        for (const chipId of partitionChipIds) {
+          const placement = packedPartition.layout.chipPlacements[chipId]!
+          const chip = packedPartition.inputProblem.chipMap[chipId]!
+
+          // Account for chip size and rotation
+          let chipWidth = chip.size.x
+          let chipHeight = chip.size.y
+          if (
+            placement.ccwRotationDegrees === 90 ||
+            placement.ccwRotationDegrees === 270
+          ) {
+            // Swap width and height for 90/270 degree rotations
+            ;[chipWidth, chipHeight] = [chipHeight, chipWidth]
+          }
+
+          const chipMinX = placement.x - chipWidth / 2
+          const chipMaxX = placement.x + chipWidth / 2
+          const chipMinY = placement.y - chipHeight / 2
+          const chipMaxY = placement.y + chipHeight / 2
+
+          minX = Math.min(minX, chipMinX)
+          maxX = Math.max(maxX, chipMaxX)
+          minY = Math.min(minY, chipMinY)
+          maxY = Math.max(maxY, chipMaxY)
         }
+
+        const bounds = { minX, maxX, minY, maxY }
 
         partitionGroups.push({
           partitionIndex: i,
@@ -158,17 +168,14 @@ export class PartitionPackingSolver extends BaseSolver {
       }
     }>,
   ): PackInput {
-    // Get the resolved layout to access chip placements
-    const resolvedLayout = this.resolvedLayout
-
     // Build a global connectivity map to properly assign networkIds
     const pinToNetworkMap = new Map<string, string>()
 
     // First, process all partitions to build the connectivity map
-    for (const laidOutPartition of this.laidOutPartitions) {
+    for (const packedPartition of this.packedPartitions) {
       // Process net connections
       for (const [connKey, connected] of Object.entries(
-        laidOutPartition.netConnMap,
+        packedPartition.inputProblem.netConnMap,
       )) {
         if (!connected) continue
         const [pinId, netId] = connKey.split("-")
@@ -179,7 +186,7 @@ export class PartitionPackingSolver extends BaseSolver {
 
       // Process strong connections - these form their own networks
       for (const [connKey, connected] of Object.entries(
-        laidOutPartition.pinStrongConnMap,
+        packedPartition.inputProblem.pinStrongConnMap,
       )) {
         if (!connected) continue
         const pins = connKey.split("-")
@@ -201,82 +208,87 @@ export class PartitionPackingSolver extends BaseSolver {
 
     // Create pack components for each partition group
     const packComponents = partitionGroups.map((group) => {
-      // Create pads for all pins of all chips in this partition
-      const pads: Array<{
-        padId: string
-        networkId: string
-        type: "rect"
-        offset: { x: number; y: number }
-        size: { x: number; y: number }
-      }> = []
+      const packedPartition = this.packedPartitions[group.partitionIndex]!
 
-      for (const chipId of group.chipIds) {
-        const chipPlacement = resolvedLayout.chipPlacements[chipId]!
-        const chip =
-          this.laidOutPartitions[group.partitionIndex]!.chipMap[chipId]!
-        const chipPinMap =
-          this.laidOutPartitions[group.partitionIndex]!.chipPinMap
+      // Calculate partition size from bounds
+      const partitionWidth = group.bounds.maxX - group.bounds.minX
+      const partitionHeight = group.bounds.maxY - group.bounds.minY
+      const centerX = (group.bounds.minX + group.bounds.maxX) / 2
+      const centerY = (group.bounds.minY + group.bounds.maxY) / 2
 
-        // Calculate relative chip position from partition bounds
-        const relativeChipX = chipPlacement.x - group.bounds.minX
-        const relativeChipY = chipPlacement.y - group.bounds.minY
-
-        // Add chip body pad (disconnected from any network)
-        pads.push({
-          padId: `${chipId}_body`,
-          networkId: `${chipId}_body_disconnected`,
+      // Start with the partition body pad
+      const pads = [
+        {
+          padId: `partition_${group.partitionIndex}_body`,
+          networkId: `partition_${group.partitionIndex}_disconnected`,
           type: "rect" as const,
-          offset: { x: relativeChipX, y: relativeChipY },
-          size: { x: chip.size.x, y: chip.size.y },
-        })
-
-        // Create a pad for each pin on this chip
-        for (const pinId of chip.pins) {
-          const pin = chipPinMap[pinId]
-          if (!pin) continue
-
-          // Calculate pin position relative to partition bounds
-          const pinX = relativeChipX + pin.offset.x
-          const pinY = relativeChipY + pin.offset.y
-
-          // Find network for this pin from our global connectivity map
-          const networkId = pinToNetworkMap.get(pinId) || pinId
-
-          pads.push({
-            padId: pinId,
-            networkId: networkId,
-            type: "rect" as const,
-            offset: { x: pinX, y: pinY },
-            size: { x: 0.2, y: 0.2 }, // Small size for pins
-          })
-        }
-      }
-
-      // Calculate intersection of availableRotations for all chips in this partition
-      let availableRotationDegrees: Array<0 | 90 | 180 | 270> = [
-        0, 90, 180, 270,
+          offset: { x: 0, y: 0 },
+          size: {
+            x: Math.max(partitionWidth, 0.1),
+            y: Math.max(partitionHeight, 0.1),
+          },
+        },
       ]
 
+      // Add all pins from this partition as pads
+      const addedNetworks = new Set<string>()
+      const pinPositions = new Map<string, { x: number; y: number }>()
+
+      // Calculate pin positions for all chips in the partition
       for (const chipId of group.chipIds) {
-        const chip =
-          this.laidOutPartitions[group.partitionIndex]!.chipMap[chipId]!
-        const chipRotations = chip.availableRotations || [0, 90, 180, 270]
+        const chipPlacement = packedPartition.layout.chipPlacements[chipId]!
+        const chip = packedPartition.inputProblem.chipMap[chipId]!
 
-        // Take intersection with current available rotations
-        availableRotationDegrees = availableRotationDegrees.filter((rotation) =>
-          chipRotations.includes(rotation),
-        )
-      }
+        for (const pinId of chip.pins) {
+          const chipPin = packedPartition.inputProblem.chipPinMap[pinId]
+          if (!chipPin) continue
 
-      // If intersection is empty, default to [0]
-      if (availableRotationDegrees.length === 0) {
-        availableRotationDegrees = [0]
+          // Transform pin offset based on chip rotation
+          let transformedOffset = { x: chipPin.offset.x, y: chipPin.offset.y }
+
+          const rotation = chipPlacement.ccwRotationDegrees || 0
+          if (rotation === 90) {
+            transformedOffset = { x: -chipPin.offset.y, y: chipPin.offset.x }
+          } else if (rotation === 180) {
+            transformedOffset = { x: -chipPin.offset.x, y: -chipPin.offset.y }
+          } else if (rotation === 270) {
+            transformedOffset = { x: chipPin.offset.y, y: -chipPin.offset.x }
+          }
+
+          // Calculate absolute pin position
+          const absolutePinX = chipPlacement.x + transformedOffset.x
+          const absolutePinY = chipPlacement.y + transformedOffset.y
+
+          // Store pin position for use in pad offset calculation
+          pinPositions.set(pinId, { x: absolutePinX, y: absolutePinY })
+
+          // Get the network ID for this pin
+          const networkId =
+            pinToNetworkMap.get(pinId) || `${pinId}_disconnected`
+
+          // Only add one pad per network to avoid overlapping
+          if (!addedNetworks.has(networkId)) {
+            addedNetworks.add(networkId)
+
+            // Calculate offset relative to partition center
+            const padOffsetX = absolutePinX - centerX
+            const padOffsetY = absolutePinY - centerY
+
+            pads.push({
+              padId: `${group.partitionIndex}_pin_${pinId}`,
+              networkId: networkId,
+              type: "rect" as const,
+              offset: { x: padOffsetX, y: padOffsetY },
+              size: { x: 0.01, y: 0.01 }, // Small pin pad
+            })
+          }
+        }
       }
 
       return {
         componentId: `partition_${group.partitionIndex}`,
         pads,
-        availableRotationDegrees,
+        availableRotationDegrees: [0] as Array<0 | 90 | 180 | 270>, // Keep partitions unrotated
       }
     })
 
@@ -300,7 +312,6 @@ export class PartitionPackingSolver extends BaseSolver {
         maxY: number
       }
     }>,
-    currentLayout: OutputLayout,
   ): OutputLayout {
     // Apply the partition offsets to individual components
     const newChipPlacements: Record<string, Placement> = {}
@@ -312,8 +323,9 @@ export class PartitionPackingSolver extends BaseSolver {
       const group = partitionGroups.find(
         (g) => g.partitionIndex === partitionIndex,
       )
+      const packedPartition = this.packedPartitions[partitionIndex]
 
-      if (group) {
+      if (group && packedPartition) {
         // Calculate offset to apply to this partition's components
         const currentCenterX = (group.bounds.minX + group.bounds.maxX) / 2
         const currentCenterY = (group.bounds.minY + group.bounds.maxY) / 2
@@ -325,7 +337,8 @@ export class PartitionPackingSolver extends BaseSolver {
 
         // Apply offset to all chips in this partition
         for (const chipId of group.chipIds) {
-          const originalPlacement = currentLayout.chipPlacements[chipId]!
+          const originalPlacement =
+            packedPartition.layout.chipPlacements[chipId]!
           newChipPlacements[chipId] = {
             x: originalPlacement.x + offsetX,
             y: originalPlacement.y + offsetY,
@@ -337,7 +350,7 @@ export class PartitionPackingSolver extends BaseSolver {
 
     return {
       chipPlacements: newChipPlacements,
-      groupPlacements: { ...currentLayout.groupPlacements }, // Copy group placements unchanged
+      groupPlacements: {},
     }
   }
 
@@ -350,12 +363,10 @@ export class PartitionPackingSolver extends BaseSolver {
       return super.visualize()
     }
 
-    // Create a combined problem for visualization from all laid out partitions
+    // Create a combined problem for visualization from all packed partitions
     const combinedProblem: InputProblem = {
       chipMap: {},
-      groupMap: {},
       chipPinMap: {},
-      groupPinMap: {},
       pinStrongConnMap: {},
       netMap: {},
       netConnMap: {},
@@ -363,18 +374,25 @@ export class PartitionPackingSolver extends BaseSolver {
       partitionGap: this.inputProblem.partitionGap,
     }
 
-    // Combine all laid out partitions
-    for (const laidOutPartition of this.laidOutPartitions) {
-      Object.assign(combinedProblem.chipMap, laidOutPartition.chipMap)
-      Object.assign(combinedProblem.groupMap, laidOutPartition.groupMap)
-      Object.assign(combinedProblem.chipPinMap, laidOutPartition.chipPinMap)
-      Object.assign(combinedProblem.groupPinMap, laidOutPartition.groupPinMap)
+    // Combine all packed partitions
+    for (const packedPartition of this.packedPartitions) {
+      Object.assign(
+        combinedProblem.chipMap,
+        packedPartition.inputProblem.chipMap,
+      )
+      Object.assign(
+        combinedProblem.chipPinMap,
+        packedPartition.inputProblem.chipPinMap,
+      )
       Object.assign(
         combinedProblem.pinStrongConnMap,
-        laidOutPartition.pinStrongConnMap,
+        packedPartition.inputProblem.pinStrongConnMap,
       )
-      Object.assign(combinedProblem.netMap, laidOutPartition.netMap)
-      Object.assign(combinedProblem.netConnMap, laidOutPartition.netConnMap)
+      Object.assign(combinedProblem.netMap, packedPartition.inputProblem.netMap)
+      Object.assign(
+        combinedProblem.netConnMap,
+        packedPartition.inputProblem.netConnMap,
+      )
     }
 
     return visualizeInputProblem(combinedProblem, this.finalLayout)
@@ -382,8 +400,7 @@ export class PartitionPackingSolver extends BaseSolver {
 
   override getConstructorParams(): PartitionPackingSolverInput {
     return {
-      resolvedLayout: this.resolvedLayout,
-      laidOutPartitions: this.laidOutPartitions,
+      packedPartitions: this.packedPartitions,
       inputProblem: this.inputProblem,
     }
   }

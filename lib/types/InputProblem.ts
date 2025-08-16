@@ -25,8 +25,6 @@ export type Net = { netId: NetId }
 export type InputProblem = {
   chipMap: Record<ChipId, Chip>
   chipPinMap: Record<PinId, ChipPin>
-  groupMap: Record<GroupId, Group>
-  groupPinMap: Record<PinId, GroupPin>
   netMap: Record<NetId, Net>
 
   /** This is a two-way map */

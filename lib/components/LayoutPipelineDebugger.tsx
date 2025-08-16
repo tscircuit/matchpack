@@ -43,7 +43,6 @@ export const LayoutPipelineDebugger = ({
         onStep={() => {
           solver.step()
           const graphics = solver.visualize()
-          console.log(`Capturing step visualization for iteration ${solver.iterations}`)
           setVisualizationHistory((prev) => [
             ...prev,
             { iteration: solver.iterations, graphics },
@@ -52,15 +51,15 @@ export const LayoutPipelineDebugger = ({
         }}
         onSolve={() => {
           // Collect all intermediate visualizations during solve
-          const newVisualizations: Array<{ iteration: number; graphics: any }> = []
-          
+          const newVisualizations: Array<{ iteration: number; graphics: any }> =
+            []
+
           while (!solver.solved && !solver.failed) {
             solver.step()
             const graphics = solver.visualize()
-            console.log(`Capturing solve visualization for iteration ${solver.iterations}`)
             newVisualizations.push({ iteration: solver.iterations, graphics })
           }
-          
+
           // Update visualization history with all new visualizations
           setVisualizationHistory((prev) => {
             const updatedHistory = [...prev]
@@ -103,21 +102,74 @@ export const LayoutPipelineDebugger = ({
               >
                 show latest
               </span>
+              {(() => {
+                const currentIndex = visualizationHistory.findIndex(
+                  (viz) => viz.iteration === selectedIteration,
+                )
+                const hasPrev = currentIndex > 0
+                const hasNext =
+                  currentIndex >= 0 &&
+                  currentIndex < visualizationHistory.length - 1
+                return (
+                  <>
+                    {hasPrev && (
+                      <>
+                        <span style={{ margin: "0 5px" }}>|</span>
+                        <span
+                          onClick={() => {
+                            const prevIteration =
+                              visualizationHistory[currentIndex - 1]!.iteration
+                            setSelectedIteration(prevIteration)
+                          }}
+                          style={{
+                            color: "#007bff",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          prev
+                        </span>
+                      </>
+                    )}
+                    {hasNext && (
+                      <>
+                        <span style={{ margin: "0 5px" }}>|</span>
+                        <span
+                          onClick={() => {
+                            const nextIteration =
+                              visualizationHistory[currentIndex + 1]!.iteration
+                            setSelectedIteration(nextIteration)
+                          }}
+                          style={{
+                            color: "#007bff",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          next
+                        </span>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
               <strong>)</strong>
             </div>
           )}
 
           <InteractiveGraphics
-            key={`${runCount}-${selectedIteration ?? 'latest'}`}
             graphics={(() => {
               if (selectedIteration !== null) {
                 const found = visualizationHistory.find(
                   (viz) => viz.iteration === selectedIteration,
                 )
-                console.log(`Looking for iteration ${selectedIteration}, found:`, !!found)
+                console.log(
+                  `Looking for iteration ${selectedIteration}, found:`,
+                  !!found,
+                )
                 return found?.graphics || solver.visualize()
               }
-              console.log('Using latest visualization')
+              console.log("Using latest visualization")
               return solver.visualize()
             })()}
           />
@@ -127,8 +179,11 @@ export const LayoutPipelineDebugger = ({
             visualizationHistory={visualizationHistory}
             selectedIteration={selectedIteration}
             onSelectIteration={(iteration) => {
-              console.log('Selecting iteration:', iteration)
-              console.log('Available visualizations:', visualizationHistory.map(v => v.iteration))
+              console.log("Selecting iteration:", iteration)
+              console.log(
+                "Available visualizations:",
+                visualizationHistory.map((v) => v.iteration),
+              )
               setSelectedIteration(iteration)
               incRunCount()
             }}
