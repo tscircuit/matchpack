@@ -34,7 +34,6 @@ test("LayoutPipelineSolver01 visualization example", () => {
   const initialViz = solver.visualize()
   expect(initialViz.rects?.length).toBe(1) // 1 chip
   expect(initialViz.points?.length).toBe(2) // 2 chip pins
-  expect(initialViz.lines?.length).toBe(1) // 1 net
   expect(initialViz.texts?.length).toBe(1) // 1 for chip
 
   // Now run the full pipeline

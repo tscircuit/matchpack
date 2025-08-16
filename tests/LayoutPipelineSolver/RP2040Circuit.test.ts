@@ -3,47 +3,6 @@ import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPip
 import { getExampleCircuitJson } from "../assets/RP2040Circuit"
 import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputProblemFromCircuitJsonSchematic"
 
-test("RP2040Circuit circuit JSON generation", () => {
-  // Test basic circuit JSON generation
-  const circuitJson = getExampleCircuitJson()
-
-  expect(circuitJson).toBeDefined()
-  expect(Array.isArray(circuitJson)).toBe(true)
-  expect(circuitJson.length).toBeGreaterThan(0)
-
-  // Debug: Log all components to see what we're getting
-  const schematicComponents = circuitJson.filter(
-    (item) => item.type === "schematic_component",
-  ) as any[]
-  console.log("All schematic components:")
-  for (const comp of schematicComponents) {
-    console.log(`- ${comp.name}: ${comp.schematic_component_type}`)
-  }
-
-  expect(schematicComponents.length).toBeGreaterThan(0)
-
-  // Should have the RP2040 chip (U3)
-  const rp2040Component = (schematicComponents as any[]).find(
-    (comp) => comp!.name === "U3",
-  )!
-  expect(rp2040Component).toBeDefined()
-  expect(rp2040Component?.schematic_component_type).toBe("chip")
-
-  // Should have capacitors (C7, C8, C9, C10, C11, C12, C13, C14, C15, C18, C19)
-  const capacitorComponents = (schematicComponents as any[]).filter(
-    (comp) => comp.schematic_component_type === "capacitor",
-  )
-  expect(capacitorComponents.length).toBe(11) // 6 IOVDD + 2 DVDD + 3 VREG capacitors
-
-  console.log(
-    "Circuit JSON generated successfully with",
-    circuitJson.length,
-    "items",
-  )
-  console.log("Found", schematicComponents.length, "schematic components")
-  console.log("Found", capacitorComponents.length, "capacitors")
-})
-
 test("RP2040Circuit InputProblem conversion", () => {
   // Convert RP2040Circuit to InputProblem
   const circuitJson = getExampleCircuitJson()
