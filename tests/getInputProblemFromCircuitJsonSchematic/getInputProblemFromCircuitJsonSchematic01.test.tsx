@@ -546,8 +546,6 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           "side": "x+",
         },
       },
-      "groupMap": {},
-      "groupPinMap": {},
       "netConnMap": {
         "C1.1-V3_3_SW": true,
         "C1.2-GND": true,
