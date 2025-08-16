@@ -118,7 +118,7 @@ export const LayoutPipelineDebugger = ({
                         <span
                           onClick={() => {
                             const prevIteration =
-                              visualizationHistory[currentIndex - 1].iteration
+                              visualizationHistory[currentIndex - 1]!.iteration
                             setSelectedIteration(prevIteration)
                           }}
                           style={{

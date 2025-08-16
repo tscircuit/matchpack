@@ -53,7 +53,7 @@ export const PipelineStatusTable = ({
         // Find the next stage's first iteration
         const nextStageIndex = index + 1
         if (nextStageIndex < solver.pipelineDef.length) {
-          const nextStageName = solver.pipelineDef[nextStageIndex].solverName
+          const nextStageName = solver.pipelineDef[nextStageIndex]!.solverName
           const nextStageFirstIteration =
             solver.firstIterationOfPhase[nextStageName]
           if (

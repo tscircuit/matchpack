@@ -11,14 +11,13 @@ const STATIC_INPUT: PartitionPackingSolverInput = {
   inputProblem: {
     chipMap: {},
     chipPinMap: {},
-    groupMap: {},
-    groupPinMap: {},
     netMap: {},
     pinStrongConnMap: {},
     netConnMap: {},
     chipGap: 0.2,
     partitionGap: 2,
   },
+  // @ts-ignore
   resolvedLayout: {
     chipPlacements: {
       Q1: { x: 1.1761957854999991, y: 0, ccwRotationDegrees: 0 },
@@ -85,8 +84,6 @@ const STATIC_INPUT: PartitionPackingSolverInput = {
           side: "x-",
         },
       },
-      groupMap: {},
-      groupPinMap: {},
       netMap: {
         GND: { netId: "GND" },
         V3_3: { netId: "V3_3" },

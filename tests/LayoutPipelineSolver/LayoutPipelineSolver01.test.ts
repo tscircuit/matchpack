@@ -16,16 +16,6 @@ test("LayoutPipelineSolver01 visualization example", () => {
         side: normalizeSide("right"),
       },
     },
-    groupMap: {
-      G1: {
-        groupId: "G1",
-        pins: ["P3"],
-        shape: [{ x: 20, y: 20, width: 10, height: 10 } as any],
-      },
-    },
-    groupPinMap: {
-      P3: { pinId: "P3", offset: { x: 25, y: 25 } },
-    },
     netMap: {
       N1: { netId: "N1" },
     },

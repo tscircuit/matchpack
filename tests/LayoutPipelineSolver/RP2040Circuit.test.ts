@@ -14,21 +14,23 @@ test("RP2040Circuit circuit JSON generation", () => {
   // Debug: Log all components to see what we're getting
   const schematicComponents = circuitJson.filter(
     (item) => item.type === "schematic_component",
-  )
+  ) as any[]
   console.log("All schematic components:")
-  schematicComponents.forEach((comp) => {
+  for (const comp of schematicComponents) {
     console.log(`- ${comp.name}: ${comp.schematic_component_type}`)
-  })
+  }
 
   expect(schematicComponents.length).toBeGreaterThan(0)
 
   // Should have the RP2040 chip (U3)
-  const rp2040Component = schematicComponents.find((comp) => comp.name === "U3")
+  const rp2040Component = (schematicComponents as any[]).find(
+    (comp) => comp!.name === "U3",
+  )!
   expect(rp2040Component).toBeDefined()
   expect(rp2040Component?.schematic_component_type).toBe("chip")
 
   // Should have capacitors (C7, C8, C9, C10, C11, C12, C13, C14, C15, C18, C19)
-  const capacitorComponents = schematicComponents.filter(
+  const capacitorComponents = (schematicComponents as any[]).filter(
     (comp) => comp.schematic_component_type === "capacitor",
   )
   expect(capacitorComponents.length).toBe(11) // 6 IOVDD + 2 DVDD + 3 VREG capacitors
@@ -59,7 +61,7 @@ test("RP2040Circuit InputProblem conversion", () => {
 
   // Should have the RP2040 chip
   expect(problem.chipMap["U3"]).toBeDefined()
-  expect(problem.chipMap["U3"].pins.length).toBe(57) // RP2040 has 57 pins
+  expect(problem.chipMap["U3"]!.pins.length).toBe(57) // RP2040 has 57 pins
 
   // Should have all the capacitors
   const capacitorChips = Object.keys(problem.chipMap).filter((id) =>
@@ -99,8 +101,8 @@ test("RP2040Circuit InputProblem conversion", () => {
   const allPinIds = Object.values(problem.chipMap).flatMap((chip) => chip.pins)
   for (const pinId of allPinIds) {
     expect(problem.chipPinMap[pinId]).toBeDefined()
-    expect(problem.chipPinMap[pinId].pinId).toBe(pinId)
-    expect(problem.chipPinMap[pinId].side).toBeDefined()
+    expect(problem.chipPinMap[pinId]!.pinId).toBe(pinId)
+    expect(problem.chipPinMap[pinId]!.side).toBeDefined()
   }
 
   console.log(

@@ -29,8 +29,6 @@ test("ChipPartitionsSolver creates single partition for connected components", (
         side: "x-" as const,
       },
     },
-    groupMap: {},
-    groupPinMap: {},
     netMap: {},
     pinStrongConnMap: {
       "pin1-pin2": true,
@@ -76,8 +74,6 @@ test("ChipPartitionsSolver creates separate partitions for disconnected componen
         side: "x-" as const,
       },
     },
-    groupMap: {},
-    groupPinMap: {},
     netMap: {},
     pinStrongConnMap: {}, // No connections between pins
     netConnMap: {},
@@ -145,8 +141,6 @@ test("ChipPartitionsSolver handles complex connected graph", () => {
         side: "x-" as const,
       },
     },
-    groupMap: {},
-    groupPinMap: {},
     netMap: {},
     pinStrongConnMap: {
       "pin1-pin2": true, // chip1 -> chip2
@@ -178,8 +172,6 @@ test("ChipPartitionsSolver visualization contains partition components", () => {
       },
     },
     chipPinMap: {},
-    groupMap: {},
-    groupPinMap: {},
     netMap: {},
     pinStrongConnMap: {},
     netConnMap: {},
