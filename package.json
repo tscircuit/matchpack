@@ -10,7 +10,8 @@
     "start": "cosmos",
     "build": "tsup-node --format esm --dts --clean ./lib/index.ts",
     "format": "biome format --write .",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "build:site": "cosmos-export"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.3",
