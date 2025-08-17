@@ -14,6 +14,7 @@ import type {
   NetId,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -58,40 +59,9 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   private createPackInput(): PackInput {
-    // Build a connectivity map to properly assign networkIds
-    const pinToNetworkMap = new Map<string, string>()
-
-    // Process net connections
-    for (const [connKey, connected] of Object.entries(
-      this.inputProblem.netConnMap,
-    )) {
-      if (!connected) continue
-      const [pinId, netId] = connKey.split("-")
-      if (pinId && netId) {
-        pinToNetworkMap.set(pinId, netId)
-      }
-    }
-
-    // Process strong connections - these form their own networks
-    for (const [connKey, connected] of Object.entries(
-      this.inputProblem.pinStrongConnMap,
-    )) {
-      if (!connected) continue
-      const pins = connKey.split("-")
-      if (pins.length === 2 && pins[0] && pins[1]) {
-        // If either pin already has a net connection, use that network for both
-        const existingNet =
-          pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
-        if (existingNet) {
-          pinToNetworkMap.set(pins[0], existingNet)
-          pinToNetworkMap.set(pins[1], existingNet)
-        } else {
-          // Otherwise, use the connection itself as the network
-          pinToNetworkMap.set(pins[0], connKey)
-          pinToNetworkMap.set(pins[1], connKey)
-        }
-      }
-    }
+    // Create filtered network mapping to prevent opposite-side weak connections
+    // from interfering with strong connections during packing
+    const { pinToNetworkMap } = createFilteredNetworkMapping(this.inputProblem)
 
     // Create pack components for each chip
     const packComponents = Object.entries(this.inputProblem.chipMap).map(

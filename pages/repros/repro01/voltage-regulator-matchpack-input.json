@@ -1,0 +1,202 @@
+{
+  "chipMap": {
+    "C6": {
+      "chipId": "C6",
+      "pins": ["C6.1", "C6.2"],
+      "size": {
+        "x": 0.5291665999999999,
+        "y": 1.0583333000000001
+      },
+      "availableRotations": [0]
+    },
+    "C1": {
+      "chipId": "C1",
+      "pins": ["C1.1", "C1.2"],
+      "size": {
+        "x": 0.5291665999999999,
+        "y": 1.0583333000000001
+      },
+      "availableRotations": [0]
+    },
+    "C2": {
+      "chipId": "C2",
+      "pins": ["C2.1", "C2.2"],
+      "size": {
+        "x": 0.5291665999999999,
+        "y": 1.0583333000000001
+      },
+      "availableRotations": [0]
+    },
+    "C5": {
+      "chipId": "C5",
+      "pins": ["C5.1", "C5.2"],
+      "size": {
+        "x": 0.5291665999999999,
+        "y": 1.0583333000000001
+      },
+      "availableRotations": [0]
+    },
+    "U1": {
+      "chipId": "U1",
+      "pins": ["U1.1", "U1.2", "U1.3", "U1.4", "U1.5"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 0.8
+      },
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "C6.1": {
+      "pinId": "C6.1",
+      "offset": {
+        "x": -0.00027334999999965165,
+        "y": 0.5512093000000002
+      },
+      "side": "y+"
+    },
+    "C6.2": {
+      "pinId": "C6.2",
+      "offset": {
+        "x": 0.00027334999999965165,
+        "y": -0.5512093000000002
+      },
+      "side": "y-"
+    },
+    "C1.1": {
+      "pinId": "C1.1",
+      "offset": {
+        "x": -0.00027334999999965165,
+        "y": 0.5512093000000002
+      },
+      "side": "y+"
+    },
+    "C1.2": {
+      "pinId": "C1.2",
+      "offset": {
+        "x": 0.00027334999999965165,
+        "y": -0.5512093000000002
+      },
+      "side": "y-"
+    },
+    "C2.1": {
+      "pinId": "C2.1",
+      "offset": {
+        "x": -0.00027334999999965165,
+        "y": 0.5512093000000002
+      },
+      "side": "y+"
+    },
+    "C2.2": {
+      "pinId": "C2.2",
+      "offset": {
+        "x": 0.00027334999999965165,
+        "y": -0.5512093000000002
+      },
+      "side": "y-"
+    },
+    "C5.1": {
+      "pinId": "C5.1",
+      "offset": {
+        "x": -0.00027334999999965165,
+        "y": 0.5512093000000002
+      },
+      "side": "y+"
+    },
+    "C5.2": {
+      "pinId": "C5.2",
+      "offset": {
+        "x": 0.00027334999999965165,
+        "y": -0.5512093000000002
+      },
+      "side": "y-"
+    },
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -1,
+        "y": 0.2
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -1,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "U1.3": {
+      "pinId": "U1.3",
+      "offset": {
+        "x": -1,
+        "y": -0.2
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    }
+  },
+  "groupMap": {},
+  "groupPinMap": {},
+  "netMap": {
+    "unnamedsubcircuit52_connectivity_net0": {
+      "netId": "unnamedsubcircuit52_connectivity_net0"
+    },
+    "unnamedsubcircuit52_connectivity_net1": {
+      "netId": "unnamedsubcircuit52_connectivity_net1"
+    },
+    "unnamedsubcircuit52_connectivity_net2": {
+      "netId": "unnamedsubcircuit52_connectivity_net2"
+    }
+  },
+  "pinStrongConnMap": {
+    "U1.1-C6.1": true,
+    "C6.1-U1.1": true,
+    "U1.1-C1.1": true,
+    "C1.1-U1.1": true,
+    "U1.1-C2.1": true,
+    "C2.1-U1.1": true,
+    "U1.3-U1.1": true,
+    "U1.1-U1.3": true,
+    "U1.2-C6.2": true,
+    "C6.2-U1.2": true,
+    "U1.2-C1.2": true,
+    "C1.2-U1.2": true,
+    "U1.2-C2.2": true,
+    "C2.2-U1.2": true,
+    "U1.5-C5.1": true,
+    "C5.1-U1.5": true
+  },
+  "netConnMap": {
+    "C6.1-unnamedsubcircuit52_connectivity_net0": true,
+    "C1.1-unnamedsubcircuit52_connectivity_net0": true,
+    "C2.1-unnamedsubcircuit52_connectivity_net0": true,
+    "U1.1-unnamedsubcircuit52_connectivity_net0": true,
+    "U1.3-unnamedsubcircuit52_connectivity_net0": true,
+    "C6.2-unnamedsubcircuit52_connectivity_net1": true,
+    "C1.2-unnamedsubcircuit52_connectivity_net1": true,
+    "C2.2-unnamedsubcircuit52_connectivity_net1": true,
+    "C5.2-unnamedsubcircuit52_connectivity_net1": true,
+    "U1.2-unnamedsubcircuit52_connectivity_net1": true,
+    "C5.1-unnamedsubcircuit52_connectivity_net2": true,
+    "U1.5-unnamedsubcircuit52_connectivity_net2": true
+  },
+  "chipGap": 0.4,
+  "partitionGap": 1.2
+}
