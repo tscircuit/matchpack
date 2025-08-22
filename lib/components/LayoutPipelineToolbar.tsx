@@ -2,6 +2,9 @@ export const LayoutPipelineToolbar = (props: {
   currentTab: "pipeline" | "circuit"
   onStep: () => void
   onSolve: () => void
+  onAnimate: () => void
+  onStopAnimate: () => void
+  isAnimating: boolean
   onChangeTab: (tab: "pipeline" | "circuit") => void
   activeSubSolverName?: string
   iterationCount?: number
@@ -10,6 +13,11 @@ export const LayoutPipelineToolbar = (props: {
     <div className="flex gap-2 p-2">
       <button onClick={props.onStep}>Step</button>
       <button onClick={props.onSolve}>Solve</button>
+      <button
+        onClick={props.isAnimating ? props.onStopAnimate : props.onAnimate}
+      >
+        {props.isAnimating ? "Stop" : "Animate"}
+      </button>
       {props.activeSubSolverName && (
         <div className="flex items-center px-3 py-1 bg-gray-100 rounded text-sm">
           Active: {props.activeSubSolverName}

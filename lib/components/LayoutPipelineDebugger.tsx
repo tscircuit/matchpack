@@ -1,6 +1,6 @@
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "lib/types/InputProblem"
-import { useMemo, useReducer, useState } from "react"
+import { useMemo, useReducer, useState, useRef, useCallback } from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
 import { LayoutPipelineToolbar } from "./LayoutPipelineToolbar"
 import { PipelineStatusTable } from "./PipelineStatusTable"
@@ -24,6 +24,8 @@ export const LayoutPipelineDebugger = ({
   const [selectedIteration, setSelectedIteration] = useState<number | null>(
     null,
   )
+  const [isAnimating, setIsAnimating] = useState(false)
+  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const solver = useMemo(() => {
     const s = new LayoutPipelineSolver(problem)
     return s
@@ -33,7 +35,52 @@ export const LayoutPipelineDebugger = ({
   useMemo(() => {
     setVisualizationHistory([{ iteration: 0, graphics: solver.visualize() }])
     setSelectedIteration(null)
+    // Stop animation if solver changes
+    if (animationIntervalRef.current) {
+      clearInterval(animationIntervalRef.current)
+      animationIntervalRef.current = null
+      setIsAnimating(false)
+    }
   }, [solver])
+
+  const startAnimation = useCallback(() => {
+    if (animationIntervalRef.current || solver.solved || solver.failed) return
+
+    setIsAnimating(true)
+    animationIntervalRef.current = setInterval(() => {
+      if (solver.solved || solver.failed) {
+        clearInterval(animationIntervalRef.current!)
+        animationIntervalRef.current = null
+        setIsAnimating(false)
+        return
+      }
+
+      solver.step()
+      const graphics = solver.visualize()
+      setVisualizationHistory((prev) => [
+        ...prev,
+        { iteration: solver.iterations, graphics },
+      ])
+      incRunCount()
+    }, 25) // 40 iterations/second = 25ms interval
+  }, [solver])
+
+  const stopAnimation = useCallback(() => {
+    if (animationIntervalRef.current) {
+      clearInterval(animationIntervalRef.current)
+      animationIntervalRef.current = null
+      setIsAnimating(false)
+    }
+  }, [])
+
+  // Cleanup animation on unmount
+  useMemo(() => {
+    return () => {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div>
@@ -50,6 +97,9 @@ export const LayoutPipelineDebugger = ({
           incRunCount()
         }}
         onSolve={() => {
+          // Stop animation if running
+          stopAnimation()
+
           // Collect all intermediate visualizations during solve
           const newVisualizations: Array<{ iteration: number; graphics: any }> =
             []
@@ -77,6 +127,9 @@ export const LayoutPipelineDebugger = ({
           })
           incRunCount()
         }}
+        onAnimate={startAnimation}
+        onStopAnimate={stopAnimation}
+        isAnimating={isAnimating}
         activeSubSolverName={solver.activeSubSolver?.constructor.name}
         iterationCount={solver.iterations}
       />

@@ -21,7 +21,7 @@ export class PackInnerPartitionsSolver extends BaseSolver {
   packedPartitions: PackedPartition[] = []
   completedSolvers: SingleInnerPartitionPackingSolver[] = []
   activeSolver: SingleInnerPartitionPackingSolver | null = null
-  currentPartitionIndex: number = 0
+  currentPartitionIndex = 0
 
   constructor(partitions: InputProblem[]) {
     super()
