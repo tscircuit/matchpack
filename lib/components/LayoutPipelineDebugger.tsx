@@ -6,6 +6,36 @@ import { LayoutPipelineToolbar } from "./LayoutPipelineToolbar"
 import { PipelineStatusTable } from "./PipelineStatusTable"
 import type { CircuitJson } from "circuit-json"
 import { SchematicViewer } from "@tscircuit/schematic-viewer"
+import type { BaseSolver } from "lib/solvers/BaseSolver"
+
+const getSolverHierarchy = (solver: BaseSolver): BaseSolver[] => {
+  const hierarchy = [solver]
+  let current = solver
+  while (current.activeSubSolver) {
+    current = current.activeSubSolver
+    hierarchy.push(current)
+  }
+  return hierarchy
+}
+
+const downloadConstructorParams = (solver: BaseSolver) => {
+  try {
+    const params = solver.getConstructorParams()
+    const dataStr = JSON.stringify(params, null, 2)
+    const dataBlob = new Blob([dataStr], { type: "application/json" })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `${solver.constructor.name}_params.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error("Failed to download constructor params:", error)
+    alert(`Failed to download parameters: ${error}`)
+  }
+}
 
 export const LayoutPipelineDebugger = ({
   problem,
@@ -130,7 +160,8 @@ export const LayoutPipelineDebugger = ({
         onAnimate={startAnimation}
         onStopAnimate={stopAnimation}
         isAnimating={isAnimating}
-        activeSubSolverName={solver.activeSubSolver?.constructor.name}
+        solverHierarchy={getSolverHierarchy(solver)}
+        onDownloadConstructorParams={downloadConstructorParams}
         iterationCount={solver.iterations}
       />
       {currentTab === "pipeline" && (

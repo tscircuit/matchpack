@@ -19,7 +19,7 @@ import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   inputProblem: InputProblem
   layout: OutputLayout | null = null
-  packSolver2: PackSolver2 | null = null
+  declare activeSubSolver: PackSolver2 | null
 
   constructor(inputProblem: InputProblem) {
     super()
@@ -29,25 +29,25 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   override _step() {
     try {
       // Initialize PackSolver2 if not already created
-      if (!this.packSolver2) {
+      if (!this.activeSubSolver) {
         const packInput = this.createPackInput()
-        this.packSolver2 = new PackSolver2(packInput)
-        this.activeSubSolver = this.packSolver2
+        this.activeSubSolver = new PackSolver2(packInput)
+        this.activeSubSolver = this.activeSubSolver
       }
 
       // Run one step of the PackSolver2
-      this.packSolver2.step()
+      this.activeSubSolver.step()
 
-      if (this.packSolver2.failed) {
+      if (this.activeSubSolver.failed) {
         this.failed = true
-        this.error = `PackSolver2 failed: ${this.packSolver2.error}`
+        this.error = `PackSolver2 failed: ${this.activeSubSolver.error}`
         return
       }
 
-      if (this.packSolver2.solved) {
+      if (this.activeSubSolver.solved) {
         // Apply the packing result to create the layout
         this.layout = this.createLayoutFromPackingResult(
-          this.packSolver2.packedComponents,
+          this.activeSubSolver.packedComponents,
         )
         this.solved = true
         this.activeSubSolver = null
@@ -139,8 +139,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override visualize(): GraphicsObject {
-    if (this.packSolver2 && !this.solved) {
-      return this.packSolver2.visualize()
+    if (this.activeSubSolver && !this.solved) {
+      return this.activeSubSolver.visualize()
     }
 
     if (!this.layout) {
