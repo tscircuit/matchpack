@@ -301,7 +301,7 @@ export class PartitionPackingSolver extends BaseSolver {
   }
 
   private applyPackingResult(
-    packedComponents: any[],
+    packedComponents: PackSolver2["packedComponents"],
     partitionGroups: Array<{
       partitionIndex: number
       chipIds: string[]
