@@ -4,7 +4,7 @@
  */
 
 import type { GraphicsObject } from "graphics-debug"
-import { type PackInput, PhasedPackSolver } from "calculate-packing"
+import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type {
@@ -19,7 +19,7 @@ import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   inputProblem: InputProblem
   layout: OutputLayout | null = null
-  phasedPackSolver: PhasedPackSolver | null = null
+  declare activeSubSolver: PackSolver2 | null
 
   constructor(inputProblem: InputProblem) {
     super()
@@ -28,26 +28,26 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
 
   override _step() {
     try {
-      // Initialize PhasedPackSolver if not already created
-      if (!this.phasedPackSolver) {
+      // Initialize PackSolver2 if not already created
+      if (!this.activeSubSolver) {
         const packInput = this.createPackInput()
-        this.phasedPackSolver = new PhasedPackSolver(packInput)
-        this.activeSubSolver = this.phasedPackSolver
+        this.activeSubSolver = new PackSolver2(packInput)
+        this.activeSubSolver = this.activeSubSolver
       }
 
-      // Run one step of the PhasedPackSolver
-      this.phasedPackSolver.step()
+      // Run one step of the PackSolver2
+      this.activeSubSolver.step()
 
-      if (this.phasedPackSolver.failed) {
+      if (this.activeSubSolver.failed) {
         this.failed = true
-        this.error = `PhasedPackSolver failed: ${this.phasedPackSolver.error}`
+        this.error = `PackSolver2 failed: ${this.activeSubSolver.error}`
         return
       }
 
-      if (this.phasedPackSolver.solved) {
+      if (this.activeSubSolver.solved) {
         // Apply the packing result to create the layout
         this.layout = this.createLayoutFromPackingResult(
-          this.phasedPackSolver.getResult(),
+          this.activeSubSolver.packedComponents,
         )
         this.solved = true
         this.activeSubSolver = null
@@ -139,8 +139,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override visualize(): GraphicsObject {
-    if (this.phasedPackSolver && !this.solved) {
-      return this.phasedPackSolver.visualize()
+    if (this.activeSubSolver && !this.solved) {
+      return this.activeSubSolver.visualize()
     }
 
     if (!this.layout) {

@@ -1,7 +1,7 @@
 import type { GraphicsObject } from "graphics-debug"
 
 export class BaseSolver {
-  MAX_ITERATIONS = 1000
+  MAX_ITERATIONS = 100e3
   solved = false
   failed = false
   iterations = 0
