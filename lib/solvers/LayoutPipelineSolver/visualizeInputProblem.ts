@@ -25,7 +25,7 @@ function getRotatedDimensions(
   rotation: number,
 ): { width: number; height: number } {
   const normalizedRotation = ((rotation % 360) + 360) % 360
-  if (normalizedRotation === 90 || normalizedRotation === 270) {
+  if (Math.round((normalizedRotation + 90) % 180) === 0) {
     return { width: height, height: width }
   }
   return { width, height }
