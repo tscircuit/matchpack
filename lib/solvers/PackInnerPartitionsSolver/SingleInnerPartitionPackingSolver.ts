@@ -27,34 +27,29 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
-    try {
-      // Initialize PackSolver2 if not already created
-      if (!this.activeSubSolver) {
-        const packInput = this.createPackInput()
-        this.activeSubSolver = new PackSolver2(packInput)
-        this.activeSubSolver = this.activeSubSolver
-      }
+    // Initialize PackSolver2 if not already created
+    if (!this.activeSubSolver) {
+      const packInput = this.createPackInput()
+      this.activeSubSolver = new PackSolver2(packInput)
+      this.activeSubSolver = this.activeSubSolver
+    }
 
-      // Run one step of the PackSolver2
-      this.activeSubSolver.step()
+    // Run one step of the PackSolver2
+    this.activeSubSolver.step()
 
-      if (this.activeSubSolver.failed) {
-        this.failed = true
-        this.error = `PackSolver2 failed: ${this.activeSubSolver.error}`
-        return
-      }
-
-      if (this.activeSubSolver.solved) {
-        // Apply the packing result to create the layout
-        this.layout = this.createLayoutFromPackingResult(
-          this.activeSubSolver.packedComponents,
-        )
-        this.solved = true
-        this.activeSubSolver = null
-      }
-    } catch (error) {
+    if (this.activeSubSolver.failed) {
       this.failed = true
-      this.error = `Failed to pack partition: ${error}`
+      this.error = `PackSolver2 failed: ${this.activeSubSolver.error}`
+      return
+    }
+
+    if (this.activeSubSolver.solved) {
+      // Apply the packing result to create the layout
+      this.layout = this.createLayoutFromPackingResult(
+        this.activeSubSolver.packedComponents,
+      )
+      this.solved = true
+      this.activeSubSolver = null
     }
   }
 
@@ -119,7 +114,9 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
   }
 
-  private createLayoutFromPackingResult(packedComponents: any[]): OutputLayout {
+  private createLayoutFromPackingResult(
+    packedComponents: PackSolver2["packedComponents"],
+  ): OutputLayout {
     const chipPlacements: Record<string, Placement> = {}
 
     for (const packedComponent of packedComponents) {
@@ -128,7 +125,10 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       chipPlacements[chipId] = {
         x: packedComponent.center.x,
         y: packedComponent.center.y,
-        ccwRotationDegrees: packedComponent.ccwRotationDegrees || 0,
+        ccwRotationDegrees:
+          packedComponent.ccwRotationOffset ||
+          packedComponent.ccwRotationDegrees ||
+          0,
       }
     }
 

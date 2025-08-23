@@ -27,16 +27,26 @@ export default function PasteInputPage() {
         try {
           parsed = eval(`(${inputText})`)
         } catch (evalError) {
-          throw new Error(`Failed to parse as JSON or JavaScript object: ${evalError}`)
+          throw new Error(
+            `Failed to parse as JSON or JavaScript object: ${evalError}`,
+          )
         }
       }
 
       // Validate that it's an InputProblem
-      if (!parsed || typeof parsed !== 'object') {
+      if (!parsed || typeof parsed !== "object") {
         throw new Error("Input must be an object")
       }
 
-      const required = ['chipMap', 'chipPinMap', 'netMap', 'pinStrongConnMap', 'netConnMap', 'chipGap', 'partitionGap']
+      const required = [
+        "chipMap",
+        "chipPinMap",
+        "netMap",
+        "pinStrongConnMap",
+        "netConnMap",
+        "chipGap",
+        "partitionGap",
+      ]
       for (const field of required) {
         if (!(field in parsed)) {
           throw new Error(`Missing required field: ${field}`)
@@ -58,7 +68,13 @@ export default function PasteInputPage() {
   if (parsedProblem) {
     return (
       <div>
-        <div style={{ padding: "10px", backgroundColor: "#f0f0f0", marginBottom: "10px" }}>
+        <div
+          style={{
+            padding: "10px",
+            backgroundColor: "#f0f0f0",
+            marginBottom: "10px",
+          }}
+        >
           <button onClick={resetInput} style={{ marginRight: "10px" }}>
             ← Back to Input
           </button>
@@ -78,7 +94,10 @@ export default function PasteInputPage() {
       </p>
 
       <div style={{ marginBottom: "20px" }}>
-        <label htmlFor="input-text" style={{ display: "block", marginBottom: "10px" }}>
+        <label
+          htmlFor="input-text"
+          style={{ display: "block", marginBottom: "10px" }}
+        >
           InputProblem (JSON or JavaScript object):
         </label>
         <textarea
@@ -161,13 +180,27 @@ Or JavaScript object:
       <div style={{ fontSize: "14px", color: "#666" }}>
         <h3>Required InputProblem fields:</h3>
         <ul>
-          <li><code>chipMap</code>: Record of chip definitions</li>
-          <li><code>chipPinMap</code>: Record of chip pin definitions</li>
-          <li><code>netMap</code>: Record of net definitions</li>
-          <li><code>pinStrongConnMap</code>: Record of strong pin connections</li>
-          <li><code>netConnMap</code>: Record of net connections</li>
-          <li><code>chipGap</code>: Minimum gap between chips (number)</li>
-          <li><code>partitionGap</code>: Minimum gap between partitions (number)</li>
+          <li>
+            <code>chipMap</code>: Record of chip definitions
+          </li>
+          <li>
+            <code>chipPinMap</code>: Record of chip pin definitions
+          </li>
+          <li>
+            <code>netMap</code>: Record of net definitions
+          </li>
+          <li>
+            <code>pinStrongConnMap</code>: Record of strong pin connections
+          </li>
+          <li>
+            <code>netConnMap</code>: Record of net connections
+          </li>
+          <li>
+            <code>chipGap</code>: Minimum gap between chips (number)
+          </li>
+          <li>
+            <code>partitionGap</code>: Minimum gap between partitions (number)
+          </li>
         </ul>
       </div>
     </div>
