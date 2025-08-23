@@ -21,7 +21,7 @@
     "@tscircuit/schematic-viewer": "^2.0.26",
     "@types/bun": "latest",
     "bpc-graph": "^0.0.66",
-    "calculate-packing": "^0.0.27",
+    "calculate-packing": "^0.0.28",
     "circuit-json": "^0.0.226",
     "graphics-debug": "^0.0.62",
     "react-cosmos": "^7.0.0",
