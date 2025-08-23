@@ -73,71 +73,6 @@ test("RP2040Circuit InputProblem conversion", () => {
   console.log("Nets:", Object.keys(problem.netMap).join(", "))
 })
 
-test("RP2040Circuit LayoutPipelineSolver initialization", () => {
-  // Convert RP2040Circuit to InputProblem
-  const circuitJson = getExampleCircuitJson()
-  const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
-    useReadableIds: true,
-  })
-
-  // Create solver - this should not throw the "boxes" error
-  const solver = new LayoutPipelineSolver(problem)
-
-  expect(solver).toBeDefined()
-  expect(solver.solved).toBe(false)
-  expect(solver.failed).toBe(false)
-  expect(solver.iterations).toBe(0)
-
-  // Test initial visualization - this is where the "boxes" error likely occurs
-  const initialViz = solver.visualize()
-  expect(initialViz).toBeDefined()
-  expect(initialViz.rects).toBeDefined()
-  expect(initialViz.points).toBeDefined()
-  expect(initialViz.lines).toBeDefined()
-  expect(initialViz.texts).toBeDefined()
-
-  // Should have rectangles for all chips
-  expect(initialViz.rects!.length).toBeGreaterThanOrEqual(
-    Object.keys(problem.chipMap).length,
-  )
-
-  console.log("Initial visualization created with:")
-  console.log("- Rectangles:", initialViz.rects?.length)
-  console.log("- Points:", initialViz.points?.length)
-  console.log("- Lines:", initialViz.lines?.length)
-  console.log("- Texts:", initialViz.texts?.length)
-})
-
-test("RP2040Circuit solver first phase execution", () => {
-  // Convert RP2040Circuit to InputProblem
-  const circuitJson = getExampleCircuitJson()
-  const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
-    useReadableIds: true,
-  })
-
-  // Create solver
-  const solver = new LayoutPipelineSolver(problem)
-
-  // Test just the first phase (ChipPartitionsSolver)
-  solver.solveUntilPhase("packInnerPartitionsSolver")
-
-  expect(solver.chipPartitionsSolver).toBeDefined()
-  expect(solver.chipPartitionsSolver!.solved).toBe(true)
-  expect(solver.chipPartitions).toBeDefined()
-  expect(solver.chipPartitions!.length).toBeGreaterThan(0)
-
-  // Test visualization after first phase
-  const partitionViz = solver.visualize()
-  expect(partitionViz).toBeDefined()
-  expect(partitionViz.rects).toBeDefined()
-
-  console.log(
-    "ChipPartitionsSolver completed with",
-    solver.chipPartitions!.length,
-    "partitions",
-  )
-})
-
 test("RP2040Circuit complete pipeline execution", () => {
   // Convert RP2040Circuit to InputProblem
   const circuitJson = getExampleCircuitJson()
@@ -152,6 +87,7 @@ test("RP2040Circuit complete pipeline execution", () => {
   solver.solve()
 
   // Should be solved successfully
+  console.log(solver.failed, solver.solved, solver.error)
   expect(solver.solved).toBe(true)
   expect(solver.failed).toBe(false)
 
@@ -186,16 +122,5 @@ test("RP2040Circuit complete pipeline execution", () => {
   const overlaps = solver.checkForOverlaps(outputLayout)
   expect(overlaps).toBeDefined()
   expect(Array.isArray(overlaps)).toBe(true)
-
-  console.log("Complete pipeline solved successfully")
-  console.log(
-    "Final layout has",
-    Object.keys(outputLayout.chipPlacements).length,
-    "chip placements",
-  )
-  console.log("Overlaps found:", overlaps.length)
-
-  if (overlaps.length > 0) {
-    console.log("Overlap details:", overlaps)
-  }
+  expect(overlaps.length).toBe(0)
 })

@@ -2,6 +2,7 @@ import type { BaseSolver } from "lib/solvers/BaseSolver"
 
 export const LayoutPipelineToolbar = (props: {
   currentTab: "pipeline" | "circuit"
+  status: "running" | "solved" | "failed"
   onStep: () => void
   onSolve: () => void
   onAnimate: () => void
@@ -24,6 +25,11 @@ export const LayoutPipelineToolbar = (props: {
         </button>
         {props.iterationCount !== undefined && (
           <div className="flex items-center px-3 py-1 bg-blue-100 rounded text-sm">
+            {props.status === "running"
+              ? "🔄"
+              : props.status === "solved"
+                ? "✅"
+                : "❌"}{" "}
             Iteration: {props.iterationCount}
           </div>
         )}

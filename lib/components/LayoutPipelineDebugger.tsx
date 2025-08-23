@@ -163,6 +163,7 @@ export const LayoutPipelineDebugger = ({
         solverHierarchy={getSolverHierarchy(solver)}
         onDownloadConstructorParams={downloadConstructorParams}
         iterationCount={solver.iterations}
+        status={solver.solved ? "solved" : solver.failed ? "failed" : "running"}
       />
       {currentTab === "pipeline" && (
         <>
@@ -247,13 +248,8 @@ export const LayoutPipelineDebugger = ({
                 const found = visualizationHistory.find(
                   (viz) => viz.iteration === selectedIteration,
                 )
-                console.log(
-                  `Looking for iteration ${selectedIteration}, found:`,
-                  !!found,
-                )
                 return found?.graphics || solver.visualize()
               }
-              console.log("Using latest visualization")
               return solver.visualize()
             })()}
           />
@@ -263,11 +259,6 @@ export const LayoutPipelineDebugger = ({
             visualizationHistory={visualizationHistory}
             selectedIteration={selectedIteration}
             onSelectIteration={(iteration) => {
-              console.log("Selecting iteration:", iteration)
-              console.log(
-                "Available visualizations:",
-                visualizationHistory.map((v) => v.iteration),
-              )
               setSelectedIteration(iteration)
               incRunCount()
             }}

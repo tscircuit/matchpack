@@ -102,7 +102,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   constructor(inputProblem: InputProblem) {
     super()
     this.inputProblem = inputProblem
-    this.MAX_ITERATIONS = 1000
+    this.MAX_ITERATIONS = 1e6
     this.startTimeOfPhase = {}
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}
