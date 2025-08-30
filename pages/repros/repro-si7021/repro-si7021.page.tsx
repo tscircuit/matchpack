@@ -1,10 +1,9 @@
 import { LayoutPipelineDebugger } from "lib/components/LayoutPipelineDebugger"
 import type { InputProblem } from "lib/types/InputProblem"
-import { getSi7021InputProblem } from "./getSi7021InputProblem"
+import SIJ021Input from "./si7021-matchpack-input.json"
 
 export default function ReproSi7021Page() {
-  // Generate InputProblem from the circuit definition
-  const problem: InputProblem = getSi7021InputProblem()
+  const problem: InputProblem = SIJ021Input as InputProblem
 
   return <LayoutPipelineDebugger problem={problem} />
 }
