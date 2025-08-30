@@ -1,0 +1,89 @@
+{
+  "chipMap": {
+    "U1": {
+      "chipId": "U1",
+      "pins": ["U1.1", "U1.2", "U1.3", "U1.4"],
+      "size": { "x": 1.2, "y": 0.8 },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "C2": {
+      "chipId": "C2",
+      "pins": ["C2.1", "C2.2"],
+      "size": { "x": 0.53, "y": 1.06 },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": { "x": 0.5, "y": 1.0 },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "R2": {
+      "chipId": "R2",
+      "pins": ["R2.1", "R2.2"],
+      "size": { "x": 0.5, "y": 1.0 },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "SJ1": {
+      "chipId": "SJ1",
+      "pins": ["SJ1.1", "SJ1.2", "SJ1.3"],
+      "size": { "x": 0.6, "y": 0.6 },
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "U1.1": { "pinId": "U1.1", "side": "x-", "offset": { "x": -1, "y": 0.2 } },
+    "U1.2": { "pinId": "U1.2", "side": "x-", "offset": { "x": -1, "y": 0 } },
+    "U1.3": { "pinId": "U1.3", "side": "x+", "offset": { "x": 1, "y": -0.2 } },
+    "U1.4": { "pinId": "U1.4", "side": "x+", "offset": { "x": 1, "y": 0.2 } },
+    "C2.1": { "pinId": "C2.1", "side": "y+", "offset": { "x": 0, "y": 0.53 } },
+    "C2.2": { "pinId": "C2.2", "side": "y-", "offset": { "x": 0, "y": -0.53 } },
+    "R1.1": { "pinId": "R1.1", "side": "y+", "offset": { "x": 0, "y": 0.5 } },
+    "R1.2": { "pinId": "R1.2", "side": "y-", "offset": { "x": 0, "y": -0.5 } },
+    "R2.1": { "pinId": "R2.1", "side": "y+", "offset": { "x": 0, "y": 0.5 } },
+    "R2.2": { "pinId": "R2.2", "side": "y-", "offset": { "x": 0, "y": -0.5 } },
+    "SJ1.1": {
+      "pinId": "SJ1.1",
+      "side": "x-",
+      "offset": { "x": -0.3, "y": 0 }
+    },
+    "SJ1.2": { "pinId": "SJ1.2", "side": "y+", "offset": { "x": 0, "y": 0.3 } },
+    "SJ1.3": { "pinId": "SJ1.3", "side": "x+", "offset": { "x": 0.3, "y": 0 } }
+  },
+  "groupMap": {},
+  "groupPinMap": {},
+  "netMap": {
+    "GND": { "netId": "GND" },
+    "V3_3": { "netId": "V3_3" },
+    "SCL": { "netId": "SCL" },
+    "SDA": { "netId": "SDA" }
+  },
+  "pinStrongConnMap": {
+    "U1.1-GND": true,
+    "C2.1-GND": true,
+    "C2.2-V3_3": true,
+    "U1.2-C2.2": true,
+    "U1.3-SCL": true,
+    "U1.4-SDA": true,
+    "R1.1-U1.4": true,
+    "R2.1-U1.3": true,
+    "SJ1.2-V3_3": true,
+    "SJ1.3-R1.2": true,
+    "SJ1.1-R2.2": true
+  },
+  "netConnMap": {
+    "U1.1-GND": true,
+    "C2.1-GND": true,
+    "C2.2-V3_3": true,
+    "U1.2-V3_3": true,
+    "U1.3-SCL": true,
+    "U1.4-SDA": true,
+    "R1.1-SDA": true,
+    "R2.1-SCL": true,
+    "SJ1.2-V3_3": true,
+    "SJ1.3-R1.2": true,
+    "SJ1.1-R2.2": true
+  },
+  "chipGap": 0.4,
+  "partitionGap": 1.2
+}
