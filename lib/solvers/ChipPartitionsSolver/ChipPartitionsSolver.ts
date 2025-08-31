@@ -58,7 +58,10 @@ export class ChipPartitionsSolver extends BaseSolver {
     }
 
     // Add symmetric group connections to keep related components together
-    this.addSymmetricGroupConnections(adjacencyMap, chipIds)
+    // Only apply this after we have some existing connections to avoid grouping completely disconnected components
+    if (this.hasExistingConnections(adjacencyMap)) {
+      this.addSymmetricGroupConnections(adjacencyMap, chipIds)
+    }
 
     // Find connected components using DFS
     const visited = new Set<ChipId>()
@@ -219,6 +222,20 @@ export class ChipPartitionsSolver extends BaseSolver {
     const titles = this.partitions.map((_, index) => `partition${index}`)
 
     return stackGraphicsHorizontally(partitionVisualizations, { titles })
+  }
+
+  /**
+   * Checks if there are any existing connections in the adjacency map
+   */
+  private hasExistingConnections(
+    adjacencyMap: Map<ChipId, Set<ChipId>>,
+  ): boolean {
+    for (const connections of adjacencyMap.values()) {
+      if (connections.size > 0) {
+        return true
+      }
+    }
+    return false
   }
 
   /**
