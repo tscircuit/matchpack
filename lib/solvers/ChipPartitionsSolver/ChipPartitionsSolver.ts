@@ -26,6 +26,7 @@ export class ChipPartitionsSolver extends BaseSolver {
 
   /**
    * Creates partitions by finding connected components through strong pin connections
+   * and keeping symmetric groups together
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
@@ -55,6 +56,9 @@ export class ChipPartitionsSolver extends BaseSolver {
         adjacencyMap.get(owner2)!.add(owner1)
       }
     }
+
+    // Add symmetric group connections to keep related components together
+    this.addSymmetricGroupConnections(adjacencyMap, chipIds)
 
     // Find connected components using DFS
     const visited = new Set<ChipId>()
@@ -215,5 +219,121 @@ export class ChipPartitionsSolver extends BaseSolver {
     const titles = this.partitions.map((_, index) => `partition${index}`)
 
     return stackGraphicsHorizontally(partitionVisualizations, { titles })
+  }
+
+  /**
+   * Adds edges between symmetric components to keep them in the same partition
+   */
+  private addSymmetricGroupConnections(
+    adjacencyMap: Map<ChipId, Set<ChipId>>,
+    chipIds: ChipId[],
+  ): void {
+    const symmetricGroups = this.detectSymmetricGroups(chipIds)
+
+    // Connect all components within each symmetric group
+    for (const group of symmetricGroups) {
+      for (let i = 0; i < group.chipIds.length; i++) {
+        for (let j = i + 1; j < group.chipIds.length; j++) {
+          const chipA = group.chipIds[i]!
+          const chipB = group.chipIds[j]!
+          adjacencyMap.get(chipA)!.add(chipB)
+          adjacencyMap.get(chipB)!.add(chipA)
+        }
+      }
+    }
+  }
+
+  /**
+   * Detects symmetric groups based on component properties and connectivity patterns
+   * Does not rely on naming conventions
+   */
+  private detectSymmetricGroups(
+    chipIds: ChipId[],
+  ): Array<{ id: string; chipIds: ChipId[] }> {
+    const groups: Array<{ id: string; chipIds: ChipId[] }> = []
+    const processedChips = new Set<ChipId>()
+
+    // Group components by their characteristics
+    for (const chipId of chipIds) {
+      if (processedChips.has(chipId)) continue
+
+      const similarChips = this.findComponentsWithSimilarCharacteristics(
+        chipId,
+        chipIds,
+        processedChips,
+      )
+
+      if (similarChips.length >= 2) {
+        const groupId = `symmetric_${this.getComponentSignature(chipId)}`
+        groups.push({
+          id: groupId,
+          chipIds: similarChips.sort(),
+        })
+
+        similarChips.forEach((id) => processedChips.add(id))
+      }
+    }
+
+    return groups
+  }
+
+  /**
+   * Finds components with similar characteristics (size, pins, connectivity)
+   */
+  private findComponentsWithSimilarCharacteristics(
+    targetChip: ChipId,
+    allChips: ChipId[],
+    processedChips: Set<ChipId>,
+  ): ChipId[] {
+    const similarChips = [targetChip]
+    const targetSignature = this.getComponentSignature(targetChip)
+
+    for (const otherChip of allChips) {
+      if (otherChip === targetChip || processedChips.has(otherChip)) continue
+
+      const otherSignature = this.getComponentSignature(otherChip)
+
+      // Check if they have similar characteristics
+      if (this.areSignaturesSimilar(targetSignature, otherSignature)) {
+        similarChips.push(otherChip)
+      }
+    }
+
+    return similarChips
+  }
+
+  /**
+   * Creates a signature based on component characteristics
+   */
+  private getComponentSignature(chipId: ChipId): string {
+    const chip = this.inputProblem.chipMap[chipId]!
+    const pinCount = chip.pins.length
+    const sizeX = Math.round(chip.size.x * 100) / 100
+    const sizeY = Math.round(chip.size.y * 100) / 100
+    const rotations = chip.availableRotations?.join(",") || "any"
+
+    // Get connectivity pattern - how many nets this component connects to
+    const connectedNets = new Set<NetId>()
+    for (const pinId of chip.pins) {
+      // Use netConnMap to find which nets this pin connects to
+      for (const [key, connected] of Object.entries(
+        this.inputProblem.netConnMap,
+      )) {
+        if (connected && key.startsWith(`${pinId}-`)) {
+          const netId = key.split("-")[1]!
+          connectedNets.add(netId)
+        }
+      }
+    }
+    const netCount = connectedNets.size
+
+    return `pins:${pinCount}_size:${sizeX}x${sizeY}_nets:${netCount}_rot:${rotations}`
+  }
+
+  /**
+   * Checks if two component signatures are similar enough to be grouped
+   */
+  private areSignaturesSimilar(sig1: string, sig2: string): boolean {
+    return sig1 === sig2
   }
 }
