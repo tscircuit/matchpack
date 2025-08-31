@@ -58,10 +58,7 @@ export class ChipPartitionsSolver extends BaseSolver {
     }
 
     // Add symmetric group connections to keep related components together
-    // Only apply this after we have some existing connections to avoid grouping completely disconnected components
-    if (this.hasExistingConnections(adjacencyMap)) {
-      this.addSymmetricGroupConnections(adjacencyMap, chipIds)
-    }
+    this.addSymmetricGroupConnections(adjacencyMap, chipIds)
 
     // Find connected components using DFS
     const visited = new Set<ChipId>()
@@ -239,6 +236,47 @@ export class ChipPartitionsSolver extends BaseSolver {
   }
 
   /**
+   * Determines if symmetric components should be grouped together
+   * Avoids grouping completely disconnected identical components while preserving
+   * meaningful grouping for layout aesthetics
+   */
+  private shouldGroupSymmetricComponents(
+    chipIds: ChipId[],
+    adjacencyMap: Map<ChipId, Set<ChipId>>,
+  ): boolean {
+    // If any component in the group has existing connections, allow grouping
+    for (const chipId of chipIds) {
+      if (adjacencyMap.get(chipId)?.size! > 0) {
+        return true
+      }
+    }
+
+    // If there are more than 2 components in the group, it's likely a meaningful pattern
+    if (chipIds.length > 2) {
+      return true
+    }
+
+    // For groups of 2 disconnected components, check if they have any net connections
+    // This helps distinguish between meaningful component pairs vs completely isolated duplicates
+    for (const chipId of chipIds) {
+      const chip = this.inputProblem.chipMap[chipId]!
+      for (const pinId of chip.pins) {
+        // Check if this pin connects to any nets
+        for (const [key, connected] of Object.entries(
+          this.inputProblem.netConnMap,
+        )) {
+          if (connected && key.startsWith(`${pinId}-`)) {
+            return true // Has net connections, so grouping makes sense
+          }
+        }
+      }
+    }
+
+    // Default to not grouping isolated pairs with no connections
+    return false
+  }
+
+  /**
    * Adds edges between symmetric components to keep them in the same partition
    */
   private addSymmetricGroupConnections(
@@ -248,13 +286,16 @@ export class ChipPartitionsSolver extends BaseSolver {
     const symmetricGroups = this.detectSymmetricGroups(chipIds)
 
     // Connect all components within each symmetric group
+    // But only if the group has meaningful connections or multiple different types
     for (const group of symmetricGroups) {
-      for (let i = 0; i < group.chipIds.length; i++) {
-        for (let j = i + 1; j < group.chipIds.length; j++) {
-          const chipA = group.chipIds[i]!
-          const chipB = group.chipIds[j]!
-          adjacencyMap.get(chipA)!.add(chipB)
-          adjacencyMap.get(chipB)!.add(chipA)
+      if (this.shouldGroupSymmetricComponents(group.chipIds, adjacencyMap)) {
+        for (let i = 0; i < group.chipIds.length; i++) {
+          for (let j = i + 1; j < group.chipIds.length; j++) {
+            const chipA = group.chipIds[i]!
+            const chipB = group.chipIds[j]!
+            adjacencyMap.get(chipA)!.add(chipB)
+            adjacencyMap.get(chipB)!.add(chipA)
+          }
         }
       }
     }
