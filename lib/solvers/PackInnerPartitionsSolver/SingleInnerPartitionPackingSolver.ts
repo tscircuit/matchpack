@@ -16,6 +16,7 @@ import type {
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
+import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
 const PIN_SIZE = 0.1
 
@@ -124,7 +125,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       components: packComponents,
       minGap: this.inputProblem.chipGap,
       packOrderStrategy: "largest_to_smallest",
-      packPlacementStrategy: "minimum_sum_squared_distance_to_network",
+      packPlacementStrategy: "minimum_closest_sum_squared_distance",
     }
   }
 
@@ -158,7 +159,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
 
     if (!this.layout) {
-      return super.visualize()
+      const basicLayout = doBasicInputProblemLayout(this.inputProblem)
+      return visualizeInputProblem(this.inputProblem, basicLayout)
     }
 
     return visualizeInputProblem(this.inputProblem, this.layout)
