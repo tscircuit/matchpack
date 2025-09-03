@@ -15,6 +15,9 @@ import type {
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
+import { getPadsBoundingBox } from "./getPadsBoundingBox"
+
+const PIN_SIZE = 0.1
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -70,15 +73,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           size: { x: number; y: number }
         }> = []
 
-        // Add chip body pad (disconnected from any network)
-        pads.push({
-          padId: `${chipId}_body`,
-          networkId: `${chipId}_body_disconnected`,
-          type: "rect" as const,
-          offset: { x: 0, y: 0 },
-          size: { x: chip.size.x, y: chip.size.y },
-        })
-
         // Create a pad for each pin on this chip
         for (const pinId of chip.pins) {
           const pin = this.inputProblem.chipPinMap[pinId]
@@ -92,9 +86,29 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
             networkId: networkId,
             type: "rect" as const,
             offset: { x: pin.offset.x, y: pin.offset.y },
-            size: { x: 0.1, y: 0.1 }, // Small size for pins
+            size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
           })
         }
+
+        const padsBoundingBox = getPadsBoundingBox(pads)
+        const padsBoundingBoxSize = {
+          x: padsBoundingBox.maxX - padsBoundingBox.minX,
+          y: padsBoundingBox.maxY - padsBoundingBox.minY,
+        }
+
+        // Add chip body pad (disconnected from any network) but make sure
+        // it fully envelopes the "pads" (pins)
+
+        pads.push({
+          padId: `${chipId}_body`,
+          networkId: `${chipId}_body_disconnected`,
+          type: "rect" as const,
+          offset: { x: 0, y: 0 },
+          size: {
+            x: Math.max(padsBoundingBoxSize.x, chip.size.x),
+            y: Math.max(padsBoundingBoxSize.y, chip.size.y),
+          },
+        })
 
         return {
           componentId: chipId,
