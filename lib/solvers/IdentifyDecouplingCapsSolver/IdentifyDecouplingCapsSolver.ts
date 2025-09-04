@@ -24,6 +24,12 @@ interface DecouplingCapGroup {
   decouplingCapChipIds: ChipId[]
 }
 
+/**
+ * Identify decoupling capacitor groups based on specific criteria:
+ * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
+ * 2. One pin indirectly connected to net with "y+" restriction, one to "y-" restriction
+ * 3. At least one pin directly connected to a chip (the main chip, typically a microcontroller)
+ */
 export class IdentifyDecouplingCapsSolver extends BaseSolver {
   inputProblem: InputProblem
 
