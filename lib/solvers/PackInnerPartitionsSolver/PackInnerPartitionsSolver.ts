@@ -46,7 +46,7 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     if (!this.activeSolver) {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
       this.activeSolver = new SingleInnerPartitionPackingSolver({
-        inputProblem: currentPartition,
+        partitionInputProblem: currentPartition,
         pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
       })
       this.activeSubSolver = this.activeSolver

@@ -44,5 +44,5 @@ export type InputProblem = {
 
 export interface PartitionInputProblem extends InputProblem {
   isPartition?: true
-  partitionType?: "decoupling_caps"
+  partitionType?: "default" | "decoupling_caps"
 }
