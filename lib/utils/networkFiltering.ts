@@ -70,7 +70,9 @@ export function createFilteredNetworkMapping(params: {
   // Process net connections
   if (hasStrongConnections) {
     // If any strong connections exist anywhere in the problem, filter out all weak (pin-to-net) connections
-    for (const [connKey, connected] of Object.entries(inputProblem.netConnMap)) {
+    for (const [connKey, connected] of Object.entries(
+      inputProblem.netConnMap,
+    )) {
       if (!connected) continue
       const [pinId, netId] = connKey.split("-")
       if (pinId && netId) {
@@ -81,7 +83,9 @@ export function createFilteredNetworkMapping(params: {
     }
   } else {
     // No strong connections exist; include weak connections with basic opposite-side filtering
-    for (const [connKey, connected] of Object.entries(inputProblem.netConnMap)) {
+    for (const [connKey, connected] of Object.entries(
+      inputProblem.netConnMap,
+    )) {
       if (!connected) continue
       const [pinId, netId] = connKey.split("-")
       if (pinId && netId) {
@@ -92,13 +96,18 @@ export function createFilteredNetworkMapping(params: {
         let shouldIncludeInNetwork = true
 
         // Check if this pin is on the opposite side of a chip we have strong connections to
-        for (const [strongKey, strongSides] of strongConnectedChipSides.entries()) {
+        for (const [
+          strongKey,
+          strongSides,
+        ] of strongConnectedChipSides.entries()) {
           const [fromChip, toChip] = strongKey.split("-")
 
           if (fromChip === chipId) {
             // This pin belongs to a chip that has strong connections
             // Check if any pins in this net belong to chips on the opposite side
-            for (const [otherConnKey, otherConnected] of Object.entries(inputProblem.netConnMap)) {
+            for (const [otherConnKey, otherConnected] of Object.entries(
+              inputProblem.netConnMap,
+            )) {
               if (!otherConnected) continue
               const [otherPinId, otherNetId] = otherConnKey.split("-")
 
