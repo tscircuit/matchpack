@@ -158,15 +158,11 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     )
 
     // Colorize chips that are part of decoupling groups
-    const chipRoleMap = new Map<
-      ChipId,
-      { type: "main" | "decap"; color: string }
-    >()
+    const chipDecapGroupMap = new Map<ChipId, DecouplingCapGroup>()
     for (const group of this.outputDecouplingCapGroups) {
-      const color = getColorFromString(group.mainChipId, 0.8)
-      chipRoleMap.set(group.mainChipId, { type: "main", color })
+      chipDecapGroupMap.set(group.mainChipId, group)
       for (const capChipId of group.decouplingCapChipIds) {
-        chipRoleMap.set(capChipId, { type: "decap", color })
+        chipDecapGroupMap.set(capChipId, group)
       }
     }
 
@@ -176,26 +172,10 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
     for (const rect of graphics.rects || []) {
       const chipId = (rect as any).label as ChipId
-      const role = chipRoleMap.get(chipId)
-      if (!role) continue
-      const alpha = role.type === "main" ? 0.18 : 0.36
-      rect.label = `${rect.label}\n${role.type}`
-      rect.fill = getColorFromString(role.color, alpha)
-    }
-
-    // Optionally annotate with a small text tag above decap chips
-    if (!graphics.texts) (graphics as any).texts = []
-    for (const rect of graphics.rects || []) {
-      const chipId = (rect as any).label as ChipId
-      const role = chipRoleMap.get(chipId)
-      if (!role) continue
-      ;(graphics.texts as any[]).push({
-        x: rect.center.x,
-        y: rect.center.y - (rect.height || 0) / 2,
-        text: role.type === "main" ? "MAIN" : "DECAP",
-        fillColor: role.type === "main" ? role.color : "rgba(0,0,0,0.6)",
-        fontSize: 8,
-      })
+      const group = chipDecapGroupMap.get(chipId)
+      if (!group) continue
+      rect.label = `${rect.label}\n${group.decouplingCapGroupId}`
+      rect.fill = getColorFromString(group.decouplingCapGroupId, 0.8)
     }
 
     return graphics
