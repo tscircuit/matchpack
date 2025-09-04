@@ -12,6 +12,8 @@ import type {
   PinId,
   ChipId,
   NetId,
+  ChipPin,
+  PartitionInputProblem,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
@@ -21,13 +23,18 @@ import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputP
 const PIN_SIZE = 0.1
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
-  inputProblem: InputProblem
+  partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
   declare activeSubSolver: PackSolver2 | null
+  pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
-  constructor(inputProblem: InputProblem) {
+  constructor(params: {
+    partitionInputProblem: PartitionInputProblem
+    pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+  }) {
     super()
-    this.inputProblem = inputProblem
+    this.partitionInputProblem = params.partitionInputProblem
+    this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
   }
 
   override _step() {
@@ -58,72 +65,77 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   private createPackInput(): PackInput {
-    // Create filtered network mapping to prevent opposite-side weak connections
-    // from interfering with strong connections during packing
-    const { pinToNetworkMap } = createFilteredNetworkMapping(this.inputProblem)
+    // Fall back to filtered mapping (weak + strong)
+    const pinToNetworkMap = createFilteredNetworkMapping({
+      inputProblem: this.partitionInputProblem,
+      pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+    }).pinToNetworkMap
 
     // Create pack components for each chip
-    const packComponents = Object.entries(this.inputProblem.chipMap).map(
-      ([chipId, chip]) => {
-        // Create pads for all pins of this chip
-        const pads: Array<{
-          padId: string
-          networkId: string
-          type: "rect"
-          offset: { x: number; y: number }
-          size: { x: number; y: number }
-        }> = []
+    const packComponents = Object.entries(
+      this.partitionInputProblem.chipMap,
+    ).map(([chipId, chip]) => {
+      // Create pads for all pins of this chip
+      const pads: Array<{
+        padId: string
+        networkId: string
+        type: "rect"
+        offset: { x: number; y: number }
+        size: { x: number; y: number }
+      }> = []
 
-        // Create a pad for each pin on this chip
-        for (const pinId of chip.pins) {
-          const pin = this.inputProblem.chipPinMap[pinId]
-          if (!pin) continue
+      // Create a pad for each pin on this chip
+      for (const pinId of chip.pins) {
+        const pin = this.partitionInputProblem.chipPinMap[pinId]
+        if (!pin) continue
 
-          // Find network for this pin from our connectivity map
-          const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
-
-          pads.push({
-            padId: pinId,
-            networkId: networkId,
-            type: "rect" as const,
-            offset: { x: pin.offset.x, y: pin.offset.y },
-            size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
-          })
-        }
-
-        const padsBoundingBox = getPadsBoundingBox(pads)
-        const padsBoundingBoxSize = {
-          x: padsBoundingBox.maxX - padsBoundingBox.minX,
-          y: padsBoundingBox.maxY - padsBoundingBox.minY,
-        }
-
-        // Add chip body pad (disconnected from any network) but make sure
-        // it fully envelopes the "pads" (pins)
+        // Find network for this pin from our connectivity map
+        const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
 
         pads.push({
-          padId: `${chipId}_body`,
-          networkId: `${chipId}_body_disconnected`,
+          padId: pinId,
+          networkId: networkId,
           type: "rect" as const,
-          offset: { x: 0, y: 0 },
-          size: {
-            x: Math.max(padsBoundingBoxSize.x, chip.size.x),
-            y: Math.max(padsBoundingBoxSize.y, chip.size.y),
-          },
+          offset: { x: pin.offset.x, y: pin.offset.y },
+          size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
         })
+      }
 
-        return {
-          componentId: chipId,
-          pads,
-          availableRotationDegrees: chip.availableRotations || [
-            0, 90, 180, 270,
-          ],
-        }
-      },
-    )
+      const padsBoundingBox = getPadsBoundingBox(pads)
+      const padsBoundingBoxSize = {
+        x: padsBoundingBox.maxX - padsBoundingBox.minX,
+        y: padsBoundingBox.maxY - padsBoundingBox.minY,
+      }
+
+      // Add chip body pad (disconnected from any network) but make sure
+      // it fully envelopes the "pads" (pins)
+
+      pads.push({
+        padId: `${chipId}_body`,
+        networkId: `${chipId}_body_disconnected`,
+        type: "rect" as const,
+        offset: { x: 0, y: 0 },
+        size: {
+          x: Math.max(padsBoundingBoxSize.x, chip.size.x),
+          y: Math.max(padsBoundingBoxSize.y, chip.size.y),
+        },
+      })
+
+      return {
+        componentId: chipId,
+        pads,
+        availableRotationDegrees: chip.availableRotations || [0, 90, 180, 270],
+      }
+    })
+
+    let minGap = this.partitionInputProblem.chipGap
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      minGap = this.partitionInputProblem.decouplingCapsGap ?? minGap
+    }
 
     return {
       components: packComponents,
-      minGap: this.inputProblem.chipGap,
+      minGap,
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
     }
@@ -159,14 +171,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
 
     if (!this.layout) {
-      const basicLayout = doBasicInputProblemLayout(this.inputProblem)
-      return visualizeInputProblem(this.inputProblem, basicLayout)
+      const basicLayout = doBasicInputProblemLayout(this.partitionInputProblem)
+      return visualizeInputProblem(this.partitionInputProblem, basicLayout)
     }
 
-    return visualizeInputProblem(this.inputProblem, this.layout)
+    return visualizeInputProblem(this.partitionInputProblem, this.layout)
   }
 
   override getConstructorParams(): [InputProblem] {
-    return [this.inputProblem]
+    return [this.partitionInputProblem]
   }
 }

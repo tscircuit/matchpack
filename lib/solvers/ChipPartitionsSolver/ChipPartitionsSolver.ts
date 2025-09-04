@@ -4,7 +4,13 @@
  */
 
 import { BaseSolver } from "../BaseSolver"
-import type { InputProblem, ChipId, PinId, NetId } from "lib/types/InputProblem"
+import type {
+  InputProblem,
+  ChipId,
+  PinId,
+  NetId,
+  PartitionInputProblem,
+} from "lib/types/InputProblem"
 import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
@@ -13,7 +19,7 @@ import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/Identif
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
-  partitions: InputProblem[] = []
+  partitions: PartitionInputProblem[] = []
   decouplingCapGroups?: DecouplingCapGroup[]
 
   constructor({
@@ -108,13 +114,16 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
-    // 4) Combine decap-only partitions with the non-decap partitions
-    const allPartitions = [...decapGroupPartitions, ...nonDecapPartitions]
-
-    // 5) Convert partitions to InputProblem instances
-    return allPartitions.map((partition) =>
-      this.createInputProblemFromPartition(partition, inputProblem),
-    )
+    return [
+      ...decapGroupPartitions.map((partition) =>
+        this.createInputProblemFromPartition(partition, inputProblem, {
+          partitionType: "decoupling_caps",
+        }),
+      ),
+      ...nonDecapPartitions.map((partition) =>
+        this.createInputProblemFromPartition(partition, inputProblem),
+      ),
+    ]
   }
 
   /**
@@ -174,7 +183,10 @@ export class ChipPartitionsSolver extends BaseSolver {
   private createInputProblemFromPartition(
     partition: ChipId[],
     originalProblem: InputProblem,
-  ): InputProblem {
+    opts?: {
+      partitionType?: "default" | "decoupling_caps"
+    },
+  ): PartitionInputProblem {
     const chipIds = partition
 
     // Extract relevant pins
@@ -234,13 +246,14 @@ export class ChipPartitionsSolver extends BaseSolver {
     }
 
     return {
+      ...originalProblem,
       chipMap,
       chipPinMap,
       netMap,
       pinStrongConnMap,
       netConnMap,
-      chipGap: originalProblem.chipGap,
-      partitionGap: originalProblem.partitionGap,
+      isPartition: true,
+      partitionType: opts?.partitionType,
     }
   }
 

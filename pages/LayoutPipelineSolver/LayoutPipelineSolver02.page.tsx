@@ -11,6 +11,8 @@ export default function LayoutPipelineSolver02Page() {
     { useReadableIds: true },
   )
 
+  console.log(problem)
+
   return (
     <LayoutPipelineDebugger
       problem={problem}

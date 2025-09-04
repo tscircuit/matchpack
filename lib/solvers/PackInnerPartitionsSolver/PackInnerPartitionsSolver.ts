@@ -6,7 +6,7 @@
 
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
-import type { InputProblem } from "../../types/InputProblem"
+import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
@@ -23,9 +23,16 @@ export class PackInnerPartitionsSolver extends BaseSolver {
   activeSolver: SingleInnerPartitionPackingSolver | null = null
   currentPartitionIndex = 0
 
-  constructor(partitions: InputProblem[]) {
+  declare activeSubSolver: SingleInnerPartitionPackingSolver | null
+  pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+
+  constructor(params: {
+    partitions: InputProblem[]
+    pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+  }) {
     super()
-    this.partitions = partitions
+    this.partitions = params.partitions
+    this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
   }
 
   override _step() {
@@ -38,9 +45,10 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     // If no active solver, create one for the current partition
     if (!this.activeSolver) {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
-      this.activeSolver = new SingleInnerPartitionPackingSolver(
-        currentPartition,
-      )
+      this.activeSolver = new SingleInnerPartitionPackingSolver({
+        partitionInputProblem: currentPartition,
+        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+      })
       this.activeSubSolver = this.activeSolver
     }
 

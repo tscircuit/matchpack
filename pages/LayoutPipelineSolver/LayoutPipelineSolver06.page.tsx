@@ -869,6 +869,7 @@ export const problem: InputProblem = {
     "C11.2-GND": true,
   },
   chipGap: 0.6,
+  decouplingCapsGap: 0.2,
   partitionGap: 1.2,
 }
 
