@@ -9,14 +9,23 @@ import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
+import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
   partitions: InputProblem[] = []
+  decouplingCapGroups?: DecouplingCapGroup[]
 
-  constructor(inputProblem: InputProblem) {
+  constructor({
+    inputProblem,
+    decouplingCapGroups,
+  }: {
+    inputProblem: InputProblem
+    decouplingCapGroups?: DecouplingCapGroup[]
+  }) {
     super()
     this.inputProblem = inputProblem
+    this.decouplingCapGroups = decouplingCapGroups
   }
 
   override _step() {
@@ -25,20 +34,43 @@ export class ChipPartitionsSolver extends BaseSolver {
   }
 
   /**
-   * Creates partitions by finding connected components through strong pin connections
+   * Creates partitions by:
+   * - Separating each decoupling capacitor group into its own partition (caps only, excluding the main chip)
+   * - Partitioning remaining chips by connected components through strong pin connections
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
 
-    // Build adjacency graph based on strong pin connections
+    // 1) Build decoupling-cap-only partitions (exclude the main chip for each group)
+    const decapChipIdSet = new Set<ChipId>()
+    const decapGroupPartitions: ChipId[][] = []
+
+    if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {
+      for (const group of this.decouplingCapGroups) {
+        const capsOnly: ChipId[] = []
+        for (const capId of group.decouplingCapChipIds) {
+          if (inputProblem.chipMap[capId]) {
+            capsOnly.push(capId)
+            decapChipIdSet.add(capId)
+          }
+        }
+        // Only add a partition if there are caps present in the inputProblem
+        if (capsOnly.length > 0) {
+          decapGroupPartitions.push(capsOnly)
+        }
+      }
+    }
+
+    // 2) Build adjacency graph for NON-decap chips based on strong pin connections
+    const nonDecapChipIds = chipIds.filter((id) => !decapChipIdSet.has(id))
     const adjacencyMap = new Map<ChipId, Set<ChipId>>()
 
-    // Initialize adjacency map
-    for (const chipId of chipIds) {
+    // Initialize adjacency map for non-decap chips
+    for (const chipId of nonDecapChipIds) {
       adjacencyMap.set(chipId, new Set())
     }
 
-    // Add edges based on strong pin connections
+    // Add edges based on strong pin connections, but exclude any edges touching decap chips
     for (const [connKey, isConnected] of Object.entries(
       inputProblem.pinStrongConnMap,
     )) {
@@ -46,31 +78,41 @@ export class ChipPartitionsSolver extends BaseSolver {
 
       const [pin1Id, pin2Id] = connKey.split("-")
 
-      // Find which chips/groups own these pins
+      // Find which chips own these pins
       const owner1 = this.findPinOwner(pin1Id!, inputProblem)
       const owner2 = this.findPinOwner(pin2Id!, inputProblem)
 
-      if (owner1 && owner2 && owner1 !== owner2) {
+      // Only connect non-decap chips
+      if (
+        owner1 &&
+        owner2 &&
+        owner1 !== owner2 &&
+        !decapChipIdSet.has(owner1) &&
+        !decapChipIdSet.has(owner2)
+      ) {
         adjacencyMap.get(owner1)!.add(owner2)
         adjacencyMap.get(owner2)!.add(owner1)
       }
     }
 
-    // Find connected components using DFS
+    // 3) Find connected components among non-decap chips using DFS
     const visited = new Set<ChipId>()
-    const partitions: ChipId[][] = []
+    const nonDecapPartitions: ChipId[][] = []
 
-    for (const componentId of chipIds) {
+    for (const componentId of nonDecapChipIds) {
       if (!visited.has(componentId)) {
         const partition = this.dfs(componentId, adjacencyMap, visited)
         if (partition.length > 0) {
-          partitions.push(partition)
+          nonDecapPartitions.push(partition)
         }
       }
     }
 
-    // Convert partitions to InputProblem instances
-    return partitions.map((partition) =>
+    // 4) Combine decap-only partitions with the non-decap partitions
+    const allPartitions = [...decapGroupPartitions, ...nonDecapPartitions]
+
+    // 5) Convert partitions to InputProblem instances
+    return allPartitions.map((partition) =>
       this.createInputProblemFromPartition(partition, inputProblem),
     )
   }

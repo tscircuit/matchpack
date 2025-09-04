@@ -18,9 +18,10 @@ import { getColorFromString } from "lib/utils/getColorFromString"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
-interface DecouplingCapGroup {
+export interface DecouplingCapGroup {
   decouplingCapGroupId: string
   mainChipId: ChipId
+  netPair: [NetId, NetId]
   decouplingCapChipIds: ChipId[]
 }
 
@@ -37,8 +38,8 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   outputDecouplingCapGroups: DecouplingCapGroup[] = []
 
-  /** Quick lookup of groups by main chip for accumulation */
-  private groupsByMainChipId = new Map<ChipId, DecouplingCapGroup>()
+  /** Quick lookup of groups by main chip and net pair for accumulation */
+  private groupsByMainChipId = new Map<string, DecouplingCapGroup>()
 
   constructor(inputProblem: InputProblem) {
     super()
@@ -112,16 +113,49 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return best ? best.id : null
   }
 
-  /** Adds a decoupling capacitor to the group for the given main chip */
-  private addToGroup(mainChipId: ChipId, capChipId: ChipId) {
-    let group = this.groupsByMainChipId.get(mainChipId)
+  /** Get all net IDs connected to a pin */
+  private getNetIdsForPin(pinId: PinId): Set<NetId> {
+    const nets = new Set<NetId>()
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.netConnMap,
+    )) {
+      if (!connected) continue
+      const [p, n] = connKey.split("-") as [PinId, NetId]
+      if (p === pinId) nets.add(n)
+    }
+    return nets
+  }
+
+  /** Get a normalized, sorted pair of net IDs connected across the two pins of a capacitor chip */
+  private getNormalizedNetPair(capChip: Chip): [NetId, NetId] | null {
+    if (capChip.pins.length !== 2) return null
+    const nets = new Set<NetId>()
+    for (const pinId of capChip.pins) {
+      const pinNets = this.getNetIdsForPin(pinId)
+      for (const n of pinNets) nets.add(n)
+    }
+    if (nets.size !== 2) return null
+    const [a, b] = Array.from(nets).sort()
+    return [a as NetId, b as NetId]
+  }
+
+  /** Adds a decoupling capacitor to the group for the given main chip and net pair */
+  private addToGroup(
+    mainChipId: ChipId,
+    netPair: [NetId, NetId],
+    capChipId: ChipId,
+  ) {
+    const [n1, n2] = netPair
+    const groupKey = `${mainChipId}__${n1}__${n2}`
+    let group = this.groupsByMainChipId.get(groupKey)
     if (!group) {
       group = {
-        decouplingCapGroupId: `decap_group_${mainChipId}`,
+        decouplingCapGroupId: `decap_group_${mainChipId}__${n1}__${n2}`,
         mainChipId,
+        netPair: [n1, n2],
         decouplingCapChipIds: [],
       }
-      this.groupsByMainChipId.set(mainChipId, group)
+      this.groupsByMainChipId.set(groupKey, group)
       this.outputDecouplingCapGroups.push(group)
     }
     if (!group.decouplingCapChipIds.includes(capChipId)) {
@@ -129,25 +163,31 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     }
   }
 
+  lastChip: Chip | null = null
   override _step() {
     const currentChip = this.queuedChips.shift()
+    this.lastChip = currentChip ?? null
     if (!currentChip) {
       this.solved = true
       return
     }
 
     // Apply identification criteria
-    const candidate =
+    const isDecouplingCap =
       this.isTwoPinRestrictedRotation(currentChip) &&
       this.pinsOnOppositeYSides(currentChip)
 
-    if (!candidate) return
+    if (!isDecouplingCap) return
 
     // Require at least one strong connection to another chip (main chip)
     const mainChipId = this.findMainChipIdForCap(currentChip)
     if (!mainChipId) return
 
-    this.addToGroup(mainChipId, currentChip.chipId)
+    // Require a well-defined pair of nets across the two pins
+    const netPair = this.getNormalizedNetPair(currentChip)
+    if (!netPair) return
+
+    this.addToGroup(mainChipId, netPair, currentChip.chipId)
   }
 
   override visualize(): GraphicsObject {
@@ -158,44 +198,26 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     )
 
     // Colorize chips that are part of decoupling groups
-    const chipRoleMap = new Map<
-      ChipId,
-      { type: "main" | "decap"; color: string }
-    >()
+    const chipDecapGroupMap = new Map<ChipId, DecouplingCapGroup>()
     for (const group of this.outputDecouplingCapGroups) {
-      const color = getColorFromString(group.mainChipId, 0.8)
-      chipRoleMap.set(group.mainChipId, { type: "main", color })
+      chipDecapGroupMap.set(group.mainChipId, group)
       for (const capChipId of group.decouplingCapChipIds) {
-        chipRoleMap.set(capChipId, { type: "decap", color })
+        chipDecapGroupMap.set(capChipId, group)
       }
     }
 
     for (const rect of graphics.rects || []) {
-      rect.fill = "rgba(0,0,0,0.5)"
+      if (rect.label !== this.lastChip?.chipId) {
+        rect.fill = "rgba(0,0,0,0.5)"
+      }
     }
 
     for (const rect of graphics.rects || []) {
       const chipId = (rect as any).label as ChipId
-      const role = chipRoleMap.get(chipId)
-      if (!role) continue
-      const alpha = role.type === "main" ? 0.18 : 0.36
-      rect.label = `${rect.label}\n${role.type}`
-      rect.fill = getColorFromString(role.color, alpha)
-    }
-
-    // Optionally annotate with a small text tag above decap chips
-    if (!graphics.texts) (graphics as any).texts = []
-    for (const rect of graphics.rects || []) {
-      const chipId = (rect as any).label as ChipId
-      const role = chipRoleMap.get(chipId)
-      if (!role) continue
-      ;(graphics.texts as any[]).push({
-        x: rect.center.x,
-        y: rect.center.y - (rect.height || 0) / 2,
-        text: role.type === "main" ? "MAIN" : "DECAP",
-        fillColor: role.type === "main" ? role.color : "rgba(0,0,0,0.6)",
-        fontSize: 8,
-      })
+      const group = chipDecapGroupMap.get(chipId)
+      if (!group) continue
+      rect.label = `${rect.label}\n${group.decouplingCapGroupId}`
+      rect.fill = getColorFromString(group.decouplingCapGroupId, 0.8)
     }
 
     return graphics

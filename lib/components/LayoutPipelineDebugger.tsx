@@ -126,6 +126,51 @@ export const LayoutPipelineDebugger = ({
           ])
           incRunCount()
         }}
+        onNextStage={() => {
+          if (solver.solved || solver.failed) return
+
+          // Stop animation if running
+          stopAnimation()
+
+          // Capture current stage info
+          const currentStageIndex = (solver as any).currentPipelineStepIndex
+          const currentSubSolver = solver.activeSubSolver
+
+          const newVisualizations: Array<{ iteration: number; graphics: any }> =
+            []
+
+          // Keep stepping until stage changes
+          while (!solver.solved && !solver.failed) {
+            solver.step()
+            const graphics = solver.visualize()
+            newVisualizations.push({ iteration: solver.iterations, graphics })
+
+            // Check if we've moved to a new stage
+            if (
+              (solver as any).currentPipelineStepIndex !== currentStageIndex ||
+              solver.activeSubSolver !== currentSubSolver
+            ) {
+              break
+            }
+          }
+
+          // Update visualization history with all new visualizations
+          setVisualizationHistory((prev) => {
+            const updatedHistory = [...prev]
+            for (const newViz of newVisualizations) {
+              const existingIndex = updatedHistory.findIndex(
+                (viz) => viz.iteration === newViz.iteration,
+              )
+              if (existingIndex >= 0) {
+                updatedHistory[existingIndex] = newViz
+              } else {
+                updatedHistory.push(newViz)
+              }
+            }
+            return updatedHistory.sort((a, b) => a.iteration - b.iteration)
+          })
+          incRunCount()
+        }}
         onSolve={() => {
           // Stop animation if running
           stopAnimation()

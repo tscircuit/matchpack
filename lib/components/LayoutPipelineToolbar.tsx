@@ -7,6 +7,7 @@ export const LayoutPipelineToolbar = (props: {
   onSolve: () => void
   onAnimate: () => void
   onStopAnimate: () => void
+  onNextStage: () => void
   isAnimating: boolean
   onChangeTab: (tab: "pipeline" | "circuit") => void
   solverHierarchy: BaseSolver[]
@@ -17,6 +18,7 @@ export const LayoutPipelineToolbar = (props: {
     <div className="p-2">
       <div className="flex gap-2 mb-2">
         <button onClick={props.onStep}>Step</button>
+        <button onClick={props.onNextStage}>Next Stage</button>
         <button onClick={props.onSolve}>Solve</button>
         <button
           onClick={props.isAnimating ? props.onStopAnimate : props.onAnimate}
