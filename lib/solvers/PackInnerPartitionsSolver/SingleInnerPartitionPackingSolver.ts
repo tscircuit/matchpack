@@ -91,8 +91,9 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     } else {
       // Fall back to filtered mapping (weak + strong)
-      pinToNetworkMap =
-        createFilteredNetworkMapping(this.inputProblem).pinToNetworkMap
+      pinToNetworkMap = createFilteredNetworkMapping(
+        this.inputProblem,
+      ).pinToNetworkMap
     }
 
     // Create pack components for each chip
