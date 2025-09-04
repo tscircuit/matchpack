@@ -37,3 +37,4 @@ debug-output
 debug-outputs
 cosmos-export
 .vercel
+.aider*
