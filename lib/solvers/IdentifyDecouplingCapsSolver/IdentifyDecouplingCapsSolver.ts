@@ -18,7 +18,7 @@ import { getColorFromString } from "lib/utils/getColorFromString"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
-interface DecouplingCapGroup {
+export interface DecouplingCapGroup {
   decouplingCapGroupId: string
   mainChipId: ChipId
   decouplingCapChipIds: ChipId[]

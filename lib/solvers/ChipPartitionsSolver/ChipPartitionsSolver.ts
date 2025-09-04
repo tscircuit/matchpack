@@ -9,12 +9,19 @@ import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
+import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
   partitions: InputProblem[] = []
 
-  constructor(inputProblem: InputProblem) {
+  constructor({
+    inputProblem,
+    decouplingCapGroups,
+  }: {
+    inputProblem: InputProblem
+    decouplingCapGroups?: DecouplingCapGroup[]
+  }) {
     super()
     this.inputProblem = inputProblem
   }
