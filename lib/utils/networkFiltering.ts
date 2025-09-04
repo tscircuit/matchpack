@@ -119,24 +119,15 @@ export function createFilteredNetworkMapping(
     }
   }
 
-  // Process strong connections - these form their own networks
+  // Process strong connections - these override net connections and form their own networks
   for (const [connKey, connected] of Object.entries(
     inputProblem.pinStrongConnMap,
   )) {
     if (!connected) continue
     const pins = connKey.split("-")
     if (pins.length === 2 && pins[0] && pins[1]) {
-      // If either pin already has a net connection, use that network for both
-      const existingNet =
-        pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
-      if (existingNet) {
-        pinToNetworkMap.set(pins[0], existingNet)
-        pinToNetworkMap.set(pins[1], existingNet)
-      } else {
-        // Otherwise, use the connection itself as the network
-        pinToNetworkMap.set(pins[0], connKey)
-        pinToNetworkMap.set(pins[1], connKey)
-      }
+      pinToNetworkMap.set(pins[0], connKey)
+      pinToNetworkMap.set(pins[1], connKey)
     }
   }
 
