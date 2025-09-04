@@ -1,10 +1,18 @@
 import { pack } from "calculate-packing"
 import type { InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
+import { hashInputProblem } from "./hashInputProblem"
+
+const cachedProblems: Map<string, OutputLayout> = new Map()
 
 export function doBasicInputProblemLayout(
   inputProblem: InputProblem,
 ): OutputLayout {
+  const problemHash = hashInputProblem(inputProblem)
+  if (cachedProblems.has(problemHash)) {
+    return structuredClone(cachedProblems.get(problemHash)!)
+  }
+
   // Convert InputProblem to calculate-packing format
   const components = Object.entries(inputProblem.chipMap).map(
     ([chipId, chip]) => {
@@ -78,8 +86,11 @@ export function doBasicInputProblemLayout(
     }
   }
 
-  return {
+  const outputLayout: OutputLayout = {
     chipPlacements,
     groupPlacements: {}, // No groups for now
   }
+  cachedProblems.set(problemHash, outputLayout)
+
+  return structuredClone(outputLayout)
 }

@@ -1,0 +1,213 @@
+/**
+ * Identifies decoupling capacitor groups based on specific criteria:
+ * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
+ * 2. One pin indirectly connected to net with "y+" restriction, one to "y-" restriction
+ * 3. At least one pin directly connected to another chip
+ */
+
+import type { GraphicsObject } from "graphics-debug"
+import { BaseSolver } from "../BaseSolver"
+import type {
+  ChipId,
+  InputProblem,
+  NetId,
+  PinId,
+  Chip,
+} from "lib/types/InputProblem"
+import { getColorFromString } from "lib/utils/getColorFromString"
+import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+
+interface DecouplingCapGroup {
+  decouplingCapGroupId: string
+  mainChipId: ChipId
+  decouplingCapChipIds: ChipId[]
+}
+
+/**
+ * Identify decoupling capacitor groups based on specific criteria:
+ * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
+ * 2. One pin indirectly connected to net with "y+" restriction, one to "y-" restriction
+ * 3. At least one pin directly connected to a chip (the main chip, typically a microcontroller)
+ */
+export class IdentifyDecouplingCapsSolver extends BaseSolver {
+  inputProblem: InputProblem
+
+  queuedChips: Chip[]
+
+  outputDecouplingCapGroups: DecouplingCapGroup[] = []
+
+  /** Quick lookup of groups by main chip for accumulation */
+  private groupsByMainChipId = new Map<ChipId, DecouplingCapGroup>()
+
+  constructor(inputProblem: InputProblem) {
+    super()
+    this.inputProblem = inputProblem
+    this.queuedChips = Object.values(inputProblem.chipMap)
+  }
+
+  /** Determine if chip is a 2-pin component with restricted rotation */
+  private isTwoPinRestrictedRotation(chip: Chip): boolean {
+    if (chip.pins.length !== 2) return false
+
+    // Must be restricted to 0/180 or a single fixed orientation
+    if (!chip.availableRotations) return false
+    const allowed = new Set<0 | 180>([0, 180])
+    return (
+      chip.availableRotations.length > 0 &&
+      chip.availableRotations.every((r) => allowed.has(r as 0 | 180))
+    )
+  }
+
+  /** Check that the two pins are on opposite Y sides (y+ and y-) */
+  private pinsOnOppositeYSides(chip: Chip): boolean {
+    if (chip.pins.length !== 2) return false
+    const [p1, p2] = chip.pins
+    const cp1 = this.inputProblem.chipPinMap[p1!]
+    const cp2 = this.inputProblem.chipPinMap[p2!]
+    if (!cp1 || !cp2) return false
+    const sides = new Set([cp1.side, cp2.side])
+    return sides.has("y+") && sides.has("y-")
+  }
+
+  /** Get chips strongly connected (direct pin-to-pin) to this pin */
+  private getStronglyConnectedNeighborChips(pinId: PinId): Set<ChipId> {
+    const neighbors = new Set<ChipId>()
+    // TODO don't use string parsing
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      const [a, b] = connKey.split("-") as [PinId, PinId]
+      if (a === pinId) {
+        const otherChipId = b.split(".")[0]!
+        neighbors.add(otherChipId)
+      } else if (b === pinId) {
+        const otherChipId = a.split(".")[0]!
+        neighbors.add(otherChipId)
+      }
+    }
+    return neighbors
+  }
+
+  /** Find the main chip id for a decoupling capacitor candidate */
+  private findMainChipIdForCap(capChip: Chip): ChipId | null {
+    // Aggregate strong neighbors from both pins
+    const strongNeighbors = new Map<ChipId, number>()
+    for (const pinId of capChip.pins) {
+      const neighbors = this.getStronglyConnectedNeighborChips(pinId)
+      for (const n of neighbors) {
+        if (n === capChip.chipId) continue
+        strongNeighbors.set(n, (strongNeighbors.get(n) || 0) + 1)
+      }
+    }
+    if (strongNeighbors.size === 0) return null
+
+    // Choose the neighbor with the most connections (tie-breaker: lexicographic)
+    let best: { id: ChipId; score: number } | null = null
+    for (const [id, score] of strongNeighbors.entries()) {
+      if (!best || score > best.score || (score === best.score && id < best.id))
+        best = { id, score }
+    }
+    return best ? best.id : null
+  }
+
+  /** Adds a decoupling capacitor to the group for the given main chip */
+  private addToGroup(mainChipId: ChipId, capChipId: ChipId) {
+    let group = this.groupsByMainChipId.get(mainChipId)
+    if (!group) {
+      group = {
+        decouplingCapGroupId: `decap_group_${mainChipId}`,
+        mainChipId,
+        decouplingCapChipIds: [],
+      }
+      this.groupsByMainChipId.set(mainChipId, group)
+      this.outputDecouplingCapGroups.push(group)
+    }
+    if (!group.decouplingCapChipIds.includes(capChipId)) {
+      group.decouplingCapChipIds.push(capChipId)
+    }
+  }
+
+  override _step() {
+    const currentChip = this.queuedChips.shift()
+    if (!currentChip) {
+      this.solved = true
+      return
+    }
+
+    // Apply identification criteria
+    const candidate =
+      this.isTwoPinRestrictedRotation(currentChip) &&
+      this.pinsOnOppositeYSides(currentChip)
+
+    if (!candidate) return
+
+    // Require at least one strong connection to another chip (main chip)
+    const mainChipId = this.findMainChipIdForCap(currentChip)
+    if (!mainChipId) return
+
+    this.addToGroup(mainChipId, currentChip.chipId)
+  }
+
+  override visualize(): GraphicsObject {
+    const basicLayout = doBasicInputProblemLayout(this.inputProblem)
+    const graphics: GraphicsObject = visualizeInputProblem(
+      this.inputProblem,
+      basicLayout,
+    )
+
+    // Colorize chips that are part of decoupling groups
+    const chipRoleMap = new Map<
+      ChipId,
+      { type: "main" | "decap"; color: string }
+    >()
+    for (const group of this.outputDecouplingCapGroups) {
+      const color = getColorFromString(group.mainChipId, 0.8)
+      chipRoleMap.set(group.mainChipId, { type: "main", color })
+      for (const capChipId of group.decouplingCapChipIds) {
+        chipRoleMap.set(capChipId, { type: "decap", color })
+      }
+    }
+
+    for (const rect of graphics.rects || []) {
+      rect.fill = "rgba(0,0,0,0.5)"
+    }
+
+    for (const rect of graphics.rects || []) {
+      const chipId = (rect as any).label as ChipId
+      const role = chipRoleMap.get(chipId)
+      if (!role) continue
+      const alpha = role.type === "main" ? 0.18 : 0.36
+      rect.label = `${rect.label}\n${role.type}`
+      rect.fill = getColorFromString(role.color, alpha)
+    }
+
+    // Optionally annotate with a small text tag above decap chips
+    if (!graphics.texts) (graphics as any).texts = []
+    for (const rect of graphics.rects || []) {
+      const chipId = (rect as any).label as ChipId
+      const role = chipRoleMap.get(chipId)
+      if (!role) continue
+      ;(graphics.texts as any[]).push({
+        x: rect.center.x,
+        y: rect.center.y - (rect.height || 0) / 2,
+        text: role.type === "main" ? "MAIN" : "DECAP",
+        fillColor: role.type === "main" ? role.color : "rgba(0,0,0,0.6)",
+        fontSize: 8,
+      })
+    }
+
+    return graphics
+  }
+
+  override getConstructorParams(): [InputProblem] {
+    return [this.inputProblem]
+  }
+
+  computeProgress(): number {
+    const total = Object.keys(this.inputProblem.chipMap).length || 1
+    const processed = total - this.queuedChips.length
+    return Math.min(1, Math.max(0, processed / total))
+  }
+}

@@ -6,6 +6,7 @@
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
+import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import {
   PackInnerPartitionsSolver,
   type PackedPartition,
@@ -47,6 +48,7 @@ function definePipelineStep<
 }
 
 export class LayoutPipelineSolver extends BaseSolver {
+  identifyDecouplingCapsSolver?: IdentifyDecouplingCapsSolver
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
@@ -61,6 +63,16 @@ export class LayoutPipelineSolver extends BaseSolver {
   packedPartitions?: PackedPartition[]
 
   pipelineDef = [
+    definePipelineStep(
+      "identifyDecouplingCapsSolver",
+      IdentifyDecouplingCapsSolver,
+      () => [this.inputProblem],
+      {
+        onSolved: (_layoutSolver) => {
+          // Decoupling cap groups are now identified and available for subsequent phases
+        },
+      },
+    ),
     definePipelineStep(
       "chipPartitionsSolver",
       ChipPartitionsSolver,
@@ -165,6 +177,8 @@ export class LayoutPipelineSolver extends BaseSolver {
       return this.partitionPackingSolver.visualize()
     }
 
+    const identifyDecouplingCapsViz =
+      this.identifyDecouplingCapsSolver?.visualize()
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
@@ -175,6 +189,7 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     const visualizations = [
       inputViz,
+      identifyDecouplingCapsViz,
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
@@ -229,6 +244,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
     if (this.chipPartitionsSolver?.solved) {
       return this.chipPartitionsSolver.visualize()
+    }
+    if (this.identifyDecouplingCapsSolver?.solved) {
+      return this.identifyDecouplingCapsSolver.visualize()
     }
 
     return super.preview()

@@ -11,6 +11,7 @@ export type Chip = {
   chipId: ChipId
   pins: PinId[]
   size: Point
+  isDecouplingCap?: boolean
   availableRotations?: Array<0 | 90 | 180 | 270>
 }
 export type Group = {
@@ -35,4 +36,6 @@ export type InputProblem = {
   chipGap: number
   /** The minimum gap between two partitions */
   partitionGap: number
+
+  inferDecouplingCaps?: boolean
 }
