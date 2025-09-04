@@ -3,7 +3,7 @@
  * opposite-side weak connections from interfering with strong connections.
  */
 
-import type { InputProblem } from "../types/InputProblem"
+import type { ChipPin, InputProblem, PinId } from "../types/InputProblem"
 
 export interface NetworkFilteringResult {
   /** Map from pinId to networkId, with filtered networks marked as disconnected */
@@ -20,9 +20,11 @@ export interface NetworkFilteringResult {
  * a weak connection to U1's x- side, the weak connection will be filtered out
  * to prevent it from influencing the packing algorithm.
  */
-export function createFilteredNetworkMapping(
-  inputProblem: InputProblem,
-): NetworkFilteringResult {
+export function createFilteredNetworkMapping(params: {
+  inputProblem: InputProblem
+  pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+}): NetworkFilteringResult {
+  const { inputProblem, pinIdToStronglyConnectedPins } = params
   const pinToNetworkMap = new Map<string, string>()
   const filteredPins = new Set<string>()
 

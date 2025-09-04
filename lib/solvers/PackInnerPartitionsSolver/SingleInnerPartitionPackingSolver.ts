@@ -12,6 +12,7 @@ import type {
   PinId,
   ChipId,
   NetId,
+  ChipPin,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
@@ -24,10 +25,15 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   inputProblem: InputProblem
   layout: OutputLayout | null = null
   declare activeSubSolver: PackSolver2 | null
+  pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
-  constructor(inputProblem: InputProblem) {
+  constructor(params: {
+    inputProblem: InputProblem
+    pinIdToDirectlyConnectedPins: Record<PinId, ChipPin[]>
+  }) {
     super()
-    this.inputProblem = inputProblem
+    this.inputProblem = params.inputProblem
+    this.pinIdToStronglyConnectedPins = params.pinIdToDirectlyConnectedPins
   }
 
   override _step() {
@@ -58,43 +64,11 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   private createPackInput(): PackInput {
-    // If any direct (strong) pin-to-pin connections exist in this partition,
-    // optimize placement using only those direct connections. Otherwise, fall
-    // back to filtered net-based connectivity.
-    const strongPairs = new Set<string>()
-    for (const [connKey, connected] of Object.entries(
-      this.inputProblem.pinStrongConnMap,
-    )) {
-      if (!connected) continue
-      const [a, b] = connKey.split("-")
-      if (!a || !b) continue
-      const key = a < b ? `${a}-${b}` : `${b}-${a}`
-      strongPairs.add(key)
-    }
-    const hasStrongConnections = strongPairs.size > 0
-
-    let pinToNetworkMap: Map<string, string>
-    if (hasStrongConnections) {
-      pinToNetworkMap = new Map<string, string>()
-      // Map both pins in each strong pair to the same normalized network id
-      for (const key of strongPairs) {
-        const [a, b] = key.split("-")
-        const netId = key
-        if (a) pinToNetworkMap.set(a, netId)
-        if (b) pinToNetworkMap.set(b, netId)
-      }
-      // Ensure all remaining pins are isolated so they don't influence placement
-      for (const pinId of Object.keys(this.inputProblem.chipPinMap)) {
-        if (!pinToNetworkMap.has(pinId)) {
-          pinToNetworkMap.set(pinId, `${pinId}_isolated`)
-        }
-      }
-    } else {
-      // Fall back to filtered mapping (weak + strong)
-      pinToNetworkMap = createFilteredNetworkMapping(
-        this.inputProblem,
-      ).pinToNetworkMap
-    }
+    // Fall back to filtered mapping (weak + strong)
+    const pinToNetworkMap = createFilteredNetworkMapping({
+      inputProblem: this.inputProblem,
+      pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+    }).pinToNetworkMap
 
     // Create pack components for each chip
     const packComponents = Object.entries(this.inputProblem.chipMap).map(

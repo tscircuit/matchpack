@@ -12,10 +12,11 @@ import {
   type PackedPartition,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
-import type { InputProblem } from "lib/types/InputProblem"
+import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
+import { getPinIdToDirectlyConnectedPinsObj } from "./getPinIdToDirectlyConnectedPinsObj"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -58,6 +59,9 @@ export class LayoutPipelineSolver extends BaseSolver {
   timeSpentOnPhase: Record<string, number>
   firstIterationOfPhase: Record<string, number>
 
+  // Computed utility objects
+  pinIdToDirectlyConnectedPins: Record<PinId, ChipPin[]>
+
   inputProblem: InputProblem
   chipPartitions?: ChipPartitionsSolver["partitions"]
   packedPartitions?: PackedPartition[]
@@ -92,7 +96,12 @@ export class LayoutPipelineSolver extends BaseSolver {
     definePipelineStep(
       "packInnerPartitionsSolver",
       PackInnerPartitionsSolver,
-      () => [this.chipPartitions || [this.inputProblem]],
+      () => [
+        {
+          partitions: this.chipPartitions!,
+          pinIdToDirectlyConnectedPins: this.pinIdToDirectlyConnectedPins,
+        },
+      ],
       {
         onSolved: (_solver) => {
           this.packedPartitions =
@@ -125,6 +134,8 @@ export class LayoutPipelineSolver extends BaseSolver {
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}
     this.firstIterationOfPhase = {}
+    this.pinIdToDirectlyConnectedPins =
+      getPinIdToDirectlyConnectedPinsObj(inputProblem)
   }
 
   currentPipelineStepIndex = 0
