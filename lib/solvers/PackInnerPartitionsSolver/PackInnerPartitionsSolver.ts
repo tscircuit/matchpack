@@ -24,15 +24,15 @@ export class PackInnerPartitionsSolver extends BaseSolver {
   currentPartitionIndex = 0
 
   declare activeSubSolver: SingleInnerPartitionPackingSolver | null
-  pinIdToDirectlyConnectedPins: Record<PinId, ChipPin[]>
+  pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
     partitions: InputProblem[]
-    pinIdToDirectlyConnectedPins: Record<PinId, ChipPin[]>
+    pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
   }) {
     super()
     this.partitions = params.partitions
-    this.pinIdToDirectlyConnectedPins = params.pinIdToDirectlyConnectedPins
+    this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
   }
 
   override _step() {
@@ -47,7 +47,7 @@ export class PackInnerPartitionsSolver extends BaseSolver {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
       this.activeSolver = new SingleInnerPartitionPackingSolver({
         inputProblem: currentPartition,
-        pinIdToDirectlyConnectedPins: this.pinIdToDirectlyConnectedPins,
+        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
       })
       this.activeSubSolver = this.activeSolver
     }

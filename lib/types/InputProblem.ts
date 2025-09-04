@@ -37,6 +37,8 @@ export type InputProblem = {
   /** The minimum gap between two partitions */
   partitionGap: number
 
+  decouplingCapsGap?: number
+
   inferDecouplingCaps?: boolean
 }
 

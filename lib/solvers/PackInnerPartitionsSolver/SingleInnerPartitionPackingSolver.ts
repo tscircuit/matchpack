@@ -29,11 +29,11 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
 
   constructor(params: {
     inputProblem: InputProblem
-    pinIdToDirectlyConnectedPins: Record<PinId, ChipPin[]>
+    pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
   }) {
     super()
     this.inputProblem = params.inputProblem
-    this.pinIdToStronglyConnectedPins = params.pinIdToDirectlyConnectedPins
+    this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
   }
 
   override _step() {

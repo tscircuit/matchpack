@@ -16,7 +16,7 @@ import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
-import { getPinIdToDirectlyConnectedPinsObj } from "./getPinIdToDirectlyConnectedPinsObj"
+import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -60,7 +60,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   firstIterationOfPhase: Record<string, number>
 
   // Computed utility objects
-  pinIdToDirectlyConnectedPins: Record<PinId, ChipPin[]>
+  pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   inputProblem: InputProblem
   chipPartitions?: ChipPartitionsSolver["partitions"]
@@ -99,7 +99,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       () => [
         {
           partitions: this.chipPartitions!,
-          pinIdToDirectlyConnectedPins: this.pinIdToDirectlyConnectedPins,
+          pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
         },
       ],
       {
@@ -134,8 +134,8 @@ export class LayoutPipelineSolver extends BaseSolver {
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}
     this.firstIterationOfPhase = {}
-    this.pinIdToDirectlyConnectedPins =
-      getPinIdToDirectlyConnectedPinsObj(inputProblem)
+    this.pinIdToStronglyConnectedPins =
+      getPinIdToStronglyConnectedPinsObj(inputProblem)
   }
 
   currentPipelineStepIndex = 0
