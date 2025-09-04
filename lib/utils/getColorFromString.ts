@@ -1,7 +1,10 @@
 export const getColorFromString = (string: string, alpha = 1) => {
   // pseudo random number from string
-  const hash = string.split("").reduce((acc, char) => {
-    return acc * 31 + char.charCodeAt(0)
-  }, 0)
-  return `hsl(${hash % 360}, 100%, 50%, ${alpha})`
+  let hash = 0
+  for (let i = 0; i < string.length; i++) {
+    const char = string.charCodeAt(i)
+    hash = (hash << 5) - hash + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return `hsl(${Math.abs(hash) % 360}, 70%, 50%, ${alpha})`
 }
