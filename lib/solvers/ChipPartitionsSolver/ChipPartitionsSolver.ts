@@ -14,6 +14,7 @@ import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/Identif
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
   partitions: InputProblem[] = []
+  decouplingCapGroups?: DecouplingCapGroup[]
 
   constructor({
     inputProblem,
@@ -24,6 +25,7 @@ export class ChipPartitionsSolver extends BaseSolver {
   }) {
     super()
     this.inputProblem = inputProblem
+    this.decouplingCapGroups = decouplingCapGroups
   }
 
   override _step() {

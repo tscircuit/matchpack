@@ -76,7 +76,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     definePipelineStep(
       "chipPartitionsSolver",
       ChipPartitionsSolver,
-      () => [this.inputProblem],
+      () => [{ inputProblem: this.inputProblem }],
       {
         onSolved: (_layoutSolver) => {
           this.chipPartitions = this.chipPartitionsSolver!.partitions

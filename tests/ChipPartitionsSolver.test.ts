@@ -39,7 +39,7 @@ test("ChipPartitionsSolver creates single partition for connected components", (
     partitionGap: 2,
   }
 
-  const solver = new ChipPartitionsSolver(inputProblem)
+  const solver = new ChipPartitionsSolver({ inputProblem })
   solver.solve()
 
   expect(solver.solved).toBe(true)
@@ -81,7 +81,7 @@ test("ChipPartitionsSolver creates separate partitions for disconnected componen
     partitionGap: 2,
   }
 
-  const solver = new ChipPartitionsSolver(inputProblem)
+  const solver = new ChipPartitionsSolver({ inputProblem })
   solver.solve()
 
   expect(solver.solved).toBe(true)
@@ -153,7 +153,7 @@ test("ChipPartitionsSolver handles complex connected graph", () => {
     partitionGap: 2,
   }
 
-  const solver = new ChipPartitionsSolver(inputProblem)
+  const solver = new ChipPartitionsSolver({ inputProblem })
   solver.solve()
 
   expect(solver.solved).toBe(true)
@@ -179,7 +179,7 @@ test("ChipPartitionsSolver visualization contains partition components", () => {
     partitionGap: 2,
   }
 
-  const solver = new ChipPartitionsSolver(inputProblem)
+  const solver = new ChipPartitionsSolver({ inputProblem })
   solver.solve()
 
   const visualization = solver.visualize()
