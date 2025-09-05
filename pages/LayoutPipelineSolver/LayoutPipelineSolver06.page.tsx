@@ -808,12 +808,15 @@ export const problem: InputProblem = {
   netMap: {
     V3_3: {
       netId: "V3_3",
+      isPositiveVoltageSource: true,
     },
     V1_1: {
       netId: "V1_1",
+      isPositiveVoltageSource: true,
     },
     GND: {
       netId: "GND",
+      isGround: true,
     },
   },
   pinStrongConnMap: {

@@ -132,14 +132,14 @@ export const problem: InputProblem = {
   netMap: {
     unnamedsubcircuit33_connectivity_net0: {
       netId: "unnamedsubcircuit33_connectivity_net0",
+      isPositiveVoltageSource: true,
     },
     unnamedsubcircuit33_connectivity_net1: {
       netId: "unnamedsubcircuit33_connectivity_net1",
-      isPositiveVoltageSource: true,
+      isGround: true,
     },
     unnamedsubcircuit33_connectivity_net5: {
       netId: "unnamedsubcircuit33_connectivity_net5",
-      isGround: true,
     },
   },
   pinStrongConnMap: {
