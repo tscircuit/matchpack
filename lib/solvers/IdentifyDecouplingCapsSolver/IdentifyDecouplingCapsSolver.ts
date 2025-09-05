@@ -28,7 +28,7 @@ export interface DecouplingCapGroup {
 /**
  * Identify decoupling capacitor groups based on specific criteria:
  * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
- * 2. One pin indirectly connected to net with "y+" restriction, one to "y-" restriction
+ * 2. One pin indirectly connected to net with isGround and one to isPositiveVoltageSource
  * 3. At least one pin directly connected to a chip (the main chip, typically a microcontroller)
  */
 export class IdentifyDecouplingCapsSolver extends BaseSolver {
@@ -186,6 +186,16 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     // Require a well-defined pair of nets across the two pins
     const netPair = this.getNormalizedNetPair(currentChip)
     if (!netPair) return
+
+    // Ensure the net pair corresponds to a true decoupling capacitor:
+    // one net must be ground and the other a positive voltage source
+    const [n1, n2] = netPair
+    const net1 = this.inputProblem.netMap[n1]
+    const net2 = this.inputProblem.netMap[n2]
+    const isDecouplingNetPair =
+      (net1?.isGround && net2?.isPositiveVoltageSource) ||
+      (net2?.isGround && net1?.isPositiveVoltageSource)
+    if (!isDecouplingNetPair) return
 
     this.addToGroup(mainChipId, netPair, currentChip.chipId)
   }

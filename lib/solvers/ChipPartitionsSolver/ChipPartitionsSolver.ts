@@ -57,12 +57,15 @@ export class ChipPartitionsSolver extends BaseSolver {
         for (const capId of group.decouplingCapChipIds) {
           if (inputProblem.chipMap[capId]) {
             capsOnly.push(capId)
-            decapChipIdSet.add(capId)
           }
         }
-        // Only add a partition if there are caps present in the inputProblem
-        if (capsOnly.length > 0) {
+        // Only add a partition if there are at least two caps present in the inputProblem
+        if (capsOnly.length >= 2) {
           decapGroupPartitions.push(capsOnly)
+          // Mark these caps as handled by decoupling-cap partitions
+          for (const capId of capsOnly) {
+            decapChipIdSet.add(capId)
+          }
         }
       }
     }
