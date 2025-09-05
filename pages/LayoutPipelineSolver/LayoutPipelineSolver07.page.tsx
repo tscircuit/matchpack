@@ -135,9 +135,11 @@ export const problem: InputProblem = {
     },
     unnamedsubcircuit33_connectivity_net1: {
       netId: "unnamedsubcircuit33_connectivity_net1",
+      isPositiveVoltageSource: true,
     },
     unnamedsubcircuit33_connectivity_net5: {
       netId: "unnamedsubcircuit33_connectivity_net5",
+      isGround: true,
     },
   },
   pinStrongConnMap: {
