@@ -192,7 +192,6 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const [n1, n2] = netPair
     const net1 = this.inputProblem.netMap[n1]
     const net2 = this.inputProblem.netMap[n2]
-    console.log(net1, net2)
     const isDecouplingNetPair =
       (net1?.isGround && net2?.isPositiveVoltageSource) ||
       (net2?.isGround && net1?.isPositiveVoltageSource)
