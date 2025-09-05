@@ -21,7 +21,11 @@ export type Group = {
   shape: Bounds[]
 }
 export type GroupPin = { pinId: PinId; offset: Point }
-export type Net = { netId: NetId }
+export type Net = {
+  netId: NetId
+  isGround?: boolean
+  isPositiveVoltageSource?: boolean
+}
 
 export type InputProblem = {
   chipMap: Record<ChipId, Chip>
