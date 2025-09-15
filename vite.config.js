@@ -7,7 +7,4 @@ export default defineConfig({
       lib: resolve(__dirname, "lib"),
     },
   },
-  server: {
-    https: true,
-  }
 })
