@@ -9,5 +9,5 @@ import { problem } from "../tests/DecouplingCapacitorPacking_data"
  * sorted by their connection to the main chip's pins.
  */
 export default function DecouplingCapacitorPackingPage() {
-    return <LayoutPipelineDebugger problem={problem} />
+  return <LayoutPipelineDebugger problem={problem} />
 }
