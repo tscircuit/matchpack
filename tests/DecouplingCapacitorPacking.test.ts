@@ -10,34 +10,20 @@ test("Reproduction Issue 15: Check decoupling capacitor layout", () => {
 
   const layout = solver.getOutputLayout()
 
-  console.log("Decoupling Cap Groups identified:")
   const decapSolver = solver.identifyDecouplingCapsSolver
-  if (decapSolver && decapSolver.outputDecouplingCapGroups) {
-    for (const group of decapSolver.outputDecouplingCapGroups) {
-      console.log(`Group: ${group.decouplingCapGroupId}`)
-      console.log(`  Main Chip: ${group.mainChipId}`)
-      console.log(`  Caps: ${group.decouplingCapChipIds.join(", ")}`)
+  expect(decapSolver).toBeDefined()
+  expect(decapSolver!.outputDecouplingCapGroups.length).toBeGreaterThan(0)
 
-      // Check positions of caps
-      const positions = group.decouplingCapChipIds.map((id) => {
-        const p = layout.chipPlacements[id]
-        if (!p) throw new Error(`Missing placement for ${id}`)
-        return { id, x: p.x, y: p.y, r: p.ccwRotationDegrees }
-      })
+  for (const group of decapSolver!.outputDecouplingCapGroups) {
+    // Verify all capacitors have placements
+    const positions = group.decouplingCapChipIds.map((id) => {
+      const p = layout.chipPlacements[id]
+      if (!p) throw new Error(`Missing placement for ${id}`)
+      return { id, x: p.x, y: p.y, r: p.ccwRotationDegrees }
+    })
 
-      console.log("  Positions:", JSON.stringify(positions, null, 2))
-
-      // Analyze for linearity (all same X or all same Y)
-      const xs = new Set(positions.map((p) => p.x.toFixed(3)))
-      const ys = new Set(positions.map((p) => p.y.toFixed(3)))
-
-      console.log(`  Unique X coords: ${xs.size}`)
-      console.log(`  Unique Y coords: ${ys.size}`)
-
-      // Ideally for a row, one of these should be small (ideally 1 if perfectly aligned, but maybe slightly offset due to packing)
-      // Check if they are neatly arranged.
-    }
-  } else {
-    console.log("No decoupling caps found!")
+    // Verify linear arrangement (all same Y for horizontal row)
+    const ys = new Set(positions.map((p) => p.y.toFixed(3)))
+    expect(ys.size).toBe(1) // All capacitors should have same Y coordinate
   }
 })
