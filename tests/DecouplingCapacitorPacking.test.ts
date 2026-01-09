@@ -21,6 +21,7 @@ test("Reproduction Issue 15: Check decoupling capacitor layout", () => {
       // Check positions of caps
       const positions = group.decouplingCapChipIds.map((id) => {
         const p = layout.chipPlacements[id]
+        if (!p) throw new Error(`Missing placement for ${id}`)
         return { id, x: p.x, y: p.y, r: p.ccwRotationDegrees }
       })
 
