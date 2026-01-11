@@ -38,6 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Check for specialized decoupling capacitor packing
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.packDecouplingCaps()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +68,111 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  private packDecouplingCaps() {
+    const caps = Object.values(this.partitionInputProblem.chipMap)
+    if (caps.length === 0) {
+      this.layout = { chipPlacements: {}, groupPlacements: {} }
+      return
+    }
+
+    // 1. Identify Main Chip and Sort Order
+    // We look for strong connections from the caps to any chip NOT in this partition.
+    // Since partitions separate chips, the "main chip" will be outside.
+    // However, we only have the partition input problem here.
+    // The Strong Connection Map still gives us connectivity info.
+
+    // Map capId -> relevant pin on main chip (we use the first one we find)
+    const capToMainPin: Record<string, { pinId: string }> = {}
+
+    for (const cap of caps) {
+      for (const pinId of cap.pins) {
+        // Check strong connections
+        const stronglyConnected = this.pinIdToStronglyConnectedPins[pinId]
+        if (stronglyConnected) {
+          for (const connectedPin of stronglyConnected) {
+            const connectedChipId = connectedPin.pinId.split(".")[0]
+            if (
+              connectedChipId &&
+              !this.partitionInputProblem.chipMap[connectedChipId]
+            ) {
+              // This connected chip is NOT in our partition, so it's likely the main chip
+              if (connectedPin?.pinId) {
+                capToMainPin[cap.chipId] = { pinId: connectedPin.pinId }
+                break
+              }
+            }
+          }
+        }
+        if (capToMainPin[cap.chipId]) break
+      }
+    }
+
+    // Sort caps based on the "main pin" string for now (lexicographical sort of pin ID)
+    // A better way would be if we had access to the main chip's pin coordinates,
+    // but we don't strictly have the main chip's layout here.
+    // However, typically pin names like U3.1, U3.2 follow a sequence.
+
+    // Let's refine the sorting to parse the pin number if possible (e.g. U3.1, U3.2)
+    const getPinNumber = (pinId: string): number => {
+      const parts = pinId.split(".")
+      if (parts.length > 1) {
+        const num = parseInt(parts.pop()!)
+        if (!isNaN(num)) return num
+      }
+      return 0
+    }
+
+    const sortedCaps = [...caps].sort((a, b) => {
+      const pinA = capToMainPin[a.chipId]?.pinId
+      const pinB = capToMainPin[b.chipId]?.pinId
+
+      if (pinA && pinB) {
+        // If different chips, sort by chip name first
+        const chipA = pinA.split(".")[0] || ""
+        const chipB = pinB.split(".")[0] || ""
+        if (chipA !== chipB) return chipA.localeCompare(chipB)
+
+        // Same chip, sort by pin number
+        return getPinNumber(pinA) - getPinNumber(pinB)
+      }
+      if (pinA) return -1
+      if (pinB) return 1
+      return a.chipId.localeCompare(b.chipId)
+    })
+
+    // 2. Linear Layout
+    const chipPlacements: Record<string, Placement> = {}
+    let currentX = 0
+    const gap = this.partitionInputProblem.decouplingCapsGap ?? 0.2
+
+    for (const cap of sortedCaps) {
+      // Assume simple horizontal row for now
+      // Center the chip at currentX
+      const width = cap.size.x // width usually for rotation 0
+
+      chipPlacements[cap.chipId] = {
+        x: currentX + width / 2,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+
+      currentX += width + gap
+    }
+
+    // Center the whole group around (0,0)
+    const totalWidth = currentX - gap
+    const offsetX = totalWidth / 2
+
+    for (const placement of Object.values(chipPlacements)) {
+      placement.x -= offsetX
+    }
+
+    this.layout = {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
