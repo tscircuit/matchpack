@@ -95,16 +95,20 @@ export const graphicsToSvg = (graphics: GraphicsObject): string => {
     if (line.points && line.points.length >= 2) {
       // @ts-ignore
       x1 = line.points[0].x
+      // @ts-ignore
       y1 = line.points[0].y
       // @ts-ignore
       x2 = line.points[1].x
+      // @ts-ignore
       y2 = line.points[1].y
     } else {
       // @ts-ignore
       x1 = line.x1
+      // @ts-ignore
       y1 = line.y1
       // @ts-ignore
       x2 = line.x2
+      // @ts-ignore
       y2 = line.y2
     }
 
