@@ -38,6 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // For decoupling cap partitions, use specialized linear layout
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -139,6 +146,111 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
     }
+  }
+
+  /**
+   * Creates a specialized linear layout for decoupling capacitors.
+   * Arranges them in a horizontal row with consistent spacing and orientation.
+   */
+  private createDecouplingCapsLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+
+    if (chips.length === 0) {
+      return { chipPlacements, groupPlacements: {} }
+    }
+
+    // Get the gap to use between capacitors
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    // Sort chips by ID for consistent ordering
+    const sortedChips = [...chips].sort((a, b) =>
+      a.chipId.localeCompare(b.chipId),
+    )
+
+    // Determine if chips should be laid out horizontally or vertically
+    // Prefer horizontal if chips are taller than they are wide
+    const firstChip = sortedChips[0]!
+    const isHorizontalLayout = firstChip.size.y > firstChip.size.x
+
+    // Calculate positions for each chip in a linear arrangement
+    let currentOffset = 0
+
+    for (const chip of sortedChips) {
+      // Use rotation 0 for consistent orientation
+      const rotation = 0
+
+      if (isHorizontalLayout) {
+        // Horizontal row layout
+        const x = currentOffset + chip.size.x / 2
+        const y = 0
+
+        chipPlacements[chip.chipId] = {
+          x,
+          y,
+          ccwRotationDegrees: rotation,
+        }
+
+        currentOffset += chip.size.x + gap
+      } else {
+        // Vertical column layout
+        const x = 0
+        const y = currentOffset + chip.size.y / 2
+
+        chipPlacements[chip.chipId] = {
+          x,
+          y,
+          ccwRotationDegrees: rotation,
+        }
+
+        currentOffset += chip.size.y + gap
+      }
+    }
+
+    // Center the entire layout around (0, 0)
+    const layoutBounds = this.calculateLayoutBounds(chipPlacements, chips)
+    const centerX = (layoutBounds.minX + layoutBounds.maxX) / 2
+    const centerY = (layoutBounds.minY + layoutBounds.maxY) / 2
+
+    for (const chipId of Object.keys(chipPlacements)) {
+      chipPlacements[chipId]!.x -= centerX
+      chipPlacements[chipId]!.y -= centerY
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  /**
+   * Calculate the bounding box of the current layout
+   */
+  private calculateLayoutBounds(
+    chipPlacements: Record<string, Placement>,
+    chips: any[],
+  ): { minX: number; maxX: number; minY: number; maxY: number } {
+    let minX = Number.POSITIVE_INFINITY
+    let maxX = Number.NEGATIVE_INFINITY
+    let minY = Number.POSITIVE_INFINITY
+    let maxY = Number.NEGATIVE_INFINITY
+
+    for (const chip of chips) {
+      const placement = chipPlacements[chip.chipId]
+      if (!placement) continue
+
+      const halfWidth = chip.size.x / 2
+      const halfHeight = chip.size.y / 2
+
+      minX = Math.min(minX, placement.x - halfWidth)
+      maxX = Math.max(maxX, placement.x + halfWidth)
+      minY = Math.min(minY, placement.y - halfHeight)
+      maxY = Math.max(maxY, placement.y + halfHeight)
+    }
+
+    return { minX, maxX, minY, maxY }
   }
 
   private createLayoutFromPackingResult(
