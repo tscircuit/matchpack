@@ -38,6 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // For decoupling cap partitions, use a linear row layout instead of PackSolver2
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +68,45 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  /**
+   * Arranges decoupling capacitors in a horizontal row centered at the origin.
+   * Chips are sorted by chipId for deterministic ordering and spaced evenly
+   * using decouplingCapsGap (or chipGap as fallback).
+   */
+  private createLinearDecouplingCapLayout(): OutputLayout {
+    const chips = Object.entries(this.partitionInputProblem.chipMap).sort(
+      ([a], [b]) => a.localeCompare(b),
+    )
+
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    // Calculate total width of the row
+    const totalChipWidth = chips.reduce((sum, [, chip]) => sum + chip.size.x, 0)
+    const totalGapWidth = Math.max(0, chips.length - 1) * gap
+    const totalWidth = totalChipWidth + totalGapWidth
+
+    // Place chips left-to-right, centered around x=0
+    const chipPlacements: Record<string, Placement> = {}
+    let currentX = -totalWidth / 2
+
+    for (const [chipId, chip] of chips) {
+      currentX += chip.size.x / 2
+      chipPlacements[chipId] = {
+        x: currentX,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += chip.size.x / 2 + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
