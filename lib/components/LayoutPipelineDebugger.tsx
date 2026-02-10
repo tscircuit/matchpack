@@ -1,12 +1,26 @@
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "lib/types/InputProblem"
-import { useMemo, useReducer, useState, useRef, useCallback } from "react"
+import {
+  useMemo,
+  useReducer,
+  useState,
+  useRef,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react"
 import { InteractiveGraphics } from "graphics-debug/react"
 import { LayoutPipelineToolbar } from "./LayoutPipelineToolbar"
 import { PipelineStatusTable } from "./PipelineStatusTable"
 import type { CircuitJson } from "circuit-json"
-import { SchematicViewer } from "@tscircuit/schematic-viewer"
 import type { BaseSolver } from "lib/solvers/BaseSolver"
+
+// Lazy load SchematicViewer to avoid loading circuit-to-svg unless needed
+const SchematicViewer = lazy(() =>
+  import("@tscircuit/schematic-viewer").then((mod) => ({
+    default: mod.SchematicViewer,
+  })),
+)
 
 const getSolverHierarchy = (solver: BaseSolver): BaseSolver[] => {
   const hierarchy = [solver]
@@ -312,10 +326,12 @@ export const LayoutPipelineDebugger = ({
       )}
       {currentTab === "circuit" &&
         (problemCircuitJson ? (
-          <SchematicViewer
-            containerStyle={{ height: "calc(100vh - 80px)" }}
-            circuitJson={problemCircuitJson}
-          />
+          <Suspense fallback={<div>Loading circuit viewer...</div>}>
+            <SchematicViewer
+              containerStyle={{ height: "calc(100vh - 80px)" }}
+              circuitJson={problemCircuitJson}
+            />
+          </Suspense>
         ) : (
           "No circuit json passed to debugger"
         ))}

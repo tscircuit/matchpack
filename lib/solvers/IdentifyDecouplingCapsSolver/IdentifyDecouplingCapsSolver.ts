@@ -113,15 +113,40 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return best ? best.id : null
   }
 
-  /** Get all net IDs connected to a pin */
+  /** Get all net IDs connected to a pin, including indirectly through strong pin connections */
   private getNetIdsForPin(pinId: PinId): Set<NetId> {
     const nets = new Set<NetId>()
-    for (const [connKey, connected] of Object.entries(
-      this.inputProblem.netConnMap,
-    )) {
-      if (!connected) continue
-      const [p, n] = connKey.split("-") as [PinId, NetId]
-      if (p === pinId) nets.add(n)
+    const checkedPins = new Set<PinId>()
+    const pinsToCheck = [pinId]
+
+    while (pinsToCheck.length > 0) {
+      const currentPin = pinsToCheck.pop()!
+      if (checkedPins.has(currentPin)) continue
+      checkedPins.add(currentPin)
+
+      // Get direct net connections for this pin
+      for (const [connKey, connected] of Object.entries(
+        this.inputProblem.netConnMap,
+      )) {
+        if (!connected) continue
+        const [p, n] = connKey.split("-") as [PinId, NetId]
+        if (p === currentPin) nets.add(n)
+      }
+
+      // If we're still on the original pin, follow strong connections one level
+      if (currentPin === pinId) {
+        for (const [connKey, connected] of Object.entries(
+          this.inputProblem.pinStrongConnMap,
+        )) {
+          if (!connected) continue
+          const [p1, p2] = connKey.split("-") as [PinId, PinId]
+          if (p1 === currentPin && !checkedPins.has(p2)) {
+            pinsToCheck.push(p2)
+          } else if (p2 === currentPin && !checkedPins.has(p1)) {
+            pinsToCheck.push(p1)
+          }
+        }
+      }
     }
     return nets
   }

@@ -13,6 +13,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
       "chipGap": 0.2,
       "chipMap": {
         "C1": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "C1",
           "pins": [
             "C1.1",
@@ -24,6 +28,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "D1": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "D1",
           "pins": [
             "D1.1",
@@ -35,6 +43,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "I2C": {
+          "availableRotations": undefined,
           "chipId": "I2C",
           "pins": [
             "I2C.1",
@@ -47,6 +56,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "INT_JP": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "INT_JP",
           "pins": [
             "INT_JP.1",
@@ -58,6 +71,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "J1": {
+          "availableRotations": undefined,
           "chipId": "J1",
           "pins": [
             "J1.1",
@@ -71,6 +85,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "J2": {
+          "availableRotations": undefined,
           "chipId": "J2",
           "pins": [
             "J2.1",
@@ -84,6 +99,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "J3": {
+          "availableRotations": undefined,
           "chipId": "J3",
           "pins": [
             "J3.1",
@@ -99,6 +115,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "LED": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "LED",
           "pins": [
             "LED.1",
@@ -110,6 +130,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "Q1": {
+          "availableRotations": undefined,
           "chipId": "Q1",
           "pins": [
             "Q1.1",
@@ -122,6 +143,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R2": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R2",
           "pins": [
             "R2.1",
@@ -133,6 +158,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R3": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R3",
           "pins": [
             "R3.1",
@@ -144,6 +173,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R4": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R4",
           "pins": [
             "R4.1",
@@ -155,6 +188,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R5": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R5",
           "pins": [
             "R5.1",
@@ -166,6 +203,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R7": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R7",
           "pins": [
             "R7.1",
@@ -177,6 +218,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "U1": {
+          "availableRotations": undefined,
           "chipId": "U1",
           "pins": [
             "U1.1",
@@ -584,27 +626,43 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
       },
       "netMap": {
         "DISABLE": {
+          "isGround": undefined,
+          "isPositiveVoltageSource": undefined,
           "netId": "DISABLE",
         },
         "GND": {
+          "isGround": true,
+          "isPositiveVoltageSource": undefined,
           "netId": "GND",
         },
         "INT": {
+          "isGround": undefined,
+          "isPositiveVoltageSource": undefined,
           "netId": "INT",
         },
         "N_INT": {
+          "isGround": undefined,
+          "isPositiveVoltageSource": undefined,
           "netId": "N_INT",
         },
         "SCL": {
+          "isGround": undefined,
+          "isPositiveVoltageSource": undefined,
           "netId": "SCL",
         },
         "SDA": {
+          "isGround": undefined,
+          "isPositiveVoltageSource": undefined,
           "netId": "SDA",
         },
         "V3_3": {
+          "isGround": undefined,
+          "isPositiveVoltageSource": true,
           "netId": "V3_3",
         },
         "V3_3_SW": {
+          "isGround": undefined,
+          "isPositiveVoltageSource": undefined,
           "netId": "V3_3_SW",
         },
       },
