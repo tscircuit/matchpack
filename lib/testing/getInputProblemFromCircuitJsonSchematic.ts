@@ -78,6 +78,17 @@ export const getInputProblemFromCircuitJsonSchematic = (
       })
       .filter(Boolean) as string[]
 
+    // Detect if component is a capacitor
+    // Capacitors typically have exactly 2 pins and ftype simple_capacitor
+    const isCapacitor =
+      source_component.ftype === "simple_capacitor" || ports.length === 2
+
+    // For 2-pin passive components (capacitors, resistors), restrict rotation to 0/180
+    // This is reasonable since they're typically symmetric along one axis
+    const availableRotations = isCapacitor
+      ? ([0, 180] as Array<0 | 90 | 180 | 270>)
+      : undefined
+
     problem.chipMap[chipId] = {
       chipId,
       pins: pinIds,
@@ -85,6 +96,7 @@ export const getInputProblemFromCircuitJsonSchematic = (
         x: schematic_component.size?.width || 10,
         y: schematic_component.size?.height || 10,
       },
+      availableRotations,
     }
 
     // Create chipPinMap entries for each pin
@@ -146,8 +158,19 @@ export const getInputProblemFromCircuitJsonSchematic = (
       readableIdToSourceNetId.set(netId, originalNetId)
     }
 
+    // Infer net type from name
+    const netName = netId.toUpperCase()
+    const isGround = netName === "GND" || netName.includes("GROUND")
+    const isPositiveVoltageSource =
+      /^V[0-9_]+$/.test(netName) || // Matches V3_3, V1_1, etc.
+      /^VCC/.test(netName) ||
+      /^VDD/.test(netName) ||
+      /^VSYS/.test(netName)
+
     problem.netMap[netId] = {
       netId: netId,
+      isGround: isGround || undefined,
+      isPositiveVoltageSource: isPositiveVoltageSource || undefined,
     }
   }
 
