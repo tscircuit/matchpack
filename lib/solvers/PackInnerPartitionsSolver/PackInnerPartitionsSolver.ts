@@ -2,6 +2,8 @@
  * Packs the internal layout of each partition using SingleInnerPartitionPackingSolver.
  * This stage takes the partitions from ChipPartitionsSolver and creates optimized
  * internal layouts for each partition before they are packed together.
+ * 
+ * For decoupling capacitor partitions, uses DecouplingCapsLayoutSolver for cleaner layouts.
  */
 
 import type { GraphicsObject } from "graphics-debug"
@@ -9,6 +11,7 @@ import { BaseSolver } from "../BaseSolver"
 import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
+import { DecouplingCapsLayoutSolver } from "./DecouplingCapsLayoutSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
 
 export type PackedPartition = {
@@ -19,11 +22,11 @@ export type PackedPartition = {
 export class PackInnerPartitionsSolver extends BaseSolver {
   partitions: InputProblem[]
   packedPartitions: PackedPartition[] = []
-  completedSolvers: SingleInnerPartitionPackingSolver[] = []
-  activeSolver: SingleInnerPartitionPackingSolver | null = null
+  completedSolvers: (SingleInnerPartitionPackingSolver | DecouplingCapsLayoutSolver)[] = []
+  activeSolver: SingleInnerPartitionPackingSolver | DecouplingCapsLayoutSolver | null = null
   currentPartitionIndex = 0
 
-  declare activeSubSolver: SingleInnerPartitionPackingSolver | null
+  declare activeSubSolver: SingleInnerPartitionPackingSolver | DecouplingCapsLayoutSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -45,10 +48,18 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     // If no active solver, create one for the current partition
     if (!this.activeSolver) {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
-      this.activeSolver = new SingleInnerPartitionPackingSolver({
-        partitionInputProblem: currentPartition,
-        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-      })
+      
+      // Use specialized solver for decoupling capacitor partitions
+      if (currentPartition.partitionType === "decoupling_caps") {
+        this.activeSolver = new DecouplingCapsLayoutSolver({
+          partitionInputProblem: currentPartition,
+        })
+      } else {
+        this.activeSolver = new SingleInnerPartitionPackingSolver({
+          partitionInputProblem: currentPartition,
+          pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+        })
+      }
       this.activeSubSolver = this.activeSolver
     }
 
