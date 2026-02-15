@@ -3,10 +3,11 @@
  * Arranges decoupling capacitors in a clean, organized pattern around the main chip.
  * 
  * This solver addresses issue #15 by:
- * 1. Arranging capacitors in a grid pattern for better organization
+ * 1. Arranging capacitors in a compact grid pattern for better organization
  * 2. Aligning capacitors consistently (all facing the same direction)
  * 3. Minimizing trace crossings and messy layouts
  * 4. Placing capacitors close to the main chip they're decoupling
+ * 5. Supporting multiple layout strategies (grid, circular, linear)
  */
 
 import type { GraphicsObject } from "graphics-debug"
@@ -17,17 +18,25 @@ import type {
   PinId,
   ChipId,
   PartitionInputProblem,
+  Chip,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
+type LayoutStrategy = "grid" | "linear" | "circular"
+
 export class DecouplingCapsLayoutSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
+  layoutStrategy: LayoutStrategy = "grid"
 
-  constructor(params: { partitionInputProblem: PartitionInputProblem }) {
+  constructor(params: { 
+    partitionInputProblem: PartitionInputProblem
+    layoutStrategy?: LayoutStrategy 
+  }) {
     super()
     this.partitionInputProblem = params.partitionInputProblem
+    this.layoutStrategy = params.layoutStrategy || "grid"
   }
 
   override _step() {
@@ -53,13 +62,31 @@ export class DecouplingCapsLayoutSolver extends BaseSolver {
       }
     }
 
-    // Arrange decoupling capacitors in a clean grid pattern
+    // Arrange decoupling capacitors based on strategy
     if (decouplingCaps.length > 0) {
-      this.arrangeDecouplingCapsInGrid(
-        decouplingCaps,
-        chipPlacements,
-        mainChip,
-      )
+      switch (this.layoutStrategy) {
+        case "grid":
+          this.arrangeDecouplingCapsInGrid(
+            decouplingCaps,
+            chipPlacements,
+            mainChip,
+          )
+          break
+        case "linear":
+          this.arrangeDecouplingCapsLinear(
+            decouplingCaps,
+            chipPlacements,
+            mainChip,
+          )
+          break
+        case "circular":
+          this.arrangeDecouplingCapsCircular(
+            decouplingCaps,
+            chipPlacements,
+            mainChip,
+          )
+          break
+      }
     }
 
     return {
@@ -68,32 +95,47 @@ export class DecouplingCapsLayoutSolver extends BaseSolver {
     }
   }
 
+  /**
+   * Arranges capacitors in a compact grid pattern
+   * Best for: 4+ capacitors
+   */
   private arrangeDecouplingCapsInGrid(
-    decouplingCaps: any[],
+    decouplingCaps: Chip[],
     chipPlacements: Record<string, Placement>,
-    mainChip: any | undefined,
+    mainChip: Chip | undefined,
   ) {
-    const gap = this.partitionInputProblem.decouplingCapsGap ?? 0.5
-    const capsPerRow = Math.ceil(Math.sqrt(decouplingCaps.length))
+    const gap = this.partitionInputProblem.decouplingCapsGap ?? 0.3
+    
+    // Calculate optimal grid dimensions (prefer square-ish layouts)
+    const numCaps = decouplingCaps.length
+    const cols = Math.ceil(Math.sqrt(numCaps))
+    const rows = Math.ceil(numCaps / cols)
 
     // Calculate starting position based on main chip size
     const mainChipWidth = mainChip?.size.x ?? 2
     const mainChipHeight = mainChip?.size.y ?? 2
+    
+    // Get average capacitor size
+    const avgCapWidth = decouplingCaps.reduce((sum, cap) => sum + cap.size.x, 0) / numCaps
+    const avgCapHeight = decouplingCaps.reduce((sum, cap) => sum + cap.size.y, 0) / numCaps
+    
+    // Calculate grid dimensions
+    const gridWidth = cols * avgCapWidth + (cols - 1) * gap
+    const gridHeight = rows * avgCapHeight + (rows - 1) * gap
+    
+    // Position grid to the right of main chip
     const startX = mainChipWidth / 2 + gap * 2
-    const startY = -((capsPerRow - 1) * gap) / 2
+    const startY = -gridHeight / 2
 
-    // Arrange capacitors in a grid to the right of the main chip
+    // Arrange capacitors in grid
     for (let i = 0; i < decouplingCaps.length; i++) {
       const cap = decouplingCaps[i]!
-      const row = Math.floor(i / capsPerRow)
-      const col = i % capsPerRow
+      const row = Math.floor(i / cols)
+      const col = i % cols
 
-      // Calculate position in grid
-      const x = startX + col * (cap.size.x + gap)
-      const y = startY + row * (cap.size.y + gap)
+      const x = startX + col * (avgCapWidth + gap) + avgCapWidth / 2
+      const y = startY + row * (avgCapHeight + gap) + avgCapHeight / 2
 
-      // Determine rotation based on pin configuration
-      // All capacitors should face the same direction for consistency
       const rotation = this.getOptimalCapacitorRotation(cap)
 
       chipPlacements[cap.chipId] = {
@@ -104,12 +146,79 @@ export class DecouplingCapsLayoutSolver extends BaseSolver {
     }
   }
 
-  private getOptimalCapacitorRotation(cap: any): number {
-    // Check available rotations
+  /**
+   * Arranges capacitors in a single line
+   * Best for: 2-3 capacitors
+   */
+  private arrangeDecouplingCapsLinear(
+    decouplingCaps: Chip[],
+    chipPlacements: Record<string, Placement>,
+    mainChip: Chip | undefined,
+  ) {
+    const gap = this.partitionInputProblem.decouplingCapsGap ?? 0.3
+    const mainChipWidth = mainChip?.size.x ?? 2
+    
+    const avgCapHeight = decouplingCaps.reduce((sum, cap) => sum + cap.size.y, 0) / decouplingCaps.length
+    const totalHeight = decouplingCaps.length * avgCapHeight + (decouplingCaps.length - 1) * gap
+    
+    const startX = mainChipWidth / 2 + gap * 2
+    const startY = -totalHeight / 2
+
+    for (let i = 0; i < decouplingCaps.length; i++) {
+      const cap = decouplingCaps[i]!
+      const y = startY + i * (avgCapHeight + gap) + avgCapHeight / 2
+
+      const rotation = this.getOptimalCapacitorRotation(cap)
+
+      chipPlacements[cap.chipId] = {
+        x: startX,
+        y,
+        ccwRotationDegrees: rotation,
+      }
+    }
+  }
+
+  /**
+   * Arranges capacitors in a circular pattern around the main chip
+   * Best for: 4-8 capacitors, provides symmetrical layout
+   */
+  private arrangeDecouplingCapsCircular(
+    decouplingCaps: Chip[],
+    chipPlacements: Record<string, Placement>,
+    mainChip: Chip | undefined,
+  ) {
+    const mainChipWidth = mainChip?.size.x ?? 2
+    const mainChipHeight = mainChip?.size.y ?? 2
+    const gap = this.partitionInputProblem.decouplingCapsGap ?? 0.5
+    
+    // Calculate radius based on main chip size
+    const radius = Math.max(mainChipWidth, mainChipHeight) / 2 + gap * 2
+    
+    const angleStep = (2 * Math.PI) / decouplingCaps.length
+
+    for (let i = 0; i < decouplingCaps.length; i++) {
+      const cap = decouplingCaps[i]!
+      const angle = i * angleStep
+      
+      const x = radius * Math.cos(angle)
+      const y = radius * Math.sin(angle)
+
+      // Rotate capacitor to face the center
+      const rotationToCenter = (angle * 180 / Math.PI + 90) % 360
+      const rotation = this.getClosestAvailableRotation(cap, rotationToCenter)
+
+      chipPlacements[cap.chipId] = {
+        x,
+        y,
+        ccwRotationDegrees: rotation,
+      }
+    }
+  }
+
+  private getOptimalCapacitorRotation(cap: Chip): number {
     const availableRotations = cap.availableRotations || [0, 180]
 
-    // For decoupling capacitors, we want them oriented consistently
-    // Prefer 0 or 180 degrees (horizontal orientation)
+    // For grid/linear layouts, prefer horizontal orientation (0 or 180)
     if (availableRotations.includes(0)) {
       return 0
     }
@@ -117,8 +226,25 @@ export class DecouplingCapsLayoutSolver extends BaseSolver {
       return 180
     }
 
-    // Fallback to first available rotation
     return availableRotations[0] || 0
+  }
+
+  private getClosestAvailableRotation(cap: Chip, targetRotation: number): number {
+    const availableRotations = cap.availableRotations || [0, 180]
+    
+    // Find the closest available rotation to the target
+    let closest = availableRotations[0] || 0
+    let minDiff = Math.abs(targetRotation - closest)
+
+    for (const rotation of availableRotations) {
+      const diff = Math.abs(targetRotation - rotation)
+      if (diff < minDiff) {
+        minDiff = diff
+        closest = rotation
+      }
+    }
+
+    return closest
   }
 
   override visualize(): GraphicsObject {
