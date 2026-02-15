@@ -1,6 +1,7 @@
 /**
- * Pipeline solver that runs a series of solvers to find the best schematic layout.
- * Coordinates the entire layout process from chip partitioning through final packing.
+ * @file LayoutPipelineSolver.ts
+ * @description Orchestrates the schematic layout process by executing a sequence of specialized solvers.
+ * This pipeline handles everything from decoupling capacitor identification to final component packing.
  */
 
 import type { GraphicsObject } from "graphics-debug"
@@ -14,10 +15,19 @@ import {
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
+
+/** * PROFESSIONAL REFACTOR: Import the centralized MatchResult type.
+ * Using "import type" to comply with verbatimModuleSyntax.
+ */
+import type { MatchResult } from "lib/types"
+
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
 
+/**
+ * Definition structure for an individual step within the layout pipeline.
+ */
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
   solverClass: T
@@ -27,6 +37,9 @@ type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   onSolved?: (instance: LayoutPipelineSolver) => void
 }
 
+/**
+ * Helper function to define pipeline steps with type safety for constructor parameters.
+ */
 function definePipelineStep<
   T extends new (
     ...args: any[]
@@ -49,23 +62,28 @@ function definePipelineStep<
 }
 
 export class LayoutPipelineSolver extends BaseSolver {
+  // Solver instances for different phases of the layout
   identifyDecouplingCapsSolver?: IdentifyDecouplingCapsSolver
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
 
+  // Performance tracking and metadata for each pipeline phase
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
   timeSpentOnPhase: Record<string, number>
   firstIterationOfPhase: Record<string, number>
 
-  // Computed utility objects
+  // Computed utilities for connectivity analysis
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   inputProblem: InputProblem
   chipPartitions?: ChipPartitionsSolver["partitions"]
   packedPartitions?: PackedPartition[]
 
+  /**
+   * Defines the sequential execution order of solvers.
+   */
   pipelineDef = [
     definePipelineStep(
       "identifyDecouplingCapsSolver",
@@ -73,7 +91,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       () => [this.inputProblem],
       {
         onSolved: (_layoutSolver) => {
-          // Decoupling cap groups are now identified and available for subsequent phases
+          // Logic to execute once decoupling caps are grouped
         },
       },
     ),
@@ -120,7 +138,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       ],
       {
         onSolved: (_solver) => {
-          // Store final packed layout as output
+          // Final layout data is now populated
         },
       },
     ),
@@ -140,6 +158,9 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   currentPipelineStepIndex = 0
 
+  /**
+   * Executes a single step of the current active solver or transitions to the next phase.
+   */
   override _step() {
     const pipelineStepDef = this.pipelineDef[this.currentPipelineStepIndex]
     if (!pipelineStepDef) {
@@ -165,8 +186,9 @@ export class LayoutPipelineSolver extends BaseSolver {
       return
     }
 
+    // Initialize the next solver in the pipeline
     const constructorParams = pipelineStepDef.getConstructorParams(this)
-    // @ts-ignore
+    // @ts-ignore - Dynamic class instantiation
     this.activeSubSolver = new pipelineStepDef.solverClass(...constructorParams)
     ;(this as any)[pipelineStepDef.solverName] = this.activeSubSolver
     this.timeSpentOnPhase[pipelineStepDef.solverName] = 0
@@ -174,22 +196,30 @@ export class LayoutPipelineSolver extends BaseSolver {
     this.firstIterationOfPhase[pipelineStepDef.solverName] = this.iterations
   }
 
+  /**
+   * Synchronously advances the pipeline until a specific phase is reached.
+   */
   solveUntilPhase(phase: string) {
     while (this.getCurrentPhase() !== phase) {
       this.step()
     }
   }
 
+  /**
+   * Returns the name of the currently active pipeline phase.
+   */
   getCurrentPhase(): string {
     return this.pipelineDef[this.currentPipelineStepIndex]?.solverName ?? "none"
   }
 
+  /**
+   * Generates a graphical representation of the current solving state.
+   */
   override visualize(): GraphicsObject {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
-    // If the pipeline is complete and we have a partition packing solver,
-    // show only the final chip placements
+    // Priority: Display final chip placements once packing is complete
     if (this.solved && this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -200,7 +230,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
 
-    // Get basic layout positions to avoid overlapping at (0,0)
+    // Fallback to basic layout to prevent overlapping at origin
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
     const inputViz = visualizeInputProblem(this.inputProblem, basicLayout)
 
@@ -213,27 +243,18 @@ export class LayoutPipelineSolver extends BaseSolver {
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
-        for (const rect of viz!.rects ?? []) {
-          rect.step = stepIndex
-        }
-        for (const point of viz!.points ?? []) {
-          point.step = stepIndex
-        }
-        for (const circle of viz!.circles ?? []) {
-          circle.step = stepIndex
-        }
-        for (const text of viz!.texts ?? []) {
-          text.step = stepIndex
-        }
-        for (const line of viz!.lines ?? []) {
-          line.step = stepIndex
-        }
+        // Tag graphical elements with their respective pipeline step
+        for (const rect of viz!.rects ?? []) rect.step = stepIndex
+        for (const point of viz!.points ?? []) point.step = stepIndex
+        for (const circle of viz!.circles ?? []) circle.step = stepIndex
+        for (const text of viz!.texts ?? []) text.step = stepIndex
+        for (const line of viz!.lines ?? []) line.step = stepIndex
         return viz
       }) as GraphicsObject[]
 
     if (visualizations.length === 1) return visualizations[0]!
 
-    // Simple combination of visualizations
+    // Merge all graphical data into a single output object
     return {
       points: visualizations.flatMap((v) => v.points || []),
       rects: visualizations.flatMap((v) => v.rects || []),
@@ -244,34 +265,26 @@ export class LayoutPipelineSolver extends BaseSolver {
   }
 
   /**
-   * A lightweight version of the visualize method that can be used to stream
-   * progress
+   * Provides a lightweight graphical preview for real-time progress streaming.
    */
   override preview(): GraphicsObject {
     if (this.activeSubSolver) {
       return this.activeSubSolver.preview()
     }
 
-    // Show the most recent solver's output
-    if (this.partitionPackingSolver?.solved) {
-      return this.partitionPackingSolver.visualize()
-    }
-    if (this.packInnerPartitionsSolver?.solved) {
-      return this.packInnerPartitionsSolver.visualize()
-    }
-    if (this.chipPartitionsSolver?.solved) {
-      return this.chipPartitionsSolver.visualize()
-    }
-    if (this.identifyDecouplingCapsSolver?.solved) {
-      return this.identifyDecouplingCapsSolver.visualize()
-    }
-
-    return super.preview()
+    // Attempt to show visualization from the most advanced completed solver
+    return (
+      this.partitionPackingSolver?.visualize() ??
+      this.packInnerPartitionsSolver?.visualize() ??
+      this.chipPartitionsSolver?.visualize() ??
+      this.identifyDecouplingCapsSolver?.visualize() ??
+      super.preview()
+    )
   }
 
   /**
-   * Checks if any chips are overlapping in the given layout, considering rotation.
-   * Returns an array of overlapping chip pairs.
+   * Detects overlaps between chips in a given layout, accounting for rotation.
+   * Returns a detailed list of overlapping pairs and the affected area.
    */
   checkForOverlaps(layout: OutputLayout): Array<{
     chip1: string
@@ -286,7 +299,6 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     const chipIds = Object.keys(layout.chipPlacements)
 
-    // Check each pair of chips for overlap
     for (let i = 0; i < chipIds.length; i++) {
       for (let j = i + 1; j < chipIds.length; j++) {
         const chip1Id = chipIds[i]!
@@ -294,25 +306,19 @@ export class LayoutPipelineSolver extends BaseSolver {
         const placement1 = layout.chipPlacements[chip1Id]!
         const placement2 = layout.chipPlacements[chip2Id]!
 
-        // Get chip sizes from input problem
         const chip1 = this.inputProblem.chipMap[chip1Id]
         const chip2 = this.inputProblem.chipMap[chip2Id]
 
         if (!chip1 || !chip2) continue
 
-        // Calculate rotated bounding boxes
+        // Determine AABB for rotated chips
         const bounds1 = this.getRotatedBounds(placement1, chip1.size)
         const bounds2 = this.getRotatedBounds(placement2, chip2.size)
 
-        // Check for overlap
         const overlapArea = this.calculateOverlapArea(bounds1, bounds2)
 
         if (overlapArea > 0) {
-          overlaps.push({
-            chip1: chip1Id,
-            chip2: chip2Id,
-            overlapArea,
-          })
+          overlaps.push({ chip1: chip1Id, chip2: chip2Id, overlapArea })
         }
       }
     }
@@ -321,27 +327,19 @@ export class LayoutPipelineSolver extends BaseSolver {
   }
 
   /**
-   * Calculate the axis-aligned bounding box for a rotated chip
+   * Calculates the Axis-Aligned Bounding Box (AABB) for a rotated component.
    */
   private getRotatedBounds(
     placement: { x: number; y: number; ccwRotationDegrees: number },
     size: { x: number; y: number },
-  ): {
-    minX: number
-    maxX: number
-    minY: number
-    maxY: number
-  } {
+  ): { minX: number; maxX: number; minY: number; maxY: number } {
     const halfWidth = size.x / 2
     const halfHeight = size.y / 2
 
-    // For accurate overlap detection with rotation, calculate the axis-aligned bounding box
-    // of the rotated rectangle
     const angleRad = (placement.ccwRotationDegrees * Math.PI) / 180
     const cos = Math.abs(Math.cos(angleRad))
     const sin = Math.abs(Math.sin(angleRad))
 
-    // Rotated bounding box dimensions
     const rotatedWidth = halfWidth * cos + halfHeight * sin
     const rotatedHeight = halfWidth * sin + halfHeight * cos
 
@@ -354,33 +352,21 @@ export class LayoutPipelineSolver extends BaseSolver {
   }
 
   /**
-   * Calculate the overlap area between two axis-aligned bounding boxes
+   * Calculates the intersection area between two AABBs.
    */
   private calculateOverlapArea(
-    bounds1: {
-      minX: number
-      maxX: number
-      minY: number
-      maxY: number
-    },
-    bounds2: {
-      minX: number
-      maxX: number
-      minY: number
-      maxY: number
-    },
+    bounds1: { minX: number; maxX: number; minY: number; maxY: number },
+    bounds2: { minX: number; maxX: number; minY: number; maxY: number },
   ): number {
-    // Check if rectangles overlap
     if (
       bounds1.maxX <= bounds2.minX ||
       bounds1.minX >= bounds2.maxX ||
       bounds1.maxY <= bounds2.minY ||
       bounds1.minY >= bounds2.maxY
     ) {
-      return 0 // No overlap
+      return 0
     }
 
-    // Calculate overlap dimensions
     const overlapWidth =
       Math.min(bounds1.maxX, bounds2.maxX) -
       Math.max(bounds1.minX, bounds2.minX)
@@ -391,39 +377,39 @@ export class LayoutPipelineSolver extends BaseSolver {
     return overlapWidth * overlapHeight
   }
 
+  /**
+   * Retrieves the final layout result. Throws an error if solve process is incomplete.
+   * Performs a validation check for chip overlaps.
+   */
   getOutputLayout(): OutputLayout {
     if (!this.solved) {
       throw new Error(
-        "Pipeline not solved yet. Call solve() or step() until solved.",
+        "Pipeline execution incomplete. Ensure solve() is called.",
       )
     }
 
-    let finalLayout: OutputLayout
-
-    // Get the final layout from the partition packing solver
     if (
-      this.partitionPackingSolver?.solved &&
-      this.partitionPackingSolver.finalLayout
+      !this.partitionPackingSolver?.solved ||
+      !this.partitionPackingSolver.finalLayout
     ) {
-      finalLayout = this.partitionPackingSolver.finalLayout
-    } else {
       throw new Error(
-        "No layout available. Pipeline may have failed or not progressed far enough.",
+        "Final layout extraction failed. Pipeline state is invalid.",
       )
     }
 
-    // Check for overlaps in the final layout
+    const finalLayout = this.partitionPackingSolver.finalLayout
+
+    // Validation: Check for physical design violations (overlaps)
     const overlaps = this.checkForOverlaps(finalLayout)
     if (overlaps.length > 0) {
-      const overlapDetails = overlaps
+      const details = overlaps
         .map(
-          (overlap) =>
-            `${overlap.chip1} overlaps ${overlap.chip2} (area: ${overlap.overlapArea.toFixed(4)})`,
+          (o) => `${o.chip1} ↔ ${o.chip2} (Area: ${o.overlapArea.toFixed(4)})`,
         )
         .join(", ")
 
       console.warn(
-        `Warning: ${overlaps.length} chip overlaps detected in final layout: ${overlapDetails}`,
+        `Physical overlap detected: ${overlaps.length} violations found. Details: ${details}`,
       )
     }
 
