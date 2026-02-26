@@ -38,6 +38,15 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Use specialized linear layout for decoupling cap partitions
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.solved
+    ) {
+      this._layoutDecouplingCapsLinear()
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +71,37 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  // Decoupling caps are laid out in a single horizontal row rather than
+  // bin-packed, matching standard schematic conventions for power supply
+  // bypass capacitors.
+  private _layoutDecouplingCapsLinear(): void {
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    // Sort for deterministic order
+    chips.sort((a, b) => a.chipId.localeCompare(b.chipId))
+
+    let xOffset = 0
+    const chipPlacements: Record<string, Placement> = {}
+
+    for (const chip of chips) {
+      // Use the first available rotation (decoupling caps are typically [0, 180],
+      // so this picks 0; if only [180] is allowed it correctly uses 180)
+      chipPlacements[chip.chipId] = {
+        x: xOffset + chip.size.x / 2,
+        y: 0,
+        ccwRotationDegrees: chip.availableRotations?.[0] ?? 0,
+      }
+      xOffset += chip.size.x + gap
+    }
+
+    this.layout = { chipPlacements, groupPlacements: {} }
+    this.solved = true
+    this.progress = 1
   }
 
   private createPackInput(): PackInput {
