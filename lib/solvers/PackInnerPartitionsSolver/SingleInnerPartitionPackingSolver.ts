@@ -38,6 +38,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // For decoupling cap partitions, use a clean linear row layout
+    // instead of the generic packing algorithm
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +69,51 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  /**
+   * Creates a clean linear horizontal row layout for decoupling capacitors.
+   * Caps are sorted by chipId for deterministic ordering, spaced evenly,
+   * and centered at the origin.
+   */
+  private createLinearDecouplingCapLayout(): OutputLayout {
+    const chipEntries = Object.entries(this.partitionInputProblem.chipMap)
+
+    // Sort by chipId for deterministic, clean ordering
+    chipEntries.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Calculate total width needed for the row
+    let totalWidth = 0
+    for (let i = 0; i < chipEntries.length; i++) {
+      const [, chip] = chipEntries[i]!
+      totalWidth += chip.size.x
+      if (i < chipEntries.length - 1) {
+        totalWidth += gap
+      }
+    }
+
+    // Place each cap in a horizontal row, centered at origin
+    let currentX = -totalWidth / 2
+    for (const [chipId, chip] of chipEntries) {
+      const centerX = currentX + chip.size.x / 2
+      chipPlacements[chipId] = {
+        x: centerX,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += chip.size.x + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
