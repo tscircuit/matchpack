@@ -38,6 +38,15 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // 注入点：如果是解耦电容，拦截迭代布局，直接执行线性排列
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.solved
+    ) {
+      this._layoutDecouplingCapsLinear()
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +71,52 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private _layoutDecouplingCapsLinear() {
+    const input = this.partitionInputProblem
+
+    // 1. 确定性排序：使用 chipId 保证不同环境下结果一致
+    const chips = Object.values(input.chipMap).sort((a, b) =>
+      a.chipId.localeCompare(b.chipId),
+    )
+    const gap = input.decouplingCapsGap ?? input.chipGap ?? 0.2
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    // 2. 预计算总宽度以进行中心化对齐
+    let totalWidth = 0
+    let maxHeight = 0
+    for (let i = 0; i < chips.length; i++) {
+      totalWidth += chips[i]!.size.x
+      if (i < chips.length - 1) {
+        totalWidth += gap
+      }
+      maxHeight = Math.max(maxHeight, chips[i]!.size.y)
+    }
+
+    // 3. 线性分配坐标 (基于中心点坐标系)
+    let currentX = -(totalWidth / 2)
+    for (const chip of chips) {
+      const halfWidth = chip.size.x / 2
+      currentX += halfWidth
+
+      // 移动到芯片中心
+      chipPlacements[chip.chipId] = {
+        x: currentX,
+        y: 0, // 水平对齐
+        ccwRotationDegrees: chip.availableRotations?.[0] ?? 0,
+      }
+
+      currentX += halfWidth + gap
+    }
+
+    // 4. 封装输出
+    this.layout = {
+      chipPlacements,
+      groupPlacements: {},
+    }
+    this.solved = true
   }
 
   private createPackInput(): PackInput {
