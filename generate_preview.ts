@@ -98,8 +98,12 @@ const viewBoxHeight = maxHeight + 1
 
 // 生成 SVG
 const svgParts: string[] = []
-svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-viewBoxWidth/2} ${-viewBoxHeight/2} ${viewBoxWidth} ${viewBoxHeight}" width="800" height="400">`)
-svgParts.push(`  <rect x="${-viewBoxWidth/2}" y="${-viewBoxHeight/2}" width="${viewBoxWidth}" height="${viewBoxHeight}" fill="#f5f5f5"/>`)
+svgParts.push(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-viewBoxWidth / 2} ${-viewBoxHeight / 2} ${viewBoxWidth} ${viewBoxHeight}" width="800" height="400">`,
+)
+svgParts.push(
+  `  <rect x="${-viewBoxWidth / 2}" y="${-viewBoxHeight / 2}" width="${viewBoxWidth}" height="${viewBoxHeight}" fill="#f5f5f5"/>`,
+)
 
 // 绘制每个电容
 for (const id of chipIds) {
@@ -107,18 +111,28 @@ for (const id of chipIds) {
   const chip = problem.chipMap[id]!
   const halfWidth = chip.size.x / 2
   const halfHeight = chip.size.y / 2
-  
+
   const x = placement.x - halfWidth
   const y = placement.y - halfHeight
-  
-  svgParts.push(`  <rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${chip.size.x}" height="${chip.size.y}" fill="#4a90d9" stroke="#2c5a8c" stroke-width="0.05" rx="0.1"/>`)
-  svgParts.push(`  <text x="${placement.x.toFixed(2)}" y="${placement.y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="0.3" font-family="Arial">${id}</text>`)
-  svgParts.push(`  <text x="${placement.x.toFixed(2)}" y="${(placement.y + halfHeight + 0.4).toFixed(2)}" text-anchor="middle" fill="#333" font-size="0.2" font-family="Arial">x:${placement.x.toFixed(2)}, y:${placement.y.toFixed(2)}</text>`)
+
+  svgParts.push(
+    `  <rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${chip.size.x}" height="${chip.size.y}" fill="#4a90d9" stroke="#2c5a8c" stroke-width="0.05" rx="0.1"/>`,
+  )
+  svgParts.push(
+    `  <text x="${placement.x.toFixed(2)}" y="${placement.y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="0.3" font-family="Arial">${id}</text>`,
+  )
+  svgParts.push(
+    `  <text x="${placement.x.toFixed(2)}" y="${(placement.y + halfHeight + 0.4).toFixed(2)}" text-anchor="middle" fill="#333" font-size="0.2" font-family="Arial">x:${placement.x.toFixed(2)}, y:${placement.y.toFixed(2)}</text>`,
+  )
 }
 
 // 添加标题
-svgParts.push(`  <text x="0" y="${(-viewBoxHeight/2 + 0.3).toFixed(2)}" text-anchor="middle" fill="#333" font-size="0.25" font-family="Arial" font-weight="bold">Decoupling Capacitors Linear Layout</text>`)
-svgParts.push(`  <text x="0" y="${(-viewBoxHeight/2 + 0.6).toFixed(2)}" text-anchor="middle" fill="#666" font-size="0.18" font-family="Arial">5 caps arranged horizontally with 0.3 gap</text>`)
+svgParts.push(
+  `  <text x="0" y="${(-viewBoxHeight / 2 + 0.3).toFixed(2)}" text-anchor="middle" fill="#333" font-size="0.25" font-family="Arial" font-weight="bold">Decoupling Capacitors Linear Layout</text>`,
+)
+svgParts.push(
+  `  <text x="0" y="${(-viewBoxHeight / 2 + 0.6).toFixed(2)}" text-anchor="middle" fill="#666" font-size="0.18" font-family="Arial">5 caps arranged horizontally with 0.3 gap</text>`,
+)
 
 svgParts.push(`</svg>`)
 
@@ -154,5 +168,7 @@ console.log("✅ preview.html generated successfully!")
 console.log("📐 Layout Summary:")
 for (const id of chipIds) {
   const p = placements[id]!
-  console.log(`   ${id}: x=${p.x.toFixed(2)}, y=${p.y.toFixed(2)}, rotation=${p.ccwRotationDegrees}°`)
+  console.log(
+    `   ${id}: x=${p.x.toFixed(2)}, y=${p.y.toFixed(2)}, rotation=${p.ccwRotationDegrees}°`,
+  )
 }

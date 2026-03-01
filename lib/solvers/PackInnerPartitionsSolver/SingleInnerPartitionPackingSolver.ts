@@ -38,7 +38,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
-    // 注入点：如果是解耦电容，拦截迭代布局，直接执行线性排列
+    // Injection point: if decoupling caps, intercept and use linear layout
     if (
       this.partitionInputProblem.partitionType === "decoupling_caps" &&
       !this.solved
@@ -76,7 +76,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   private _layoutDecouplingCapsLinear() {
     const input = this.partitionInputProblem
 
-    // 1. 确定性排序：使用 chipId 保证不同环境下结果一致
+    // Step 1: Deterministic sort by chipId for consistent results across environments
     const chips = Object.values(input.chipMap).sort((a, b) =>
       a.chipId.localeCompare(b.chipId),
     )
@@ -84,7 +84,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
 
     const chipPlacements: Record<string, Placement> = {}
 
-    // 2. 预计算总宽度以进行中心化对齐
+    // Step 2: Pre-calculate total width for center alignment
     let totalWidth = 0
     let maxHeight = 0
     for (let i = 0; i < chips.length; i++) {
@@ -95,23 +95,23 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       maxHeight = Math.max(maxHeight, chips[i]!.size.y)
     }
 
-    // 3. 线性分配坐标 (基于中心点坐标系)
+    // Step 3: Linear coordinate assignment (center-based coordinate system)
     let currentX = -(totalWidth / 2)
     for (const chip of chips) {
       const halfWidth = chip.size.x / 2
       currentX += halfWidth
 
-      // 移动到芯片中心
+      // Move to chip center
       chipPlacements[chip.chipId] = {
         x: currentX,
-        y: 0, // 水平对齐
+        y: 0, // horizontal alignment
         ccwRotationDegrees: chip.availableRotations?.[0] ?? 0,
       }
 
       currentX += halfWidth + gap
     }
 
-    // 4. 封装输出
+    // Step 4: Package output
     this.layout = {
       chipPlacements,
       groupPlacements: {},
