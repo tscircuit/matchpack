@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Decoupling Caps Layout Preview</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #333; }
+    .info { background: #e8f4fc; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    pre { background: #f4f4f4; padding: 15px; border-radius: 8px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Decoupling Capacitors Linear Layout Preview</h1>
+    <div class="info">
+      <p><strong>Algorithm:</strong> _layoutDecouplingCapsLinear()</p>
+      <p><strong>Gap:</strong> 0.3 | <strong>Coordinate System:</strong> Center-based</p>
+      <p><strong>Sorting:</strong> chipId localeCompare (deterministic)</p>
+    </div>
+    <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="-4.3 -0.85 8.6 1.7" width="800" height="400">
+  <rect x="-4.3" y="-0.85" width="8.6" height="1.7" fill="#f5f5f5"/>
+  <rect x="-3.30" y="-0.25" width="1" height="0.5" fill="#4a90d9" stroke="#2c5a8c" stroke-width="0.05" rx="0.1"/>
+  <text x="-2.80" y="0.00" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="0.3" font-family="Arial">C1</text>
+  <text x="-2.80" y="0.65" text-anchor="middle" fill="#333" font-size="0.2" font-family="Arial">x:-2.80, y:0.00</text>
+  <rect x="-2.00" y="-0.30" width="1.2" height="0.6" fill="#4a90d9" stroke="#2c5a8c" stroke-width="0.05" rx="0.1"/>
+  <text x="-1.40" y="0.00" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="0.3" font-family="Arial">C2</text>
+  <text x="-1.40" y="0.70" text-anchor="middle" fill="#333" font-size="0.2" font-family="Arial">x:-1.40, y:0.00</text>
+  <rect x="-0.50" y="-0.20" width="0.8" height="0.4" fill="#4a90d9" stroke="#2c5a8c" stroke-width="0.05" rx="0.1"/>
+  <text x="-0.10" y="0.00" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="0.3" font-family="Arial">C3</text>
+  <text x="-0.10" y="0.60" text-anchor="middle" fill="#333" font-size="0.2" font-family="Arial">x:-0.10, y:0.00</text>
+  <rect x="0.60" y="-0.35" width="1.5" height="0.7" fill="#4a90d9" stroke="#2c5a8c" stroke-width="0.05" rx="0.1"/>
+  <text x="1.35" y="0.00" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="0.3" font-family="Arial">C4</text>
+  <text x="1.35" y="0.75" text-anchor="middle" fill="#333" font-size="0.2" font-family="Arial">x:1.35, y:0.00</text>
+  <rect x="2.40" y="-0.23" width="0.9" height="0.45" fill="#4a90d9" stroke="#2c5a8c" stroke-width="0.05" rx="0.1"/>
+  <text x="2.85" y="0.00" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="0.3" font-family="Arial">C5</text>
+  <text x="2.85" y="0.63" text-anchor="middle" fill="#333" font-size="0.2" font-family="Arial">x:2.85, y:0.00</text>
+  <text x="0" y="-0.55" text-anchor="middle" fill="#333" font-size="0.25" font-family="Arial" font-weight="bold">Decoupling Capacitors Linear Layout</text>
+  <text x="0" y="-0.25" text-anchor="middle" fill="#666" font-size="0.18" font-family="Arial">5 caps arranged horizontally with 0.3 gap</text>
+</svg></div>
+    <h2>Layout JSON</h2>
+    <pre>{
+  "chipPlacements": {
+    "C1": {
+      "x": -2.8,
+      "y": 0,
+      "ccwRotationDegrees": 0
+    },
+    "C2": {
+      "x": -1.4,
+      "y": 0,
+      "ccwRotationDegrees": 0
+    },
+    "C3": {
+      "x": -0.09999999999999998,
+      "y": 0,
+      "ccwRotationDegrees": 0
+    },
+    "C4": {
+      "x": 1.35,
+      "y": 0,
+      "ccwRotationDegrees": 0
+    },
+    "C5": {
+      "x": 2.8500000000000005,
+      "y": 0,
+      "ccwRotationDegrees": 0
+    }
+  },
+  "groupPlacements": {}
+}</pre>
+  </div>
+</body>
+</html>

@@ -38,6 +38,15 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Injection point: if decoupling caps, intercept and use linear layout
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.solved
+    ) {
+      this._layoutDecouplingCapsLinear()
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +71,52 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private _layoutDecouplingCapsLinear() {
+    const input = this.partitionInputProblem
+
+    // Step 1: Deterministic sort by chipId for consistent results across environments
+    const chips = Object.values(input.chipMap).sort((a, b) =>
+      a.chipId.localeCompare(b.chipId),
+    )
+    const gap = input.decouplingCapsGap ?? input.chipGap ?? 0.2
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Step 2: Pre-calculate total width for center alignment
+    let totalWidth = 0
+    let maxHeight = 0
+    for (let i = 0; i < chips.length; i++) {
+      totalWidth += chips[i]!.size.x
+      if (i < chips.length - 1) {
+        totalWidth += gap
+      }
+      maxHeight = Math.max(maxHeight, chips[i]!.size.y)
+    }
+
+    // Step 3: Linear coordinate assignment (center-based coordinate system)
+    let currentX = -(totalWidth / 2)
+    for (const chip of chips) {
+      const halfWidth = chip.size.x / 2
+      currentX += halfWidth
+
+      // Move to chip center
+      chipPlacements[chip.chipId] = {
+        x: currentX,
+        y: 0, // horizontal alignment
+        ccwRotationDegrees: chip.availableRotations?.[0] ?? 0,
+      }
+
+      currentX += halfWidth + gap
+    }
+
+    // Step 4: Package output
+    this.layout = {
+      chipPlacements,
+      groupPlacements: {},
+    }
+    this.solved = true
   }
 
   private createPackInput(): PackInput {
