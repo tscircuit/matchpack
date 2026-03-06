@@ -38,6 +38,19 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Decoupling capacitor partitions get a specialized horizontal linear layout.
+    // This avoids the chaotic cluster produced by PackSolver2 and places caps in a
+    // neat row (sorted deterministically by chipId) matching the "acceptable solution"
+    // shown in tscircuit/tscircuit#786.
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      Object.keys(this.partitionInputProblem.chipMap).length > 0
+    ) {
+      this.layout = this._layoutDecouplingCapsLinear()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +75,51 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  /**
+   * Specialized layout for decoupling capacitor partitions.
+   *
+   * Places all caps in a single horizontal row, centered at the origin.
+   * Caps are sorted deterministically by chipId (lexicographic) so the
+   * layout is stable across runs. Each cap is oriented at 0° (vertical body,
+   * y+ pin on top) matching schematic convention for bypass caps.
+   *
+   * Visual result (5 caps):
+   *   [C7] [C8] [C9] [C10] [C11]
+   *      ←── totalWidth ──→
+   */
+  private _layoutDecouplingCapsLinear(): OutputLayout {
+    const input = this.partitionInputProblem
+    const gap = input.decouplingCapsGap ?? input.chipGap ?? 0.2
+
+    // Deterministic ordering: sort by chipId lexicographically
+    const chipIds = Object.keys(input.chipMap).sort((a, b) =>
+      a.localeCompare(b),
+    )
+
+    // Compute total width to center the row
+    let totalWidth = 0
+    for (const chipId of chipIds) {
+      totalWidth += input.chipMap[chipId]!.size.x
+    }
+    totalWidth += gap * (chipIds.length - 1)
+
+    const chipPlacements: Record<string, Placement> = {}
+    let cursorX = -totalWidth / 2
+
+    for (const chipId of chipIds) {
+      const chip = input.chipMap[chipId]!
+      const halfW = chip.size.x / 2
+      chipPlacements[chipId] = {
+        x: cursorX + halfW,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      cursorX += chip.size.x + gap
+    }
+
+    return { chipPlacements, groupPlacements: {} }
   }
 
   private createPackInput(): PackInput {
