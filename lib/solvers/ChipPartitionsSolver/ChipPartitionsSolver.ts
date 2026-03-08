@@ -52,7 +52,42 @@ export class ChipPartitionsSolver extends BaseSolver {
     const decapChipIdSet = new Set<ChipId>()
     const decapGroupPartitions: ChipId[][] = []
 
-    if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {) {
+    if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {
+      for (const group of this.decouplingCapGroups) {
+        decapGroupPartitions.push(group.decouplingCapChipIds)
+        for (const capId of group.decouplingCapChipIds) {
+          decapChipIdSet.add(capId)
+        }
+      }
+    }
+
+    // 2) Partition remaining chips (excluding decoupling caps) by connected components
+    const remainingChipIds = chipIds.filter((id) => !decapChipIdSet.has(id as ChipId))
+
+    // For now, put all remaining chips in one partition
+    if (remainingChipIds.length > 0) {
+      decapGroupPartitions.push(remainingChipIds as ChipId[])
+    }
+
+    // 3) Convert chip groups to partition input problems
+    const partitions: PartitionInputProblem[] = []
+    for (const chipGroup of decapGroupPartitions) {
+      const partition: PartitionInputProblem = {
+        chipMap: {},
+        netMap: inputProblem.netMap,
+        pinConnections: inputProblem.pinConnections,
+      }
+      for (const chipId of chipGroup) {
+        if (inputProblem.chipMap[chipId]) {
+          partition.chipMap[chipId] = inputProblem.chipMap[chipId]
+        }
+      }
+      partitions.push(partition)
+    }
+
+    return partitions
+  }
+}) {) {
       for (const group of this.decouplingCapGroups) {
         const capsOnly: ChipId[] = []
         for (const capId of group.decouplingCapChipIds) {
