@@ -6,6 +6,7 @@
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
+import { DecouplingCapsLayoutSolver } from "lib/solvers/DecouplingCapsLayoutSolver/DecouplingCapsLayoutSolver"
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import {
   PackInnerPartitionsSolver,
@@ -50,6 +51,7 @@ function definePipelineStep<
 
 export class LayoutPipelineSolver extends BaseSolver {
   identifyDecouplingCapsSolver?: IdentifyDecouplingCapsSolver
+  decouplingCapsLayoutSolver?: DecouplingCapsLayoutSolver
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver

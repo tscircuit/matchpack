@@ -16,6 +16,7 @@ import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import type { DecouplingCapLayout } from "../DecouplingCapsLayoutSolver/DecouplingCapsLayoutSolver"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
