@@ -1,5 +1,6 @@
 import type { Point, Bounds } from "@tscircuit/math-utils"
 import type { Side } from "./Side"
+import type { DecouplingCapGroup } from "./DecouplingCapGroup"
 
 export type PinId = string
 export type ChipId = string
@@ -49,4 +50,5 @@ export type InputProblem = {
 export interface PartitionInputProblem extends InputProblem {
   isPartition?: true
   partitionType?: "default" | "decoupling_caps"
+  decouplingCapGroups?: DecouplingCapGroup[]
 }

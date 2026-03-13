@@ -15,7 +15,7 @@ import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
-import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import type { DecouplingCapGroup } from "lib/types/DecouplingCapGroup"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -41,45 +41,20 @@ export class ChipPartitionsSolver extends BaseSolver {
 
   /**
    * Creates partitions by:
-   * - Separating each decoupling capacitor group into its own partition (caps only, excluding the main chip)
-   * - Partitioning remaining chips by connected components through strong pin connections
+   * - Partitioning chips by connected components through strong pin connections
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
 
-    // 1) Build decoupling-cap-only partitions (exclude the main chip for each group)
-    const decapChipIdSet = new Set<ChipId>()
-    const decapGroupPartitions: ChipId[][] = []
-
-    if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {
-      for (const group of this.decouplingCapGroups) {
-        const capsOnly: ChipId[] = []
-        for (const capId of group.decouplingCapChipIds) {
-          if (inputProblem.chipMap[capId]) {
-            capsOnly.push(capId)
-          }
-        }
-        // Only add a partition if there are at least two caps present in the inputProblem
-        if (capsOnly.length >= 2) {
-          decapGroupPartitions.push(capsOnly)
-          // Mark these caps as handled by decoupling-cap partitions
-          for (const capId of capsOnly) {
-            decapChipIdSet.add(capId)
-          }
-        }
-      }
-    }
-
-    // 2) Build adjacency graph for NON-decap chips based on strong pin connections
-    const nonDecapChipIds = chipIds.filter((id) => !decapChipIdSet.has(id))
+    // 1) Build adjacency graph for all chips based on strong pin connections
     const adjacencyMap = new Map<ChipId, Set<ChipId>>()
 
-    // Initialize adjacency map for non-decap chips
-    for (const chipId of nonDecapChipIds) {
+    // Initialize adjacency map
+    for (const chipId of chipIds) {
       adjacencyMap.set(chipId, new Set())
     }
 
-    // Add edges based on strong pin connections, but exclude any edges touching decap chips
+    // Add edges based on strong pin connections
     for (const [connKey, isConnected] of Object.entries(
       inputProblem.pinStrongConnMap,
     )) {
@@ -91,42 +66,28 @@ export class ChipPartitionsSolver extends BaseSolver {
       const owner1 = this.findPinOwner(pin1Id!, inputProblem)
       const owner2 = this.findPinOwner(pin2Id!, inputProblem)
 
-      // Only connect non-decap chips
-      if (
-        owner1 &&
-        owner2 &&
-        owner1 !== owner2 &&
-        !decapChipIdSet.has(owner1) &&
-        !decapChipIdSet.has(owner2)
-      ) {
+      if (owner1 && owner2 && owner1 !== owner2) {
         adjacencyMap.get(owner1)!.add(owner2)
         adjacencyMap.get(owner2)!.add(owner1)
       }
     }
 
-    // 3) Find connected components among non-decap chips using DFS
+    // 2) Find connected components using DFS
     const visited = new Set<ChipId>()
-    const nonDecapPartitions: ChipId[][] = []
+    const chipPartitions: ChipId[][] = []
 
-    for (const componentId of nonDecapChipIds) {
+    for (const componentId of chipIds) {
       if (!visited.has(componentId)) {
         const partition = this.dfs(componentId, adjacencyMap, visited)
         if (partition.length > 0) {
-          nonDecapPartitions.push(partition)
+          chipPartitions.push(partition)
         }
       }
     }
 
-    return [
-      ...decapGroupPartitions.map((partition) =>
-        this.createInputProblemFromPartition(partition, inputProblem, {
-          partitionType: "decoupling_caps",
-        }),
-      ),
-      ...nonDecapPartitions.map((partition) =>
-        this.createInputProblemFromPartition(partition, inputProblem),
-      ),
-    ]
+    return chipPartitions.map((partition) =>
+      this.createInputProblemFromPartition(partition, inputProblem),
+    )
   }
 
   /**
@@ -248,6 +209,24 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
+    // Add relevant decoupling cap groups
+    const relevantDecapGroups: DecouplingCapGroup[] = []
+    if (this.decouplingCapGroups) {
+      for (const group of this.decouplingCapGroups) {
+        if (partition.includes(group.mainChipId)) {
+          const capsInPartition = group.decouplingCapChipIds.filter((id) =>
+            partition.includes(id),
+          )
+          if (capsInPartition.length > 0) {
+            relevantDecapGroups.push({
+              ...group,
+              decouplingCapChipIds: capsInPartition,
+            })
+          }
+        }
+      }
+    }
+
     return {
       ...originalProblem,
       chipMap,
@@ -257,6 +236,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       netConnMap,
       isPartition: true,
       partitionType: opts?.partitionType,
+      decouplingCapGroups: relevantDecapGroups,
     }
   }
 
