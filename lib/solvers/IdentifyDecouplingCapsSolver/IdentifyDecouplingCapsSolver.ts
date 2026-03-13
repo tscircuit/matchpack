@@ -14,16 +14,10 @@ import type {
   PinId,
   Chip,
 } from "lib/types/InputProblem"
+import type { DecouplingCapGroup } from "lib/types/DecouplingCapGroup"
 import { getColorFromString } from "lib/utils/getColorFromString"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-
-export interface DecouplingCapGroup {
-  decouplingCapGroupId: string
-  mainChipId: ChipId
-  netPair: [NetId, NetId]
-  decouplingCapChipIds: ChipId[]
-}
 
 /**
  * Identify decoupling capacitor groups based on specific criteria:
@@ -139,11 +133,32 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return [a as NetId, b as NetId]
   }
 
+  /** Find the specific pin on the main chip and on the capacitor that are connected */
+  private findConnectionDetailsForCap(
+    capChip: Chip,
+    mainChipId: ChipId,
+  ): { mainPinId: PinId; capPinId: PinId } | null {
+    for (const pinId of capChip.pins) {
+      for (const [connKey, connected] of Object.entries(
+        this.inputProblem.pinStrongConnMap,
+      )) {
+        if (!connected) continue
+        const [a, b] = connKey.split("-") as [PinId, PinId]
+        if (a === pinId && b.startsWith(`${mainChipId}.`))
+          return { mainPinId: b, capPinId: a }
+        if (b === pinId && a.startsWith(`${mainChipId}.`))
+          return { mainPinId: a, capPinId: b }
+      }
+    }
+    return null
+  }
+
   /** Adds a decoupling capacitor to the group for the given main chip and net pair */
   private addToGroup(
     mainChipId: ChipId,
     netPair: [NetId, NetId],
     capChipId: ChipId,
+    connection: { mainPinId: PinId; capPinId: PinId },
   ) {
     const [n1, n2] = netPair
     const groupKey = `${mainChipId}__${n1}__${n2}`
@@ -154,12 +169,14 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
         mainChipId,
         netPair: [n1, n2],
         decouplingCapChipIds: [],
+        capToMainPinMap: {},
       }
       this.groupsByMainChipId.set(groupKey, group)
       this.outputDecouplingCapGroups.push(group)
     }
     if (!group.decouplingCapChipIds.includes(capChipId)) {
       group.decouplingCapChipIds.push(capChipId)
+      group.capToMainPinMap[capChipId] = connection
     }
   }
 
@@ -197,7 +214,11 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       (net2?.isGround && net1?.isPositiveVoltageSource)
     if (!isDecouplingNetPair) return
 
-    this.addToGroup(mainChipId, netPair, currentChip.chipId)
+    // Find the specific connection details
+    const connection = this.findConnectionDetailsForCap(currentChip, mainChipId)
+    if (!connection) return
+
+    this.addToGroup(mainChipId, netPair, currentChip.chipId, connection)
   }
 
   override visualize(): GraphicsObject {

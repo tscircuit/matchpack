@@ -28,6 +28,19 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   declare activeSubSolver: PackSolver2 | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
+  private macroComponents: Map<
+    string,
+    {
+      mainChipId: ChipId
+      caps: Array<{
+        chipId: ChipId
+        relX: number
+        relY: number
+        rotation: number
+      }>
+    }
+  > = new Map()
+
   constructor(params: {
     partitionInputProblem: PartitionInputProblem
     pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
@@ -71,10 +84,117 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
     }).pinToNetworkMap
 
-    // Create pack components for each chip
-    const packComponents = Object.entries(
+    const handledChipIds = new Set<ChipId>()
+    const packComponents: any[] = []
+
+    // Group decap groups by mainChipId
+    const groupsByMainChip = new Map<ChipId, any[]>()
+    for (const group of this.partitionInputProblem.decouplingCapGroups || []) {
+      if (!groupsByMainChip.has(group.mainChipId))
+        groupsByMainChip.set(group.mainChipId, [])
+      groupsByMainChip.get(group.mainChipId)!.push(group)
+    }
+
+    const gap = this.partitionInputProblem.decouplingCapsGap || 0.2
+
+    for (const [mainChipId, groups] of groupsByMainChip.entries()) {
+      const mainChip = this.partitionInputProblem.chipMap[mainChipId]
+      if (!mainChip) continue
+
+      const macroPads: any[] = []
+      const capsInMacro: any[] = []
+
+      // Add main chip pads
+      for (const pinId of mainChip.pins) {
+        const pin = this.partitionInputProblem.chipPinMap[pinId]
+        if (!pin) continue
+        const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
+        macroPads.push({
+          padId: pinId,
+          networkId: networkId,
+          type: "rect" as const,
+          offset: { x: pin.offset.x, y: pin.offset.y },
+          size: { x: PIN_SIZE, y: PIN_SIZE },
+        })
+      }
+      // Add main chip body
+      macroPads.push({
+        padId: `${mainChipId}_body`,
+        networkId: `${mainChipId}_body_disconnected`,
+        type: "rect" as const,
+        offset: { x: 0, y: 0 },
+        size: { x: mainChip.size.x, y: mainChip.size.y },
+      })
+
+      // Add caps
+      for (const group of groups) {
+        for (const capChipId of group.decouplingCapChipIds) {
+          const cap = this.partitionInputProblem.chipMap[capChipId]
+          const { mainPinId, capPinId } = group.capToMainPinMap[capChipId]
+          const mainPin = this.partitionInputProblem.chipPinMap[mainPinId]
+          const capPin = this.partitionInputProblem.chipPinMap[capPinId]
+          if (!cap || !mainPin || !capPin) continue
+
+          // Align the capacitor pin with the main chip pin, adding a gap
+          // We want: relPos + capPin.offset = mainPin.offset + sideVector * gap
+          let relX = mainPin.offset.x - capPin.offset.x
+          let relY = mainPin.offset.y - capPin.offset.y
+
+          if (mainPin.side === "x-") relX -= gap
+          else if (mainPin.side === "x+") relX += gap
+          else if (mainPin.side === "y-") relY -= gap
+          else if (mainPin.side === "y+") relY += gap
+
+          capsInMacro.push({ chipId: capChipId, relX, relY, rotation: 0 })
+
+          // Add cap pads to macro
+          for (const cPinId of cap.pins) {
+            const cPin = this.partitionInputProblem.chipPinMap[cPinId]
+            if (cPin) {
+              const networkId =
+                pinToNetworkMap.get(cPinId) || `${cPinId}_isolated`
+              macroPads.push({
+                padId: cPinId,
+                networkId: networkId,
+                type: "rect" as const,
+                offset: { x: relX + cPin.offset.x, y: relY + cPin.offset.y },
+                size: { x: PIN_SIZE, y: PIN_SIZE },
+              })
+            }
+          }
+          // Add cap body to macro
+          macroPads.push({
+            padId: `${capChipId}_body`,
+            networkId: `${capChipId}_body_disconnected`,
+            type: "rect" as const,
+            offset: { x: relX, y: relY },
+            size: { x: cap.size.x, y: cap.size.y },
+          })
+
+          handledChipIds.add(capChipId)
+        }
+      }
+
+      packComponents.push({
+        componentId: `macro_${mainChipId}`,
+        pads: macroPads,
+        availableRotationDegrees: mainChip.availableRotations || [
+          0, 90, 180, 270,
+        ],
+      })
+      handledChipIds.add(mainChipId)
+      this.macroComponents.set(`macro_${mainChipId}`, {
+        mainChipId,
+        caps: capsInMacro,
+      })
+    }
+
+    // Create pack components for each remaining chip
+    const remainingChips = Object.entries(
       this.partitionInputProblem.chipMap,
-    ).map(([chipId, chip]) => {
+    ).filter(([chipId]) => !handledChipIds.has(chipId))
+
+    for (const [chipId, chip] of remainingChips) {
       // Create pads for all pins of this chip
       const pads: Array<{
         padId: string
@@ -121,12 +241,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         },
       })
 
-      return {
+      packComponents.push({
         componentId: chipId,
         pads,
         availableRotationDegrees: chip.availableRotations || [0, 90, 180, 270],
-      }
-    })
+      })
+    }
 
     let minGap = this.partitionInputProblem.chipGap
     if (this.partitionInputProblem.partitionType === "decoupling_caps") {
@@ -147,15 +267,40 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     const chipPlacements: Record<string, Placement> = {}
 
     for (const packedComponent of packedComponents) {
-      const chipId = packedComponent.componentId
+      const compId = packedComponent.componentId
+      const x = packedComponent.center.x
+      const y = packedComponent.center.y
+      const rot =
+        packedComponent.ccwRotationOffset ||
+        packedComponent.ccwRotationDegrees ||
+        0
 
-      chipPlacements[chipId] = {
-        x: packedComponent.center.x,
-        y: packedComponent.center.y,
-        ccwRotationDegrees:
-          packedComponent.ccwRotationOffset ||
-          packedComponent.ccwRotationDegrees ||
-          0,
+      if (compId.startsWith("macro_")) {
+        const macro = this.macroComponents.get(compId)!
+        // Main chip is at (x, y) with rotation rot
+        chipPlacements[macro.mainChipId] = { x, y, ccwRotationDegrees: rot }
+
+        // Caps are at relative positions
+        for (const cap of macro.caps) {
+          // Rotate relative offset
+          const rad = (rot * Math.PI) / 180
+          const cos = Math.cos(rad)
+          const sin = Math.sin(rad)
+          const rotatedX = cap.relX * cos - cap.relY * sin
+          const rotatedY = cap.relX * sin + cap.relY * cos
+
+          chipPlacements[cap.chipId] = {
+            x: x + rotatedX,
+            y: y + rotatedY,
+            ccwRotationDegrees: (cap.rotation + rot) % 360,
+          }
+        }
+      } else {
+        chipPlacements[compId] = {
+          x,
+          y,
+          ccwRotationDegrees: rot,
+        }
       }
     }
 
