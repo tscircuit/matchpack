@@ -150,16 +150,17 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           // Add cap pads to macro
           for (const cPinId of cap.pins) {
             const cPin = this.partitionInputProblem.chipPinMap[cPinId]
-            if (!cPin) continue
-            const networkId =
-              pinToNetworkMap.get(cPinId) || `${cPinId}_isolated`
-            macroPads.push({
-              padId: cPinId,
-              networkId: networkId,
-              type: "rect" as const,
-              offset: { x: relX + cPin.offset.x, y: relY + cPin.offset.y },
-              size: { x: PIN_SIZE, y: PIN_SIZE },
-            })
+            if (cPin) {
+              const networkId =
+                pinToNetworkMap.get(cPinId) || `${cPinId}_isolated`
+              macroPads.push({
+                padId: cPinId,
+                networkId: networkId,
+                type: "rect" as const,
+                offset: { x: relX + cPin.offset.x, y: relY + cPin.offset.y },
+                size: { x: PIN_SIZE, y: PIN_SIZE },
+              })
+            }
           }
           // Add cap body to macro
           macroPads.push({
