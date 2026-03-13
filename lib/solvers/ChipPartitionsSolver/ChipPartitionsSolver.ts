@@ -54,9 +54,7 @@ export class ChipPartitionsSolver extends BaseSolver {
     if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {
       for (const group of this.decouplingCapGroups) {
         const capsOnly: ChipId[] = []
-        if (inputProblem.chipMap[group.mainChipId]) {
-          capsOnly.push(group.mainChipId)
-        }
+       
         for (const capId of group.decouplingCapChipIds) {
           if (inputProblem.chipMap[capId]) {
             capsOnly.push(capId)
