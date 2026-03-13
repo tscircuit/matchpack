@@ -150,6 +150,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           // Add cap pads to macro
           for (const cPinId of cap.pins) {
             const cPin = this.partitionInputProblem.chipPinMap[cPinId]
+            if (!cPin) continue
             const networkId =
               pinToNetworkMap.get(cPinId) || `${cPinId}_isolated`
             macroPads.push({
