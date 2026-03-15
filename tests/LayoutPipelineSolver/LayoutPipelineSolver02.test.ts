@@ -221,6 +221,38 @@ test("LayoutPipelineSolver02 complete pipeline execution", () => {
   expect(overlaps.length).toBe(0)
 })
 
+test("LayoutPipelineSolver02 deterministic overlap-free output across repeated runs", () => {
+  const circuitJson = getExampleCircuitJson()
+
+  const results: Array<ReturnType<LayoutPipelineSolver["getOutputLayout"]>> = []
+
+  for (let i = 0; i < 3; i++) {
+    const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
+      useReadableIds: true,
+    })
+    const solver = new LayoutPipelineSolver(problem)
+    solver.solve()
+
+    const layout = solver.getOutputLayout()
+    const overlaps = solver.checkForOverlaps(layout)
+
+    expect(overlaps.length).toBe(0)
+    results.push(layout)
+  }
+
+  // Ensure deterministic placement for a representative chip across runs
+  const reference = results[0].chipPlacements["U1"]
+  expect(reference).toBeDefined()
+
+  for (const layout of results.slice(1)) {
+    const current = layout.chipPlacements["U1"]
+    expect(current).toBeDefined()
+    expect(current.x).toBe(reference.x)
+    expect(current.y).toBe(reference.y)
+    expect(current.ccwRotationDegrees).toBe(reference.ccwRotationDegrees)
+  }
+})
+
 test("LayoutPipelineSolver02 overlap detection functionality", () => {
   // Convert ExampleCircuit02 to InputProblem
   const circuitJson = getExampleCircuitJson()
