@@ -251,6 +251,18 @@ test("LayoutPipelineSolver02 deterministic overlap-free output across repeated r
     expect(current.y).toBe(reference.y)
     expect(current.ccwRotationDegrees).toBe(reference.ccwRotationDegrees)
   }
+
+  // Secondary anchor chip consistency to reduce false confidence on single-chip checks
+  const c1Reference = results[0].chipPlacements["C1"]
+  expect(c1Reference).toBeDefined()
+
+  for (const layout of results.slice(1)) {
+    const currentC1 = layout.chipPlacements["C1"]
+    expect(currentC1).toBeDefined()
+    expect(currentC1.x).toBe(c1Reference.x)
+    expect(currentC1.y).toBe(c1Reference.y)
+    expect(currentC1.ccwRotationDegrees).toBe(c1Reference.ccwRotationDegrees)
+  }
 })
 
 test("LayoutPipelineSolver02 overlap detection functionality", () => {
