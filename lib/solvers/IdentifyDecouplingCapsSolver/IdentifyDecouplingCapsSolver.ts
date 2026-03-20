@@ -51,13 +51,19 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   private isTwoPinRestrictedRotation(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
 
-    // Must be restricted to 0/180 or a single fixed orientation
-    if (!chip.availableRotations) return false
-    const allowed = new Set<0 | 180>([0, 180])
-    return (
-      chip.availableRotations.length > 0 &&
-      chip.availableRotations.every((r) => allowed.has(r as 0 | 180))
-    )
+    // If availableRotations is explicitly set, verify it's restricted to 0/180
+    if (chip.availableRotations) {
+      const allowed = new Set<0 | 180>([0, 180])
+      return (
+        chip.availableRotations.length > 0 &&
+        chip.availableRotations.every((r) => allowed.has(r as 0 | 180))
+      )
+    }
+
+    // 2-pin components without explicit rotation constraints are still valid
+    // candidates — the pinsOnOppositeYSides check already confirms vertical
+    // orientation, which is the key structural indicator for a decoupling cap.
+    return true
   }
 
   /** Check that the two pins are on opposite Y sides (y+ and y-) */
@@ -126,12 +132,36 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return nets
   }
 
+  /**
+   * Get nets reachable from a pin, including nets on strongly-connected
+   * neighbor pins (one hop through a strong connection).
+   */
+  private getNetIdsForPinTransitive(pinId: PinId): Set<NetId> {
+    const nets = this.getNetIdsForPin(pinId)
+    if (nets.size > 0) return nets
+
+    // If the pin has no direct net, look at strongly-connected neighbor pins
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      const [a, b] = connKey.split("-") as [PinId, PinId]
+      let neighborPin: PinId | null = null
+      if (a === pinId) neighborPin = b
+      else if (b === pinId) neighborPin = a
+      if (!neighborPin) continue
+      const neighborNets = this.getNetIdsForPin(neighborPin)
+      for (const n of neighborNets) nets.add(n)
+    }
+    return nets
+  }
+
   /** Get a normalized, sorted pair of net IDs connected across the two pins of a capacitor chip */
   private getNormalizedNetPair(capChip: Chip): [NetId, NetId] | null {
     if (capChip.pins.length !== 2) return null
     const nets = new Set<NetId>()
     for (const pinId of capChip.pins) {
-      const pinNets = this.getNetIdsForPin(pinId)
+      const pinNets = this.getNetIdsForPinTransitive(pinId)
       for (const n of pinNets) nets.add(n)
     }
     if (nets.size !== 2) return null

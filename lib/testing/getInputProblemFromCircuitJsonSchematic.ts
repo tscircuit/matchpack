@@ -146,8 +146,21 @@ export const getInputProblemFromCircuitJsonSchematic = (
       readableIdToSourceNetId.set(netId, originalNetId)
     }
 
+    // Infer ground / positive voltage flags from net name
+    const nameLower = (sourceNet.name || "").toLowerCase()
+    const isGround =
+      nameLower === "gnd" || nameLower === "ground" || nameLower === "vss"
+    const isPositiveVoltageSource =
+      !isGround &&
+      (nameLower.startsWith("v") ||
+        nameLower.startsWith("+") ||
+        nameLower.includes("vdd") ||
+        nameLower.includes("vcc"))
+
     problem.netMap[netId] = {
       netId: netId,
+      ...(isGround ? { isGround: true } : {}),
+      ...(isPositiveVoltageSource ? { isPositiveVoltageSource: true } : {}),
     }
   }
 
