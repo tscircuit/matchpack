@@ -38,6 +38,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // For decoupling cap partitions, bypass PackSolver2 and use a clean
+    // linear row layout instead (avoids the messy overlapping placement).
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +69,50 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  /**
+   * Arrange decoupling capacitors in a clean horizontal row layout.
+   * Capacitors are sorted by their chip ID for deterministic ordering,
+   * then spaced evenly in a single row centered at the origin.
+   */
+  private createLinearDecouplingCapLayout(): OutputLayout {
+    const chipEntries = Object.entries(this.partitionInputProblem.chipMap)
+
+    // Sort by chipId for deterministic, clean ordering
+    chipEntries.sort(([a], [b]) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    )
+
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Calculate total width to center the row at origin
+    let totalWidth = 0
+    for (const [, chip] of chipEntries) {
+      totalWidth += chip.size.x
+    }
+    totalWidth += gap * (chipEntries.length - 1)
+
+    // Place each capacitor in a horizontal line
+    let currentX = -totalWidth / 2
+    for (const [chipId, chip] of chipEntries) {
+      currentX += chip.size.x / 2
+      chipPlacements[chipId] = {
+        x: currentX,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += chip.size.x / 2 + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
