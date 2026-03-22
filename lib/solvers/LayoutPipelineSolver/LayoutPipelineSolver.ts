@@ -116,6 +116,8 @@ export class LayoutPipelineSolver extends BaseSolver {
         {
           packedPartitions: this.packedPartitions || [],
           inputProblem: this.inputProblem,
+          decouplingCapGroups:
+            this.identifyDecouplingCapsSolver?.outputDecouplingCapGroups,
         },
       ],
       {
