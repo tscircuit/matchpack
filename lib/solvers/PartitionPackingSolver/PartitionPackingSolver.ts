@@ -10,15 +10,18 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
+import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 
 export interface PartitionPackingSolverInput {
   packedPartitions: PackedPartition[]
   inputProblem: InputProblem
+  decouplingCapGroups?: DecouplingCapGroup[]
 }
 
 export class PartitionPackingSolver extends BaseSolver {
   packedPartitions: PackedPartition[]
   inputProblem: InputProblem
+  decouplingCapGroups: DecouplingCapGroup[]
   finalLayout: OutputLayout | null = null
   packSolver2: PackSolver2 | null = null
 
@@ -26,6 +29,7 @@ export class PartitionPackingSolver extends BaseSolver {
     super()
     this.packedPartitions = input.packedPartitions
     this.inputProblem = input.inputProblem
+    this.decouplingCapGroups = input.decouplingCapGroups ?? []
   }
 
   override _step() {
@@ -72,6 +76,8 @@ export class PartitionPackingSolver extends BaseSolver {
           this.packSolver2.packedComponents,
           partitionGroups,
         )
+        // Post-process: move decoupling cap partitions adjacent to their main chip
+        this.placeDecouplingCapsAdjacentToMainChip(packedLayout, partitionGroups)
         this.finalLayout = packedLayout
         this.solved = true
         this.activeSubSolver = null
@@ -354,6 +360,155 @@ export class PartitionPackingSolver extends BaseSolver {
     }
   }
 
+  /**
+   * Post-processing step: moves decoupling cap partitions so they are placed
+   * directly adjacent to (below) their associated main IC partition, rather than
+   * scattered across the layout by the generic packing algorithm.
+   */
+  private placeDecouplingCapsAdjacentToMainChip(
+    layout: OutputLayout,
+    partitionGroups: Array<{
+      partitionIndex: number
+      chipIds: string[]
+      bounds: { minX: number; maxX: number; minY: number; maxY: number }
+    }>,
+  ): void {
+    if (this.decouplingCapGroups.length === 0) return
+
+    const gap = this.inputProblem.partitionGap
+
+    // Build a mapping from mainChipId -> set of decap partition indices (deduplicated)
+    const mainChipToDecapPartitions = new Map<
+      string,
+      Set<number>
+    >()
+
+    for (const group of this.decouplingCapGroups) {
+      const decapChipIds = new Set(group.decouplingCapChipIds)
+      const matchingDecapPartitions = partitionGroups.filter(
+        (pg) =>
+          (this.packedPartitions[pg.partitionIndex]?.inputProblem as any)
+            ?.partitionType === "decoupling_caps" &&
+          pg.chipIds.some((id) => decapChipIds.has(id)),
+      )
+
+      if (matchingDecapPartitions.length === 0) continue
+
+      let set = mainChipToDecapPartitions.get(group.mainChipId)
+      if (!set) {
+        set = new Set()
+        mainChipToDecapPartitions.set(group.mainChipId, set)
+      }
+      for (const pg of matchingDecapPartitions) {
+        set.add(pg.partitionIndex)
+      }
+    }
+
+    // Track which decap partitions have already been repositioned (avoid double-move)
+    const movedPartitionIndices = new Set<number>()
+
+    for (const [mainChipId, decapPartitionIndices] of mainChipToDecapPartitions) {
+      // Find the partition containing the main chip
+      const mainChipPartitionGroup = partitionGroups.find((pg) =>
+        pg.chipIds.includes(mainChipId),
+      )
+      if (!mainChipPartitionGroup) continue
+
+      // Calculate the main chip partition's current bounds in the final layout
+      const mainChipPartitionBounds = this.getPartitionBoundsInLayout(
+        mainChipPartitionGroup,
+        layout,
+      )
+      if (!mainChipPartitionBounds) continue
+
+      const mainCenterX =
+        (mainChipPartitionBounds.minX + mainChipPartitionBounds.maxX) / 2
+
+      // Stack decoupling cap partitions directly below the main chip partition
+      let currentY = mainChipPartitionBounds.maxY + gap
+
+      for (const partitionIndex of decapPartitionIndices) {
+        if (movedPartitionIndices.has(partitionIndex)) continue
+        movedPartitionIndices.add(partitionIndex)
+
+        const decapPG = partitionGroups.find(
+          (pg) => pg.partitionIndex === partitionIndex,
+        )
+        if (!decapPG) continue
+
+        // Compute bounds from current layout positions (after any prior moves)
+        const decapBounds = this.getPartitionBoundsInLayout(decapPG, layout)
+        if (!decapBounds) continue
+
+        const decapHeight = decapBounds.maxY - decapBounds.minY
+        const currentDecapCenterX = (decapBounds.minX + decapBounds.maxX) / 2
+        const currentDecapCenterY = (decapBounds.minY + decapBounds.maxY) / 2
+
+        // Target: horizontally aligned with main chip, placed directly below
+        const targetCenterX = mainCenterX
+        const targetCenterY = currentY + decapHeight / 2
+
+        const offsetX = targetCenterX - currentDecapCenterX
+        const offsetY = targetCenterY - currentDecapCenterY
+
+        // Apply offset to all chips in this decoupling cap partition
+        for (const chipId of decapPG.chipIds) {
+          const placement = layout.chipPlacements[chipId]
+          if (placement) {
+            placement.x += offsetX
+            placement.y += offsetY
+          }
+        }
+
+        currentY += decapHeight + gap
+      }
+    }
+  }
+
+  /**
+   * Calculates the bounding box of a partition's chips in the final layout.
+   */
+  private getPartitionBoundsInLayout(
+    partitionGroup: {
+      partitionIndex: number
+      chipIds: string[]
+      bounds: { minX: number; maxX: number; minY: number; maxY: number }
+    },
+    layout: OutputLayout,
+  ): { minX: number; maxX: number; minY: number; maxY: number } | null {
+    const packedPartition = this.packedPartitions[partitionGroup.partitionIndex]
+    if (!packedPartition) return null
+
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+
+    for (const chipId of partitionGroup.chipIds) {
+      const placement = layout.chipPlacements[chipId]
+      if (!placement) continue
+      const chip = packedPartition.inputProblem.chipMap[chipId]
+      if (!chip) continue
+
+      let chipWidth = chip.size.x
+      let chipHeight = chip.size.y
+      if (
+        placement.ccwRotationDegrees === 90 ||
+        placement.ccwRotationDegrees === 270
+      ) {
+        ;[chipWidth, chipHeight] = [chipHeight, chipWidth]
+      }
+
+      minX = Math.min(minX, placement.x - chipWidth / 2)
+      maxX = Math.max(maxX, placement.x + chipWidth / 2)
+      minY = Math.min(minY, placement.y - chipHeight / 2)
+      maxY = Math.max(maxY, placement.y + chipHeight / 2)
+    }
+
+    if (minX === Infinity) return null
+    return { minX, maxX, minY, maxY }
+  }
+
   override visualize(): GraphicsObject {
     if (this.packSolver2 && !this.solved) {
       return this.packSolver2.visualize()
@@ -402,6 +557,7 @@ export class PartitionPackingSolver extends BaseSolver {
     return {
       packedPartitions: this.packedPartitions,
       inputProblem: this.inputProblem,
+      decouplingCapGroups: this.decouplingCapGroups,
     }
   }
 }
