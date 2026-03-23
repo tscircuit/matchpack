@@ -26,8 +26,10 @@
     "graphics-debug": "^0.0.64",
     "react-cosmos": "^7.0.0",
     "react-cosmos-plugin-vite": "^7.0.0",
+    "ts-node": "^10.9.2",
     "tscircuit": "^0.0.593",
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "typescript": "^5"

@@ -9,16 +9,16 @@ export class DecouplingCapLayoutSolver {
     const components = this.inputProblem.components || []
 
     const capacitors = components.filter((c: any) =>
-      c.type?.toLowerCase()?.includes("cap")
+      c.type?.toLowerCase()?.includes("cap"),
     )
 
     const chips = components.filter((c: any) =>
-      c.type?.toLowerCase()?.includes("chip")
+      c.type?.toLowerCase()?.includes("chip"),
     )
 
     chips.forEach((chip: any) => {
       const relatedCaps = capacitors.filter((cap: any) =>
-        cap.pins?.some((p: any) => p.net === "GND")
+        cap.pins?.some((p: any) => p.net === "GND"),
       )
 
       const spacing = 5
