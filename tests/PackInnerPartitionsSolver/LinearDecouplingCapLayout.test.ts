@@ -295,7 +295,7 @@ test("Decoupling cap layout is deterministic (sorted by chipId)", () => {
     // The left-to-right order should match lexicographic sorting of chipIds
     const sortedById = [...chipIds].sort((a, b) => a.localeCompare(b))
     for (let i = 0; i < sorted.length; i++) {
-      expect(sorted[i]!.id).toBe(sortedById[i])
+      expect(sorted[i]!.id).toBe(sortedById[i]!)
     }
   }
 })
