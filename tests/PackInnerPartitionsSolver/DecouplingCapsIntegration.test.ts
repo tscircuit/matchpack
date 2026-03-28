@@ -30,8 +30,16 @@ function buildDecapProblem(capCount = 4): InputProblem {
     },
   }
   const chipPinMap: InputProblem["chipPinMap"] = {
-    "U1.VCC": { pinId: "U1.VCC", offset: { x: 0, y: mcuSize.y / 2 }, side: "y+" },
-    "U1.GND": { pinId: "U1.GND", offset: { x: 0, y: -mcuSize.y / 2 }, side: "y-" },
+    "U1.VCC": {
+      pinId: "U1.VCC",
+      offset: { x: 0, y: mcuSize.y / 2 },
+      side: "y+",
+    },
+    "U1.GND": {
+      pinId: "U1.GND",
+      offset: { x: 0, y: -mcuSize.y / 2 },
+      side: "y-",
+    },
   }
   const netMap: InputProblem["netMap"] = {
     VCC: { netId: "VCC", isPositiveVoltageSource: true },
@@ -53,8 +61,16 @@ function buildDecapProblem(capCount = 4): InputProblem {
       size: capSize,
       availableRotations: [0, 180],
     }
-    chipPinMap[p1] = { pinId: p1, offset: { x: 0, y: capSize.y / 2 }, side: "y+" }
-    chipPinMap[p2] = { pinId: p2, offset: { x: 0, y: -capSize.y / 2 }, side: "y-" }
+    chipPinMap[p1] = {
+      pinId: p1,
+      offset: { x: 0, y: capSize.y / 2 },
+      side: "y+",
+    }
+    chipPinMap[p2] = {
+      pinId: p2,
+      offset: { x: 0, y: -capSize.y / 2 },
+      side: "y-",
+    }
     netConnMap[`${p1}-VCC`] = true
     netConnMap[`${p2}-GND`] = true
     // Strong connection to U1 (cap pin 1 → U1.VCC) so IdentifyDecouplingCapsSolver picks it up

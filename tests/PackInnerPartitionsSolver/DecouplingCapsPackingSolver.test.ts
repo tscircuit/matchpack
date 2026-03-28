@@ -120,9 +120,7 @@ test("DecouplingCapsPackingSolver: row is centered at x=0", () => {
   expect(solver.solved).toBe(true)
   const layout = solver.layout!
 
-  const xs = ["C1", "C2", "C3", "C4"].map(
-    (id) => layout.chipPlacements[id]!.x,
-  )
+  const xs = ["C1", "C2", "C3", "C4"].map((id) => layout.chipPlacements[id]!.x)
   const centerX = xs.reduce((s, x) => s + x, 0) / xs.length
   // The row center should be very close to 0
   expect(centerX).toBeCloseTo(0, 4)
