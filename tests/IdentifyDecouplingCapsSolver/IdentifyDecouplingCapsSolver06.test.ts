@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test"
 import { IdentifyDecouplingCapsSolver } from "../../lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
-import { problem } from "../../pages/LayoutPipelineSolver/LayoutPipelineSolver06.page.tsx"
+import { problem } from "../../pages/LayoutPipelineSolver/LayoutPipelineSolver06.data"
 
 test("IdentifyDecouplingCapsSolver identifies decoupling capacitor groups from LayoutPipelineSolver06", () => {
   const solver = new IdentifyDecouplingCapsSolver(problem)
