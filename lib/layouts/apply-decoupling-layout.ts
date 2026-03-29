@@ -1,421 +1,87 @@
 /**
  * apply-decoupling-layout.ts
  *
- * Integrates the decoupling capacitor layout algorithm with the matchpack
- * circuit-soup / soup-element pipeline.
+ * Integrates `layoutDecouplingCapacitors` with the matchpack "soup" element
+ * format.  Reads `source_component`, `source_port`, `source_net`, and
+ * `source_trace` elements to:
  *
- * Given a parsed circuit soup (array of elements), this function:
- *   1. Finds the primary IC component.
- *   2. Identifies its power/ground pins.
- *   3. Finds the decoupling capacitors connected to those pins.
- *   4. Calls layoutDecouplingCapacitors() to compute optimal positions.
- *   5. Returns a new soup with updated pcb_component positions/rotations for
- *      every decoupling capacitor.
- *
- * Issue: https://github.com/tscircuit/matchpack/issues/15
+ *   1. Identify which source components are decoupling capacitors
+ *      (`buildDecapMap`).
+ *   2. Resolve the reference IC power-pin position/side for each decap from
+ *      the IC ports that share the same net (`buildIcPowerPinsByNetId`).
+ *   3. Run the placement algorithm.
+ *   4. Write the resulting `x/y/rotation` back to the corresponding
+ *      `pcb_component` elements.
  */
 
 import {
   layoutDecouplingCapacitors,
+  filterDecouplingPins,
   isPowerNet,
-  type ComponentBounds,
   type PinInfo,
-  type DecouplingCapacitorLayoutOptions,
+  type Side,
+  type DecapPlacement,
+  type DecapLayoutOptions,
 } from "./decoupling-capacitor-layout"
 
 // ---------------------------------------------------------------------------
-// Minimal soup element types (mirrors what tscircuit uses)
+// Soup element type stubs
+// (matchpack's actual soup types are duck-typed; we only reference the fields
+//  we need so the file stays self-contained.)
 // ---------------------------------------------------------------------------
 
-interface SoupElement {
-  type: string
-  [key: string]: unknown
-}
-
-interface PcbComponent extends SoupElement {
-  type: "pcb_component"
-  pcb_component_id: string
+interface SourceComponent {
   source_component_id: string
-  center: { x: number; y: number }
-  width: number
-  height: number
-  rotation: number
-  layer: string
-}
-
-interface SourceComponent extends SoupElement {
-  type: "source_component"
-  source_component_id: string
-  name: string
+  name?: string
+  /** e.g. "capacitor", "resistor", "chip", … */
   ftype?: string
-  // Additional fields vary by component type
+  supplier_part_numbers?: Record<string, string[]>
+  properties?: Record<string, string>
 }
 
-interface SourcePort extends SoupElement {
-  type: "source_port"
+interface SourcePort {
   source_port_id: string
   source_component_id: string
-  name: string
+  name?: string
   pin_number?: number
+  /** Pre-computed position (present on IC ports when schematic has been laid out) */
+  position?: { x: number; y: number }
+  /** Which side of the package this port is on */
+  side?: Side
 }
 
-interface SourceNet extends SoupElement {
-  type: "source_net"
+interface SourceNet {
   source_net_id: string
   name: string
 }
 
-interface SourceTrace extends SoupElement {
-  type: "source_trace"
+interface SourceTrace {
   source_trace_id: string
   connected_source_port_ids: string[]
-  connected_source_net_ids: string[]
+  connected_source_net_id?: string
 }
 
-interface PcbPort extends SoupElement {
-  type: "pcb_port"
-  pcb_port_id: string
-  source_port_id: string
+interface PcbComponent {
   pcb_component_id: string
-  x: number
-  y: number
-  layers: string[]
+  source_component_id: string
+  center?: { x: number; y: number }
+  x?: number
+  y?: number
+  rotation?: number
+  layer?: string
+}
+
+export interface SoupElements {
+  source_components?: SourceComponent[]
+  source_ports?: SourcePort[]
+  source_nets?: SourceNet[]
+  source_traces?: SourceTrace[]
+  pcb_components?: PcbComponent[]
 }
 
 // ---------------------------------------------------------------------------
-// Main function
+// Helper: stable integer hash for a string (used as fallback pinNumber)
 // ---------------------------------------------------------------------------
-
-export interface ApplyDecouplingLayoutOptions
-  extends DecouplingCapacitorLayoutOptions {
-  /**
-   * source_component_id of the main IC to process.
-   * If omitted, the function attempts to auto-detect the largest / primary IC.
-   */
-  icComponentId?: string
-
-  /**
-   * Names (or regexes) of component types to treat as decoupling capacitors.
-   * Defaults to any component whose ftype/name includes "cap" or "C".
-   */
-  capComponentIds?: string[]
-}
-
-/**
- * Apply a clean decoupling-capacitor layout to a matchpack soup.
- *
- * Returns a new soup array with updated `pcb_component` positions/rotations
- * for all identified decoupling capacitors.
- */
-export function applyDecouplingLayout(
-  soup: SoupElement[],
-  options: ApplyDecouplingLayoutOptions = {},
-): SoupElement[] {
-  const { icComponentId, capComponentIds, ...layoutOptions } = options
-
-  // Index elements by type for fast lookup
-  const byType = groupByType(soup)
-
-  const pcbComponents = (byType["pcb_component"] ?? []) as PcbComponent[]
-  const sourceComponents = (byType["source_component"] ??
-    []) as SourceComponent[]
-  const sourcePorts = (byType["source_port"] ?? []) as SourcePort[]
-  const sourceNets = (byType["source_net"] ?? []) as SourceNet[]
-  const sourceTraces = (byType["source_trace"] ?? []) as SourceTrace[]
-  const pcbPorts = (byType["pcb_port"] ?? []) as PcbPort[]
-
-  // ---- 1. Find the IC -------------------------------------------------
-  const ic = findIC(sourceComponents, pcbComponents, icComponentId)
-  if (!ic) {
-    // Nothing to do
-    return soup
-  }
-
-  const icPcb = pcbComponents.find(
-    (c) => c.source_component_id === ic.source_component_id,
-  )
-  if (!icPcb) return soup
-
-  const chipBounds: ComponentBounds = {
-    centre: { x: icPcb.center.x, y: icPcb.center.y },
-    width: icPcb.width,
-    height: icPcb.height,
-  }
-
-  // ---- 2. Build a net-name index for port → net name ------------------
-  const portNetName = buildPortNetIndex(sourcePorts, sourceNets, sourceTraces)
-
-  // ---- 3. Identify power ports on the IC ------------------------------
-  const icSourcePorts = sourcePorts.filter(
-    (p) => p.source_component_id === ic.source_component_id,
-  )
-
-  const powerPorts = icSourcePorts.filter((p) => {
-    const net = portNetName[p.source_port_id]
-    return net ? isPowerNet(net) : false
-  })
-
-  if (powerPorts.length === 0) return soup
-
-  // ---- 4. Build PinInfo for each power port ---------------------------
-  const icPcbPorts = pcbPorts.filter((pp) => pp.pcb_component_id === icPcb.pcb_component_id)
-
-  const pins: PinInfo[] = powerPorts.flatMap((sp) => {
-    const pcbPort = icPcbPorts.find((pp) => pp.source_port_id === sp.source_port_id)
-    if (!pcbPort) return []
-
-    const side = classifySide(
-      { x: pcbPort.x, y: pcbPort.y },
-      chipBounds,
-    )
-    const net = portNetName[sp.source_port_id] ?? ""
-
-    return [
-      {
-        pinNumber: sp.pin_number ?? derivePin(sp.name),
-        net,
-        position: { x: pcbPort.x, y: pcbPort.y },
-        side,
-      } satisfies PinInfo,
-    ]
-  })
-
-  if (pins.length === 0) return soup
-
-  // ---- 5. Find decoupling capacitors connected to those power nets -----
-  const powerNetIds = new Set<string>()
-  for (const sp of powerPorts) {
-    const netId = findNetId(sp.source_port_id, sourceTraces)
-    if (netId) powerNetIds.add(netId)
-  }
-
-  // Map: source_component_id → the power pin it decouples
-  const decapMap = buildDecapMap(
-    sourceComponents,
-    sourcePorts,
-    sourceTraces,
-    powerNetIds,
-    ic.source_component_id,
-    capComponentIds,
-  )
-
-  if (decapMap.size === 0) return soup
-
-  // ---- 6. Run layout --------------------------------------------------
-  // Create a pin entry per decoupling cap (using the IC power pin position)
-  const capPins: PinInfo[] = []
-  for (const [capSrcId, pinInfo] of decapMap.entries()) {
-    capPins.push({ ...pinInfo, pinNumber: hashString(capSrcId) })
-  }
-
-  const placements = layoutDecouplingCapacitors(chipBounds, capPins, layoutOptions)
-
-  // ---- 7. Apply placements back to soup elements ----------------------
-  const updatedIds = new Set<string>()
-  const capSrcIds = [...decapMap.keys()]
-
-  const newSoup = soup.map((el) => {
-    if (el.type !== "pcb_component") return el
-    const pcbComp = el as PcbComponent
-    const srcId = pcbComp.source_component_id
-    const idx = capSrcIds.indexOf(srcId)
-    if (idx === -1) return el
-
-    const placement = placements[idx]
-    if (!placement) return el
-
-    updatedIds.add(srcId)
-    return {
-      ...pcbComp,
-      center: placement.position,
-      rotation: placement.rotation,
-    } as PcbComponent
-  })
-
-  return newSoup
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function groupByType(
-  soup: SoupElement[],
-): Record<string, SoupElement[]> {
-  const result: Record<string, SoupElement[]> = {}
-  for (const el of soup) {
-    if (!result[el.type]) result[el.type] = []
-    result[el.type].push(el)
-  }
-  return result
-}
-
-function findIC(
-  sourceComponents: SourceComponent[],
-  pcbComponents: PcbComponent[],
-  icComponentId?: string,
-): SourceComponent | undefined {
-  if (icComponentId) {
-    return sourceComponents.find(
-      (c) => c.source_component_id === icComponentId,
-    )
-  }
-
-  // Heuristic: the component with the largest pcb footprint area is the IC
-  let best: SourceComponent | undefined
-  let bestArea = -1
-
-  for (const sc of sourceComponents) {
-    const pcb = pcbComponents.find(
-      (p) => p.source_component_id === sc.source_component_id,
-    )
-    if (!pcb) continue
-    const area = pcb.width * pcb.height
-    if (area > bestArea) {
-      bestArea = area
-      best = sc
-    }
-  }
-
-  return best
-}
-
-function buildPortNetIndex(
-  sourcePorts: SourcePort[],
-  sourceNets: SourceNet[],
-  sourceTraces: SourceTrace[],
-): Record<string, string> {
-  const netIdToName: Record<string, string> = {}
-  for (const net of sourceNets) {
-    netIdToName[net.source_net_id] = net.name
-  }
-
-  const portToNet: Record<string, string> = {}
-  for (const trace of sourceTraces) {
-    const netIds = trace.connected_source_net_ids
-    const portIds = trace.connected_source_port_ids
-    for (const netId of netIds) {
-      const netName = netIdToName[netId]
-      if (!netName) continue
-      for (const portId of portIds) {
-        portToNet[portId] = netName
-      }
-    }
-  }
-
-  return portToNet
-}
-
-function findNetId(
-  portId: string,
-  sourceTraces: SourceTrace[],
-): string | undefined {
-  for (const trace of sourceTraces) {
-    if (trace.connected_source_port_ids.includes(portId)) {
-      return trace.connected_source_net_ids[0]
-    }
-  }
-  return undefined
-}
-
-/**
- * Determine which side of the chip a port falls on, based on proximity to each
- * edge of the chip bounding box.
- */
-function classifySide(
-  portPos: { x: number; y: number },
-  chip: ComponentBounds,
-): "top" | "bottom" | "left" | "right" {
-  const dx = portPos.x - chip.centre.x
-  const dy = portPos.y - chip.centre.y
-
-  const fromRight = chip.width / 2 - Math.abs(dx)
-  const fromTop = chip.height / 2 - Math.abs(dy)
-
-  if (fromRight < fromTop) {
-    return dx > 0 ? "right" : "left"
-  } else {
-    return dy > 0 ? "top" : "bottom"
-  }
-}
-
-/**
- * Build a map from decoupling-capacitor source_component_id → PinInfo of the
- * IC power pin it is associated with.
- *
- * A component is considered a decoupling capacitor if:
- *   - It is in capComponentIds (if provided), OR
- *   - Its name starts with "C" and it has exactly two ports, one of which
- *     is connected to a power net of the IC.
- */
-function buildDecapMap(
-  sourceComponents: SourceComponent[],
-  sourcePorts: SourcePort[],
-  sourceTraces: SourceTrace[],
-  powerNetIds: Set<string>,
-  icSrcId: string,
-  capComponentIds?: string[],
-): Map<string, PinInfo> {
-  const result = new Map<string, PinInfo>()
-
-  const capSet = capComponentIds ? new Set(capComponentIds) : null
-
-  // Build port → netId index
-  const portToNetId: Record<string, string> = {}
-  for (const trace of sourceTraces) {
-    for (const portId of trace.connected_source_port_ids) {
-      if (trace.connected_source_net_ids[0]) {
-        portToNetId[portId] = trace.connected_source_net_ids[0]
-      }
-    }
-  }
-
-  const portsByComponent: Record<string, SourcePort[]> = {}
-  for (const port of sourcePorts) {
-    if (!portsByComponent[port.source_component_id]) {
-      portsByComponent[port.source_component_id] = []
-    }
-    portsByComponent[port.source_component_id].push(port)
-  }
-
-  for (const sc of sourceComponents) {
-    if (sc.source_component_id === icSrcId) continue
-
-    const isCapByList = capSet?.has(sc.source_component_id)
-    const isCapByName =
-      !capSet &&
-      typeof sc.name === "string" &&
-      /^C\d*$|^cap/i.test(sc.name)
-
-    if (!isCapByList && !isCapByName) continue
-
-    const ports = portsByComponent[sc.source_component_id] ?? []
-    if (ports.length !== 2) continue
-
-    for (const port of ports) {
-      const netId = portToNetId[port.source_port_id]
-      if (netId && powerNetIds.has(netId)) {
-        // This capacitor is connected to a power net — it's a decoupling cap
-        // Use a placeholder PinInfo; actual position will be the IC pin position
-        // (resolved during layoutDecouplingCapacitors call)
-        result.set(sc.source_component_id, {
-          pinNumber: hashString(sc.source_component_id),
-          net: netId,
-          position: { x: 0, y: 0 }, // placeholder
-          side: "top", // placeholder — overridden by actual pin position
-        })
-        break
-      }
-    }
-  }
-
-  return result
-}
-
-function derivePin(name: string): number {
-  const m = name.match(/\d+/)
-  return m ? parseInt(m[0], 10) : 0
-}
 
 function hashString(s: string): number {
   let h = 0
@@ -423,4 +89,234 @@ function hashString(s: string): number {
     h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
   }
   return Math.abs(h)
+}
+
+// ---------------------------------------------------------------------------
+// Helper: determine whether a SourceComponent looks like a capacitor
+// ---------------------------------------------------------------------------
+
+function isCapacitor(sc: SourceComponent): boolean {
+  if (sc.ftype?.toLowerCase().includes("capacitor")) return true
+  if (sc.name?.toLowerCase().startsWith("c")) return true
+  return false
+}
+
+// ---------------------------------------------------------------------------
+// Helper: determine whether a SourceComponent looks like an IC / chip
+// ---------------------------------------------------------------------------
+
+function isIc(sc: SourceComponent): boolean {
+  const ftype = sc.ftype?.toLowerCase() ?? ""
+  return (
+    ftype.includes("chip") ||
+    ftype.includes("ic") ||
+    ftype.includes("microcontroller") ||
+    ftype.includes("mcu") ||
+    ftype.includes("fpga") ||
+    ftype.includes("regulator") ||
+    ftype === "simple_chip"
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Build a map: netId → PinInfo for IC power pins
+// ---------------------------------------------------------------------------
+
+/**
+ * Scans all IC source_ports that belong to a power net and returns a map
+ * keyed by `source_net_id`.  Only the *first* IC power port found for each
+ * net is stored; later decaps on the same net reuse that reference position.
+ *
+ * If a net has multiple IC power pins (e.g. several VDD pins) the algorithm
+ * will still place each decap relative to the closest pin — but resolving
+ * "closest" requires PCB coordinates which may not yet be available.  As a
+ * pragmatic fallback we use the first match.
+ */
+function buildIcPowerPinsByNetId(
+  elements: SoupElements,
+): Map<string, PinInfo> {
+  const {
+    source_components = [],
+    source_ports = [],
+    source_nets = [],
+    source_traces = [],
+  } = elements
+
+  // Index
+  const netById = new Map<string, SourceNet>(
+    source_nets.map((n) => [n.source_net_id, n]),
+  )
+  const portById = new Map<string, SourcePort>(
+    source_ports.map((p) => [p.source_port_id, p]),
+  )
+  const icIds = new Set<string>(
+    source_components.filter(isIc).map((c) => c.source_component_id),
+  )
+
+  // For each trace that connects to a power net, find any IC port on that net.
+  const result = new Map<string, PinInfo>()
+
+  for (const trace of source_traces) {
+    const { connected_source_net_id: netId, connected_source_port_ids: portIds } =
+      trace
+    if (!netId) continue
+    const net = netById.get(netId)
+    if (!net || !isPowerNet(net.name)) continue
+
+    for (const portId of portIds) {
+      const port = portById.get(portId)
+      if (!port) continue
+      if (!icIds.has(port.source_component_id)) continue
+
+      // We have an IC port on a power net.
+      if (result.has(netId)) continue // already recorded one for this net
+
+      result.set(netId, {
+        pinNumber: port.pin_number ?? hashString(portId),
+        net: net.name,
+        position: port.position ?? { x: 0, y: 0 },
+        side: port.side ?? "top",
+      })
+    }
+  }
+
+  return result
+}
+
+// ---------------------------------------------------------------------------
+// Build the decap map consumed by layoutDecouplingCapacitors
+// ---------------------------------------------------------------------------
+
+/**
+ * For each capacitor source component that is connected to a power net,
+ * builds a `PinInfo` record anchored to the IC power pin on that same net.
+ *
+ * The `position` and `side` fields come from `icPowerPinsByNetId` so that
+ * the layout algorithm places every decap adjacent to the real IC pin rather
+ * than at the origin.
+ */
+export function buildDecapMap(
+  elements: SoupElements,
+): Map<string, PinInfo> {
+  const {
+    source_components = [],
+    source_nets = [],
+    source_traces = [],
+    source_ports = [],
+  } = elements
+
+  const netById = new Map<string, SourceNet>(
+    source_nets.map((n) => [n.source_net_id, n]),
+  )
+  // Map source_component_id → its ports
+  const portsByComponent = new Map<string, SourcePort[]>()
+  for (const port of source_ports) {
+    const arr = portsByComponent.get(port.source_component_id) ?? []
+    arr.push(port)
+    portsByComponent.set(port.source_component_id, arr)
+  }
+
+  // Resolve IC power-pin reference positions for every power net.
+  const icPowerPinsByNetId = buildIcPowerPinsByNetId(elements)
+
+  // Build a quick lookup: portId → netId (from traces)
+  const netIdByPortId = new Map<string, string>()
+  for (const trace of source_traces) {
+    if (!trace.connected_source_net_id) continue
+    for (const portId of trace.connected_source_port_ids) {
+      netIdByPortId.set(portId, trace.connected_source_net_id)
+    }
+  }
+
+  const result = new Map<string, PinInfo>()
+
+  for (const sc of source_components) {
+    if (!isCapacitor(sc)) continue
+
+    const ports = portsByComponent.get(sc.source_component_id) ?? []
+
+    // A decoupling cap has at least one port connected to a power net.
+    // Find the first such port.
+    let powerNetId: string | undefined
+    for (const port of ports) {
+      const netId = netIdByPortId.get(port.source_port_id)
+      if (!netId) continue
+      const net = netById.get(netId)
+      if (net && isPowerNet(net.name)) {
+        powerNetId = netId
+        break
+      }
+    }
+
+    if (!powerNetId) continue // not a decoupling cap
+
+    const net = netById.get(powerNetId)!
+
+    // Resolve the IC power-pin info for this net.
+    // This gives us the real position + side so the placement is anchored
+    // to the correct IC pin rather than defaulting to (0,0) / "top".
+    const icPinInfo = icPowerPinsByNetId.get(powerNetId)
+
+    result.set(sc.source_component_id, {
+      pinNumber: icPinInfo?.pinNumber ?? hashString(sc.source_component_id),
+      net: net.name,
+      position: icPinInfo?.position ?? { x: 0, y: 0 },
+      side: icPinInfo?.side ?? "top",
+    })
+  }
+
+  return result
+}
+
+// ---------------------------------------------------------------------------
+// Public entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * Runs the full decoupling-capacitor layout pass on `elements`:
+ *
+ * 1. Builds the decap map (with real IC pin positions/sides).
+ * 2. Calls `layoutDecouplingCapacitors`.
+ * 3. Applies the resulting placements to `pcb_components` in-place.
+ *
+ * Returns the list of computed placements (useful for testing / previewing).
+ */
+export function applyDecouplingLayout(
+  elements: SoupElements,
+  options: DecapLayoutOptions = {},
+): DecapPlacement[] {
+  const decapMap = buildDecapMap(elements)
+
+  // Filter to only power-net-connected decaps (redundant given buildDecapMap,
+  // but keeps the pipeline explicit and matches the filterDecouplingPins API).
+  const filteredMap = new Map<string, PinInfo>()
+  for (const [id, pinInfo] of decapMap) {
+    if (isPowerNet(pinInfo.net)) {
+      filteredMap.set(id, pinInfo)
+    }
+  }
+
+  const placements = layoutDecouplingCapacitors(filteredMap, options)
+
+  // Write placements back into pcb_components.
+  if (elements.pcb_components) {
+    const pcbById = new Map<string, PcbComponent>(
+      elements.pcb_components.map((c) => [c.source_component_id, c]),
+    )
+
+    for (const placement of placements) {
+      const pcb = pcbById.get(placement.componentId)
+      if (!pcb) continue
+      // Support both center-object and flat x/y formats.
+      if (pcb.center !== undefined) {
+        pcb.center = placement.position
+      } else {
+        pcb.x = placement.position.x
+        pcb.y = placement.position.y
+      }
+      pcb.rotation = placement.rotation
+    }
+  }
+
+  return placements
 }
