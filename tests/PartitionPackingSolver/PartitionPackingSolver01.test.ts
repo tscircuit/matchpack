@@ -2,7 +2,7 @@ import { test, expect } from "bun:test"
 import {
   PartitionPackingSolver,
   type PartitionPackingSolverInput,
-} from "../../lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+} from "../../lib/index"
 import type { PackedPartition } from "../../lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
 test("PartitionPackingSolver works with single packed partition", () => {

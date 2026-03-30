@@ -12,6 +12,7 @@ const soicPinLabels = {
   pin8: ["GP4"],
 } as const
 
+// @ts-ignore
 const SOIC = (props: ChipProps<typeof soicPinLabels>) => {
   return (
     <chip

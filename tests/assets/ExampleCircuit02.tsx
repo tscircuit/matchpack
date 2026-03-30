@@ -8,6 +8,7 @@ const rt9013PinLabels = {
   pin4: ["VOUT"],
 } as const
 
+// @ts-ignore
 const RT9013_33GB = (props: ChipProps<typeof rt9013PinLabels>) => {
   return (
     <chip

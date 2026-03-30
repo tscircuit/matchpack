@@ -3,7 +3,7 @@ import { GenericSolverDebugger } from "lib/components/GenericSolverDebugger"
 import {
   PartitionPackingSolver,
   type PartitionPackingSolverInput,
-} from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+} from "lib/index"
 import type { InputProblem } from "lib/types/InputProblem"
 
 // Static input data - generated from running the solver chain (see corresponding test)
