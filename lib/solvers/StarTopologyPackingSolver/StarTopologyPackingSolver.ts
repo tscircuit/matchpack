@@ -60,7 +60,9 @@ export class StarTopologyPackingSolver extends BaseSolver {
       const chip = this.partitionInputProblem.chipMap[chipId]!
       if (chip.pins.length > 2) {
         if (mainChipId) {
-          throw new Error("Multiple >2 pin chips found, not a simple star topology")
+          throw new Error(
+            "Multiple >2 pin chips found, not a simple star topology",
+          )
         }
         mainChipId = chipId
       } else {
@@ -70,9 +72,9 @@ export class StarTopologyPackingSolver extends BaseSolver {
 
     // Fallback: if all chips are 2 pins, just pick the central one based on connections.
     if (!mainChipId) {
-       // Since the task says "bad layout with voltage regulator", we usually have an IC.
-       // But if they are all 2-pin, we'll just abort and fall back to SingleInnerPartitionPackingSolver.
-       throw new Error("No main IC found in partition for star topology")
+      // Since the task says "bad layout with voltage regulator", we usually have an IC.
+      // But if they are all 2-pin, we'll just abort and fall back to SingleInnerPartitionPackingSolver.
+      throw new Error("No main IC found in partition for star topology")
     }
 
     const mainChip = this.partitionInputProblem.chipMap[mainChipId]!
@@ -120,8 +122,10 @@ export class StarTopologyPackingSolver extends BaseSolver {
       }
 
       if (!connectedMainPinId) {
-         // Sub-optimal: if it doesn't directly connect to main chip, this isn't a pure star topology.
-         throw new Error(`Satellite ${satId} is not connected directly to main chip ${mainChipId}`)
+        // Sub-optimal: if it doesn't directly connect to main chip, this isn't a pure star topology.
+        throw new Error(
+          `Satellite ${satId} is not connected directly to main chip ${mainChipId}`,
+        )
       }
 
       const mainPin = this.partitionInputProblem.chipPinMap[connectedMainPinId]!
@@ -133,9 +137,11 @@ export class StarTopologyPackingSolver extends BaseSolver {
     }
 
     // For each side, stack the components so they don't overlap.
-    const gap = this.partitionInputProblem.partitionType === "decoupling_caps"
-      ? (this.partitionInputProblem.decouplingCapsGap ?? this.partitionInputProblem.chipGap)
-      : this.partitionInputProblem.chipGap
+    const gap =
+      this.partitionInputProblem.partitionType === "decoupling_caps"
+        ? (this.partitionInputProblem.decouplingCapsGap ??
+          this.partitionInputProblem.chipGap)
+        : this.partitionInputProblem.chipGap
 
     for (const side of Object.keys(sideGroups)) {
       const sats = sideGroups[side]!
@@ -145,7 +151,7 @@ export class StarTopologyPackingSolver extends BaseSolver {
       // E.g. for "x-" side, sort by y offset.
       if (side === "x-" || side === "x+") {
         sats.sort((a, b) => b.targetPin.offset.y - a.targetPin.offset.y) // top to bottom
-        
+
         let currentYOffset = 0
         // Group by pin to align caps connected to the same pin together?
         // Let's just stack them sequentially next to their target pins.
@@ -186,12 +192,12 @@ export class StarTopologyPackingSolver extends BaseSolver {
 
           // Check if it overlaps with the previously placed capacitor
           if (currentY !== Infinity) {
-             const prevBottom = currentY - (gap) // we're going top to bottom, so currentY is the top coordinate of the NEXT space
-             const neededTop = placeY + (satHeight/2)
-             if (neededTop > prevBottom) {
-                // Must push down
-                placeY = prevBottom - (satHeight/2)
-             }
+            const prevBottom = currentY - gap // we're going top to bottom, so currentY is the top coordinate of the NEXT space
+            const neededTop = placeY + satHeight / 2
+            if (neededTop > prevBottom) {
+              // Must push down
+              placeY = prevBottom - satHeight / 2
+            }
           }
 
           // X placement: just outside the main chip
@@ -199,7 +205,7 @@ export class StarTopologyPackingSolver extends BaseSolver {
           if (side === "x-") {
             placeX = -(mainChip.size.x / 2 + gap + satWidth / 2)
           } else {
-            placeX = (mainChip.size.x / 2 + gap + satWidth / 2)
+            placeX = mainChip.size.x / 2 + gap + satWidth / 2
           }
 
           chipPlacements[req.chipId] = {
@@ -208,7 +214,7 @@ export class StarTopologyPackingSolver extends BaseSolver {
             ccwRotationDegrees: rotationDegrees,
           }
 
-          currentY = placeY - (satHeight/2)
+          currentY = placeY - satHeight / 2
         }
       } else {
         // "y-" or "y+" side
@@ -224,18 +230,18 @@ export class StarTopologyPackingSolver extends BaseSolver {
           let placeX = targetX
 
           if (currentX !== -Infinity) {
-             const prevRight = currentX + (gap)
-             const neededLeft = placeX - (satWidth/2)
-             if (neededLeft < prevRight) {
-                placeX = prevRight + (satWidth/2)
-             }
+            const prevRight = currentX + gap
+            const neededLeft = placeX - satWidth / 2
+            if (neededLeft < prevRight) {
+              placeX = prevRight + satWidth / 2
+            }
           }
 
           let placeY = 0
           if (side === "y-") {
             placeY = -(mainChip.size.y / 2 + gap + satHeight / 2)
           } else {
-            placeY = (mainChip.size.y / 2 + gap + satHeight / 2)
+            placeY = mainChip.size.y / 2 + gap + satHeight / 2
           }
 
           chipPlacements[req.chipId] = {
@@ -244,7 +250,7 @@ export class StarTopologyPackingSolver extends BaseSolver {
             ccwRotationDegrees: 0,
           }
 
-          currentX = placeX + (satWidth/2)
+          currentX = placeX + satWidth / 2
         }
       }
     }
@@ -266,9 +272,11 @@ export class StarTopologyPackingSolver extends BaseSolver {
   }
 
   override getConstructorParams(): [any] {
-    return [{
-       partitionInputProblem: this.partitionInputProblem,
-       pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins
-    }]
+    return [
+      {
+        partitionInputProblem: this.partitionInputProblem,
+        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+      },
+    ]
   }
 }

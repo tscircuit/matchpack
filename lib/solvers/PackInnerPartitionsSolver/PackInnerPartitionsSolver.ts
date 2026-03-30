@@ -46,7 +46,7 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     // If no active solver, create one for the current partition
     if (!this.activeSolver) {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
-      
+
       try {
         // Try to use the StarTopologyPackingSolver first for clean orthogonal alignments
         const starSolver = new StarTopologyPackingSolver({
