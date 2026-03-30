@@ -1,0 +1,87 @@
+bun test v1.3.11 (af24e281)
+
+tests\ChipPartitionsSolver.test.ts:
+(pass) ChipPartitionsSolver creates single partition for connected components [15.00ms]
+(pass) ChipPartitionsSolver creates separate partitions for disconnected components
+(pass) ChipPartitionsSolver handles complex connected graph
+(pass) ChipPartitionsSolver visualization contains partition components
+
+tests\test01.test.ts:
+(pass) ...
+
+tests\getInputProblemFromCircuitJsonSchematic\getInputProblemFromCircuitJsonSchematic01.test.tsx:
+(pass) getInputProblemFromCircuitJsonSchematic01 [328.00ms]
+
+tests\IdentifyDecouplingCapsSolver\IdentifyDecouplingCapsSolver06.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'convertCircuitJsonToSchematicSimulationSvg' not found in module 'C:\ai-dev-ops\task_02_tscircuit_matchpack\node_modules\circuit-to-svg\dist\index.js'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver01.test.ts:
+(pass) LayoutPipelineSolver01 visualization example
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver02.test.ts:
+(pass) LayoutPipelineSolver02 runs pipeline phases for ExampleCircuit02 [250.00ms]
+(skip) LayoutPipelineSolver02 step-by-step execution
+(pass) LayoutPipelineSolver02 should complete simplified pipeline without errors [94.00ms]
+(pass) LayoutPipelineSolver02 complete pipeline execution [63.00ms]
+(pass) LayoutPipelineSolver02 overlap detection functionality [31.00ms]
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver03.test.tsx:
+capacitor: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)
+(pass) LayoutPipelineSolver03 - chip with multiple capacitors [250.00ms]
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver04.test.ts:
+(pass) LayoutPipelineSolver04 - ExampleCircuit04 simplified pipeline execution [78.00ms]
+
+tests\LayoutPipelineSolver\RP2040Circuit.test.ts:
+Each child in a list should have a unique "key" prop.
+
+Check the render method of `board`. It was passed a child from RP2040Circuit. See https://react.dev/link/warning-keys for more information.
+Warning: 4 chip overlaps detected in final layout: U3 overlaps C14 (area: 0.0047), C10 overlaps C7 (area: 0.0838), C10 overlaps C12 (area: 0.3638), C19 overlaps C15 (area: 0.1200)
+Chip U3: 57 pins, size: 3x8.400000000000004
+Chip C12: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C14: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C8: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C13: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C15: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C19: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C18: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C7: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C9: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C10: 2 pins, size: 0.5291665999999999x1.0583333000000001
+Chip C11: 2 pins, size: 0.5291665999999999x1.0583333000000001
+InputProblem created with 12 chips
+Total pins: 79
+Nets: V3_3, V1_1, USB_VDD, USB_N, USB_P, GND
+(pass) RP2040Circuit InputProblem conversion [1094.00ms]
+Warning: 4 chip overlaps detected in final layout: U3 overlaps C14 (area: 0.0047), C10 overlaps C7 (area: 0.0838), C10 overlaps C12 (area: 0.3638), C19 overlaps C15 (area: 0.1200)
+false true null
+(pass) RP2040Circuit complete pipeline execution [1609.00ms]
+
+tests\PartitionPackingSolver\PartitionPackingSolver01.test.ts:
+Using static input with 1 partition(s)
+Initial state:
+- Solved: false
+- Failed: false
+- Error: null
+\nStep 1:
+- Solved: true
+- Failed: false
+- Error: null
+(pass) PartitionPackingSolver works with single packed partition
+(pass) PartitionPackingSolver works with empty partitions
+
+ 17 pass
+ 1 skip
+ 1 fail
+ 1 error
+ 2 snapshots, 528 expect() calls
+Ran 19 tests across 10 files. [4.73s]

@@ -1,0 +1,73 @@
+bun test v1.3.11 (af24e281)
+
+tests\ChipPartitionsSolver.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '@tscircuit/solver-utils' from 'C:\ai-dev-ops\task_02_tscircuit_matchpack\node_modules\calculate-packing\dist\index.js'
+-------------------------------
+
+
+tests\test01.test.ts:
+(pass) ...
+
+tests\getInputProblemFromCircuitJsonSchematic\getInputProblemFromCircuitJsonSchematic01.test.tsx:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests\IdentifyDecouplingCapsSolver\IdentifyDecouplingCapsSolver06.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver01.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver02.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver03.test.tsx:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver04.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests\LayoutPipelineSolver\RP2040Circuit.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+tests\PartitionPackingSolver\PartitionPackingSolver01.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+-------------------------------
+
+
+ 1 pass
+ 9 fail
+ 9 errors
+Ran 10 tests across 10 files. [750.00ms]

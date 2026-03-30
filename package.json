@@ -18,12 +18,13 @@
     "@react-hook/resize-observer": "^2.0.2",
     "@tscircuit/circuit-json-util": "^0.0.64",
     "@tscircuit/math-utils": "^0.0.19",
-    "@tscircuit/schematic-viewer": "^2.0.26",
+    "@tscircuit/schematic-viewer": "^2.0.59",
     "@types/bun": "latest",
     "bpc-graph": "^0.0.66",
-    "calculate-packing": "^0.0.31",
+    "calculate-packing": "0.0.31",
     "circuit-json": "^0.0.226",
-    "graphics-debug": "^0.0.64",
+    "circuit-to-svg": "^0.0.340",
+    "graphics-debug": "^0.0.89",
     "react-cosmos": "^7.0.0",
     "react-cosmos-plugin-vite": "^7.0.0",
     "tscircuit": "^0.0.593",
@@ -31,5 +32,8 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@tscircuit/solver-utils": "^0.0.19"
   }
 }
