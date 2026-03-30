@@ -1,0 +1,122 @@
+bun test v1.3.11 (af24e281)
+
+tests\ChipPartitionsSolver.test.ts:
+(pass) ChipPartitionsSolver creates single partition for connected components
+(pass) ChipPartitionsSolver creates separate partitions for disconnected components
+(pass) ChipPartitionsSolver handles complex connected graph
+(pass) ChipPartitionsSolver visualization contains partition components [16.00ms]
+
+tests\test01.test.ts:
+(pass) ...
+
+tests\getInputProblemFromCircuitJsonSchematic\getInputProblemFromCircuitJsonSchematic01.test.tsx:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'PhasedPackSolver' not found in module 'C:\ai-dev-ops\task_02_tscircuit_matchpack\node_modules\calculate-packing\dist\index.js'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+tests\IdentifyDecouplingCapsSolver\IdentifyDecouplingCapsSolver06.test.ts:
+Decoupling Cap Groups:
+  Group ID: decap_group_U3__GND__V3_3
+  Main Chip: U3
+  Net Pair: [GND, V3_3]
+  Decoupling Capacitors: [C12, C14, C8, C13, C15, C19]
+
+  Group ID: decap_group_U3__GND__V1_1
+  Main Chip: U3
+  Net Pair: [GND, V1_1]
+  Decoupling Capacitors: [C18, C7]
+
+(pass) IdentifyDecouplingCapsSolver identifies decoupling capacitor groups from LayoutPipelineSolver06 [16.00ms]
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver01.test.ts:
+(pass) LayoutPipelineSolver01 visualization example [15.00ms]
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver02.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'PhasedPackSolver' not found in module 'C:\ai-dev-ops\task_02_tscircuit_matchpack\node_modules\calculate-packing\dist\index.js'.
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at linkAndEvaluateModule (unknown:1:11)
+      at loadAndEvaluateModule (unknown:2:1)
+      at processTicksAndRejections (unknown:7:39)
+-------------------------------
+
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver03.test.tsx:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'PhasedPackSolver' not found in module 'C:\ai-dev-ops\task_02_tscircuit_matchpack\node_modules\calculate-packing\dist\index.js'.
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at linkAndEvaluateModule (unknown:1:11)
+      at loadAndEvaluateModule (unknown:2:1)
+      at processTicksAndRejections (unknown:7:39)
+-------------------------------
+
+
+tests\LayoutPipelineSolver\LayoutPipelineSolver04.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'PhasedPackSolver' not found in module 'C:\ai-dev-ops\task_02_tscircuit_matchpack\node_modules\calculate-packing\dist\index.js'.
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at linkAndEvaluateModule (unknown:1:11)
+      at loadAndEvaluateModule (unknown:2:1)
+      at processTicksAndRejections (unknown:7:39)
+-------------------------------
+
+
+tests\LayoutPipelineSolver\RP2040Circuit.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'PhasedPackSolver' not found in module 'C:\ai-dev-ops\task_02_tscircuit_matchpack\node_modules\calculate-packing\dist\index.js'.
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at link (unknown:1:11)
+      at linkAndEvaluateModule (unknown:1:11)
+      at loadAndEvaluateModule (unknown:2:1)
+      at processTicksAndRejections (unknown:7:39)
+-------------------------------
+
+
+tests\PartitionPackingSolver\PartitionPackingSolver01.test.ts:
+Using static input with 1 partition(s)
+Initial state:
+- Solved: false
+- Failed: false
+- Error: null
+\nStep 1:
+- Solved: true
+- Failed: false
+- Error: null
+(pass) PartitionPackingSolver works with single packed partition
+(pass) PartitionPackingSolver works with empty partitions
+
+ 9 pass
+ 5 fail
+ 5 errors
+ 48 expect() calls
+Ran 14 tests across 10 files. [804.00ms]
