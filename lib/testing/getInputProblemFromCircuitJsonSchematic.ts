@@ -27,23 +27,23 @@ export const getInputProblemFromCircuitJsonSchematic = (
     partitionGap: 2,
   }
 
-  const cjChips = db.schematic_component.list().map((schematic_component) => ({
+  const cjChips = db.schematic_component!.list().map((schematic_component) => ({
     schematic_component,
-    source_component: db.source_component.get(
+    source_component: db.source_component!.get(
       schematic_component.source_component_id,
     ),
-    ports: db.schematic_port
-      .list({
+    ports: db
+      .schematic_port!.list({
         schematic_component_id: schematic_component.schematic_component_id,
       })
       .map((schematic_port) => ({
         schematic_port,
-        source_port: db.source_port.get(schematic_port.source_port_id),
+        source_port: db.source_port!.get(schematic_port.source_port_id),
       })),
   }))
 
-  const cjSourceTraces = db.source_trace.list()
-  const cjSourceNets = db.source_net.list()
+  const cjSourceTraces = db.source_trace!.list()
+  const cjSourceNets = db.source_net!.list()
 
   // Extract schematic components as chips using cjChips which has size information
   for (const chip of cjChips) {

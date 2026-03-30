@@ -11,6 +11,7 @@ const tmagPinLabels = {
   pin6: ["SDA"],
 } as const
 
+// @ts-ignore
 const TMAG5273 = (props: ChipProps<typeof tmagPinLabels>) => {
   return (
     <chip

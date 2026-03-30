@@ -5,7 +5,6 @@ import { InteractiveGraphics } from "graphics-debug/react"
 import { LayoutPipelineToolbar } from "./LayoutPipelineToolbar"
 import { PipelineStatusTable } from "./PipelineStatusTable"
 import type { CircuitJson } from "circuit-json"
-import { SchematicViewer } from "@tscircuit/schematic-viewer"
 import type { BaseSolver } from "lib/solvers/BaseSolver"
 
 const getSolverHierarchy = (solver: BaseSolver): BaseSolver[] => {
@@ -312,10 +311,9 @@ export const LayoutPipelineDebugger = ({
       )}
       {currentTab === "circuit" &&
         (problemCircuitJson ? (
-          <SchematicViewer
-            containerStyle={{ height: "calc(100vh - 80px)" }}
-            circuitJson={problemCircuitJson}
-          />
+          <div style={{ padding: 16, color: "#333" }}>
+            Circuit view is disabled in this environment.
+          </div>
         ) : (
           "No circuit json passed to debugger"
         ))}

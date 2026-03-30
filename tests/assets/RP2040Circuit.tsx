@@ -61,6 +61,7 @@ const pinLabels = {
   pin57: ["GND"],
 } as const
 
+// @ts-ignore
 const RP2040 = (props: ChipProps<typeof pinLabels>) => {
   return (
     <chip
