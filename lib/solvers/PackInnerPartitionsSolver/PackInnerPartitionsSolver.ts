@@ -9,6 +9,7 @@ import { BaseSolver } from "../BaseSolver"
 import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
+import { StarTopologyPackingSolver } from "../StarTopologyPackingSolver/StarTopologyPackingSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
 
 export type PackedPartition = {
@@ -45,30 +46,49 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     // If no active solver, create one for the current partition
     if (!this.activeSolver) {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
-      this.activeSolver = new SingleInnerPartitionPackingSolver({
-        partitionInputProblem: currentPartition,
-        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-      })
-      this.activeSubSolver = this.activeSolver
+      
+      try {
+        // Try to use the StarTopologyPackingSolver first for clean orthogonal alignments
+        const starSolver = new StarTopologyPackingSolver({
+          partitionInputProblem: currentPartition,
+          pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+        })
+        starSolver.step()
+        if (starSolver.solved && !starSolver.failed) {
+          this.activeSolver = starSolver as any // Use the star solver as fully solved immediately
+          this.activeSubSolver = null
+        } else {
+          throw new Error("Star solver did not solve cleanly")
+        }
+      } catch (e: any) {
+        // Fallback to the generic iterative packing solver
+        this.activeSolver = new SingleInnerPartitionPackingSolver({
+          partitionInputProblem: currentPartition,
+          pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+        }) as any
+        this.activeSubSolver = this.activeSolver as any
+      }
     }
 
     // Step the active solver
-    this.activeSolver.step()
+    if (this.activeSubSolver) {
+      this.activeSubSolver.step()
+    }
 
-    if (this.activeSolver.failed) {
+    if (this.activeSolver!.failed) {
       this.failed = true
-      this.error = `Partition ${this.currentPartitionIndex} failed: ${this.activeSolver.error}`
+      this.error = `Partition ${this.currentPartitionIndex} failed: ${this.activeSolver!.error}`
       return
     }
 
-    if (this.activeSolver.solved) {
+    if (this.activeSolver!.solved) {
       // Store the completed solver and its results
-      this.completedSolvers.push(this.activeSolver)
+      this.completedSolvers.push(this.activeSolver! as any)
 
-      if (this.activeSolver.layout) {
+      if (this.activeSolver!.layout) {
         this.packedPartitions.push({
           inputProblem: this.partitions[this.currentPartitionIndex]!,
-          layout: this.activeSolver.layout,
+          layout: this.activeSolver!.layout,
         })
       } else {
         this.failed = true
