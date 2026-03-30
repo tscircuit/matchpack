@@ -1,132 +1,148 @@
 /**
  * Specialized layout algorithm for decoupling capacitors.
  *
- * Places each decap adjacent to the IC power/ground pin on the same net,
- * choosing the outward direction from the IC edge nearest that pin.
+ * Goal: place each decoupling capacitor adjacent to the IC power/ground pin
+ * it is associated with, on the same side of the IC as that pin.
  */
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface Point {
+  x: number
+  y: number
+}
 
 export type Side = "top" | "bottom" | "left" | "right"
 
+/**
+ * Information about an IC pin that a decoupling capacitor is associated with.
+ */
 export interface PinInfo {
-  /** Unique pin identifier (e.g. pin number 1-based or hashed) */
+  /** Numeric or positional identifier used to sort/cluster placements */
   pinNumber: number
-  /** Net name this pin belongs to */
+  /** Power/ground net name */
   net: string
-  /** Absolute position of the IC power pin (mm) */
-  position: { x: number; y: number }
-  /** Which side of the IC package this pin is on */
+  /** Physical position of the pin on the PCB */
+  position: Point
+  /** Which side of the IC the pin is on */
   side: Side
 }
 
-export interface DecapPlacement {
-  /** source_component_id of the decoupling capacitor */
-  componentId: string
-  /** Recommended centre position (mm) */
-  position: { x: number; y: number }
-  /** Recommended rotation in degrees */
-  rotation: number
-  /** Side of the IC this cap is placed on */
-  side: Side
-  /** The net this cap decouples */
-  net: string
+/**
+ * Input describing a single decoupling capacitor and where it should be
+ * placed relative to its associated IC power pin.
+ */
+export interface DecouplingCapPlacement {
+  /** Unique identifier for the capacitor (source_component_id) */
+  capacitorId: string
+  /** Resolved information about the associated IC power pin */
+  pinInfo: PinInfo
 }
 
-export interface DecapLayoutOptions {
-  /** Distance from the IC pin to the near edge of the decap (mm). Default 0.5 */
-  clearance?: number
-  /** Step between adjacent decaps on the same side (mm). Default 1.0 */
-  step?: number
+/**
+ * Result of running the layout algorithm for one capacitor.
+ */
+export interface PlacedDecouplingCap {
+  capacitorId: string
+  position: Point
+  rotation: number // degrees
+  side: Side
 }
 
 // ---------------------------------------------------------------------------
-// Power-net detection helpers
+// Power-net detection
 // ---------------------------------------------------------------------------
 
 /**
- * Patterns that identify a net name as a power / ground rail.
- * Includes common analogue (AGND/AVSS), digital (DGND/DVSS), and
- * power-ground (PGND) variants so that `filterDecouplingPins` works
- * correctly for mixed-signal and power-supply designs.
+ * Patterns that identify power/ground net names.
+ *
+ * Extended to cover common variants: AGND, DGND, PGND, AVSS, DVSS, etc.
  */
 export const POWER_NET_PATTERNS: RegExp[] = [
-  // Supply rails
   /^vcc/i,
+  /^avcc/i,
+  /^dvcc/i,
   /^vdd/i,
+  /^avdd/i,
+  /^dvdd/i,
   /^vss/i,
   /^avss/i,
   /^dvss/i,
-  /^vbat/i,
-  /^v3v3/i,
-  /^v5v/i,
-  /^v1v8/i,
-  /^v\d+v\d*/i,
-  /^pwr/i,
-  /^power/i,
-  /^vbus/i,
-  /^vsys/i,
-  /^vmain/i,
-  /^vcore/i,
-  /^vio/i,
-  /^vref/i,
-  /^vana/i,
-  /^vdig/i,
-  // Ground rails — explicit analogue / digital / power-ground variants
   /^gnd/i,
   /^agnd/i,
   /^dgnd/i,
   /^pgnd/i,
-  /^sgnd/i,
-  /^egnd/i,
-  /^gndd/i,
-  /^gnda/i,
+  /^pwr/i,
+  /^power/i,
+  /^vbat/i,
+  /^v3v3/i,
+  /^v5v/i,
+  /^v1v8/i,
+  /^vcca/i,
+  /^vccd/i,
+  /^vcore/i,
+  /^vio/i,
 ]
 
 /**
- * Returns `true` when `netName` matches any known power/ground pattern.
+ * Returns true if the given net name looks like a power or ground rail.
  */
 export function isPowerNet(netName: string): boolean {
-  return POWER_NET_PATTERNS.some((re) => re.test(netName))
+  return POWER_NET_PATTERNS.some((pattern) => pattern.test(netName))
 }
 
 /**
- * Filters `pins` to those whose net names look like power / ground rails.
+ * From a list of (netName, pinNumber) pairs, keep only the ones that are
+ * power/ground nets.
  */
-export function filterDecouplingPins(pins: PinInfo[]): PinInfo[] {
+export function filterDecouplingPins(
+  pins: Array<{ net: string; pinNumber: number; position: Point; side: Side }>,
+): Array<{ net: string; pinNumber: number; position: Point; side: Side }> {
   return pins.filter((p) => isPowerNet(p.net))
 }
 
 // ---------------------------------------------------------------------------
-// Layout helpers
+// Placement helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Returns the outward unit vector for a given IC side.
- */
-function sideVector(side: Side): { dx: number; dy: number } {
-  switch (side) {
-    case "top":
-      return { dx: 0, dy: 1 }
-    case "bottom":
-      return { dx: 0, dy: -1 }
-    case "left":
-      return { dx: -1, dy: 0 }
-    case "right":
-      return { dx: 1, dy: 0 }
-  }
+/** How far from the IC pin the capacitor body centre should sit (mm) */
+const DEFAULT_CLEARANCE_MM = 0.8
+
+/** Map from side to the outward unit vector */
+const SIDE_NORMAL: Record<Side, Point> = {
+  top: { x: 0, y: 1 },
+  bottom: { x: 0, y: -1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+}
+
+/** Rotation (degrees) to give a 0402/0603 capacitor on each side so its
+ *  pads align with the power and ground rails running away from the IC. */
+const SIDE_ROTATION: Record<Side, number> = {
+  top: 0,
+  bottom: 0,
+  left: 90,
+  right: 90,
 }
 
 /**
- * Returns the rotation (degrees) for a 0402/0603 decap placed on `side`.
- * Pads run parallel to the IC edge, so the component axis is perpendicular.
+ * Compute the placement (position + rotation) for a single decoupling
+ * capacitor given its associated IC power pin.
  */
-function rotationForSide(side: Side): number {
-  switch (side) {
-    case "top":
-    case "bottom":
-      return 90 // pads on left/right → component body horizontal → 90°
-    case "left":
-    case "right":
-      return 0 // pads on top/bottom → component body vertical → 0°
+export function computeCapPlacement(
+  pinInfo: PinInfo,
+  clearanceMm: number = DEFAULT_CLEARANCE_MM,
+): { position: Point; rotation: number; side: Side } {
+  const normal = SIDE_NORMAL[pinInfo.side]
+  return {
+    position: {
+      x: pinInfo.position.x + normal.x * clearanceMm,
+      y: pinInfo.position.y + normal.y * clearanceMm,
+    },
+    rotation: SIDE_ROTATION[pinInfo.side],
+    side: pinInfo.side,
   }
 }
 
@@ -135,69 +151,68 @@ function rotationForSide(side: Side): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Computes placement (position + rotation) for each decoupling capacitor
- * described in `decapMap`.
+ * Run the decoupling-capacitor layout algorithm.
  *
- * @param decapMap  Map from `source_component_id` → `PinInfo` for each decap.
- * @param options   Optional tuning (clearance, step).
- * @returns         Array of `DecapPlacement` objects, one per entry in the map.
+ * For each capacitor in `placements`, computes a physical (x, y, rotation)
+ * that places it just outside the IC boundary adjacent to its power pin.
+ *
+ * When multiple capacitors share the same pin/net, they are spread along the
+ * axis perpendicular to the outward normal so they do not overlap.
  */
 export function layoutDecouplingCapacitors(
-  decapMap: Map<string, PinInfo>,
-  options: DecapLayoutOptions = {},
-): DecapPlacement[] {
-  const clearance = options.clearance ?? 0.5
-  const step = options.step ?? 1.0
+  placements: DecouplingCapPlacement[],
+  options: {
+    clearanceMm?: number
+    spacingMm?: number
+  } = {},
+): PlacedDecouplingCap[] {
+  const clearance = options.clearanceMm ?? DEFAULT_CLEARANCE_MM
+  const spacing = options.spacingMm ?? 0.6
 
-  // Group decaps by side so we can spread them out without overlap.
-  const bySide = new Map<Side, Array<{ id: string; pin: PinInfo }>>()
-  for (const [id, pin] of decapMap) {
-    const arr = bySide.get(pin.side) ?? []
-    arr.push({ id, pin })
-    bySide.set(pin.side, arr)
+  // Group capacitors by (side, pinNumber) so we can spread them out.
+  const groups = new Map<string, DecouplingCapPlacement[]>()
+  for (const p of placements) {
+    const key = `${p.pinInfo.side}::${p.pinInfo.pinNumber}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(p)
   }
 
-  const placements: DecapPlacement[] = []
+  const results: PlacedDecouplingCap[] = []
 
-  for (const [side, caps] of bySide) {
-    const { dx, dy } = sideVector(side)
-    const rotation = rotationForSide(side)
-    const isVertical = side === "left" || side === "right"
-
-    // Sort along the IC edge (tangential axis) so identical-net caps end up
-    // neatly stacked before spreading to a second row.
-    caps.sort((a, b) => {
-      const ta = isVertical ? a.pin.position.y : a.pin.position.x
-      const tb = isVertical ? b.pin.position.y : b.pin.position.x
-      return ta - tb
-    })
-
-    // Track how many caps we've placed at each tangential slot to allow a
-    // second row when multiple caps share a pin position.
-    const slotDepth = new Map<string, number>()
-
-    for (const { id, pin } of caps) {
-      const tangential = isVertical ? pin.position.y : pin.position.x
-      const slotKey = tangential.toFixed(3)
-      const depth = slotDepth.get(slotKey) ?? 0
-      slotDepth.set(slotKey, depth + 1)
-
-      // Normal (outward) offset: clearance + extra rows push further out.
-      const normalOffset = clearance + depth * step
-
-      // Tangential position stays aligned with the IC pin.
-      const cx = pin.position.x + dx * normalOffset
-      const cy = pin.position.y + dy * normalOffset
-
-      placements.push({
-        componentId: id,
-        position: { x: cx, y: cy },
-        rotation,
-        side,
-        net: pin.net,
+  for (const group of groups.values()) {
+    const count = group.length
+    // Spread caps symmetrically around the base position along the tangent axis.
+    group.forEach((cap, i) => {
+      const base = computeCapPlacement(cap.pinInfo, clearance)
+      const tangent = getTangent(cap.pinInfo.side)
+      const offset = (i - (count - 1) / 2) * spacing
+      results.push({
+        capacitorId: cap.capacitorId,
+        position: {
+          x: base.position.x + tangent.x * offset,
+          y: base.position.y + tangent.y * offset,
+        },
+        rotation: base.rotation,
+        side: base.side,
       })
-    }
+    })
   }
 
-  return placements
+  return results
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/** Returns the unit vector tangent to the given side (perpendicular to normal). */
+function getTangent(side: Side): Point {
+  switch (side) {
+    case "top":
+    case "bottom":
+      return { x: 1, y: 0 }
+    case "left":
+    case "right":
+      return { x: 0, y: 1 }
+  }
 }
