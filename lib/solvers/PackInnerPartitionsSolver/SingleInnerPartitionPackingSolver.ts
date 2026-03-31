@@ -38,6 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // For decoupling cap partitions, use a specialized column layout
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapColumnLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +69,37 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  /**
+   * Arranges decoupling capacitors in a clean vertical column with uniform
+   * spacing, matching the standard PCB schematic convention.
+   */
+  private createDecouplingCapColumnLayout(): OutputLayout {
+    const chipIds = Object.keys(this.partitionInputProblem.chipMap)
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Sort chips by chipId for deterministic ordering
+    chipIds.sort()
+
+    let currentY = 0
+    for (const chipId of chipIds) {
+      const chip = this.partitionInputProblem.chipMap[chipId]!
+      const halfHeight = chip.size.y / 2
+
+      chipPlacements[chipId] = {
+        x: 0,
+        y: currentY + halfHeight,
+        ccwRotationDegrees: 0,
+      }
+
+      currentY += chip.size.y + gap
+    }
+
+    return { chipPlacements, groupPlacements: {} }
   }
 
   private createPackInput(): PackInput {
