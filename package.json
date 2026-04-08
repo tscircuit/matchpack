@@ -11,7 +11,9 @@
     "build": "tsup-node --format esm --dts --clean ./lib/index.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "build:site": "cosmos-export"
+    "build:site": "cosmos-export",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.3",
@@ -27,9 +29,15 @@
     "react-cosmos": "^7.0.0",
     "react-cosmos-plugin-vite": "^7.0.0",
     "tscircuit": "^0.0.593",
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.0",
+    "vite": "^8.0.7"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "circuit-to-svg": "^0.0.340",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   }
 }
