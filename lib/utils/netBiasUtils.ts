@@ -67,7 +67,7 @@ export function getNetBiasType(netId: NetId, netLabel?: string): NetBiasType {
 export function buildNetVerticalBiasMap(
   inputProblem: InputProblem,
   opts: {
-    powerBias?: number  // default -50 (strong upward pull)
+    powerBias?: number // default -50 (strong upward pull)
     groundBias?: number // default +50 (strong downward pull)
   } = {},
 ): Map<string, number> {
