@@ -38,11 +38,17 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Specialized layout for decoupling capacitors: linear row implementation
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
       this.activeSubSolver = new PackSolver2(packInput)
-      this.activeSubSolver = this.activeSubSolver
     }
 
     // Run one step of the PackSolver2
@@ -64,6 +70,37 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
   }
 
+  private createLinearLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap ??
+      0.1
+
+    let currentX = 0
+    for (const chip of chips) {
+      const chipWidth = chip.size.x
+      chipPlacements[chip.chipId] = {
+        x: currentX + chipWidth / 2,
+        y: 0,
+        ccwRotationDegrees: chip.availableRotations?.[0] ?? 0,
+      }
+      currentX += chipWidth + gap
+    }
+
+    const totalWidth = currentX - gap
+    const offsetX = -totalWidth / 2
+    for (const chipId in chipPlacements) {
+      chipPlacements[chipId]!.x += offsetX
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
   private createPackInput(): PackInput {
     // Fall back to filtered mapping (weak + strong)
     const pinToNetworkMap = createFilteredNetworkMapping({
@@ -71,62 +108,63 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
     }).pinToNetworkMap
 
-    // Create pack components for each chip
-    const packComponents = Object.entries(
-      this.partitionInputProblem.chipMap,
-    ).map(([chipId, chip]) => {
-      // Create pads for all pins of this chip
-      const pads: Array<{
-        padId: string
-        networkId: string
-        type: "rect"
-        offset: { x: number; y: number }
-        size: { x: number; y: number }
-      }> = []
+    // Create pack components for each chip, sorted by pin count for better packing
+    const packComponents = Object.entries(this.partitionInputProblem.chipMap)
+      .map(([chipId, chip]) => {
+        const pads: Array<{
+          padId: string
+          networkId: string
+          type: "rect"
+          offset: { x: number; y: number }
+          size: { x: number; y: number }
+        }> = []
 
-      // Create a pad for each pin on this chip
-      for (const pinId of chip.pins) {
-        const pin = this.partitionInputProblem.chipPinMap[pinId]
-        if (!pin) continue
+        // Create a pad for each pin on this chip
+        for (const pinId of chip.pins) {
+          const pin = this.partitionInputProblem.chipPinMap[pinId]
+          if (!pin) continue
 
-        // Find network for this pin from our connectivity map
-        const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
+          // Find network for this pin from our connectivity map
+          const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
 
+          pads.push({
+            padId: pinId,
+            networkId: networkId,
+            type: "rect" as const,
+            offset: { x: pin.offset.x, y: pin.offset.y },
+            size: { x: PIN_SIZE, y: PIN_SIZE },
+          })
+        }
+
+        const padsBoundingBox = getPadsBoundingBox(pads)
+        const padsBoundingBoxSize = {
+          x: padsBoundingBox.maxX - padsBoundingBox.minX,
+          y: padsBoundingBox.maxY - padsBoundingBox.minY,
+        }
+
+        // Add chip body pad (disconnected from any network) but make sure
+        // it fully envelopes the "pads" (pins)
         pads.push({
-          padId: pinId,
-          networkId: networkId,
+          padId: `${chipId}_body`,
+          networkId: `${chipId}_body_disconnected`,
           type: "rect" as const,
-          offset: { x: pin.offset.x, y: pin.offset.y },
-          size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
+          offset: { x: 0, y: 0 },
+          size: {
+            x: Math.max(padsBoundingBoxSize.x, chip.size.x),
+            y: Math.max(padsBoundingBoxSize.y, chip.size.y),
+          },
         })
-      }
 
-      const padsBoundingBox = getPadsBoundingBox(pads)
-      const padsBoundingBoxSize = {
-        x: padsBoundingBox.maxX - padsBoundingBox.minX,
-        y: padsBoundingBox.maxY - padsBoundingBox.minY,
-      }
-
-      // Add chip body pad (disconnected from any network) but make sure
-      // it fully envelopes the "pads" (pins)
-
-      pads.push({
-        padId: `${chipId}_body`,
-        networkId: `${chipId}_body_disconnected`,
-        type: "rect" as const,
-        offset: { x: 0, y: 0 },
-        size: {
-          x: Math.max(padsBoundingBoxSize.x, chip.size.x),
-          y: Math.max(padsBoundingBoxSize.y, chip.size.y),
-        },
+        return {
+          componentId: chipId,
+          pads,
+          availableRotationDegrees: chip.availableRotations || [
+            0, 90, 180, 270,
+          ],
+          pinCount: chip.pins.length,
+        }
       })
-
-      return {
-        componentId: chipId,
-        pads,
-        availableRotationDegrees: chip.availableRotations || [0, 90, 180, 270],
-      }
-    })
+      .sort((a, b) => b.pinCount - a.pinCount)
 
     let minGap = this.partitionInputProblem.chipGap
     if (this.partitionInputProblem.partitionType === "decoupling_caps") {
