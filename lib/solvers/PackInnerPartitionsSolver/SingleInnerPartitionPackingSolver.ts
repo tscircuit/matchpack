@@ -109,9 +109,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }).pinToNetworkMap
 
     // Create pack components for each chip, sorted by pin count for better packing
-    const packComponents = Object.entries(
-      this.partitionInputProblem.chipMap,
-    )
+    const packComponents = Object.entries(this.partitionInputProblem.chipMap)
       .map(([chipId, chip]) => {
         const pads: Array<{
           padId: string
