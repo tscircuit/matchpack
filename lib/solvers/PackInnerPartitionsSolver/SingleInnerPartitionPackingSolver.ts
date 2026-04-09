@@ -73,12 +73,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   private createLinearLayout(): OutputLayout {
     const chipPlacements: Record<string, Placement> = {}
     const chips = Object.values(this.partitionInputProblem.chipMap)
-    const gap = this.partitionInputProblem.decouplingCapsGap ?? this.partitionInputProblem.chipGap ?? 0.1
-    
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap ??
+      0.1
+
     let currentX = 0
     for (const chip of chips) {
       const chipWidth = chip.size.x
-      // Place centered at currentX + chipWidth / 2
       chipPlacements[chip.chipId] = {
         x: currentX + chipWidth / 2,
         y: 0,
@@ -87,7 +89,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       currentX += chipWidth + gap
     }
 
-    // Centering the row around (0,0)
     const totalWidth = currentX - gap
     const offsetX = -totalWidth / 2
     for (const chipId in chipPlacements) {
@@ -107,10 +108,11 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
     }).pinToNetworkMap
 
-    // Create pack components for each chip
-    const packComponents = Object.entries(this.partitionInputProblem.chipMap)
+    // Create pack components for each chip, sorted by pin count for better packing
+    const packComponents = Object.entries(
+      this.partitionInputProblem.chipMap,
+    )
       .map(([chipId, chip]) => {
-        // ... (existing logic for pads)
         const pads: Array<{
           padId: string
           networkId: string
@@ -119,10 +121,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           size: { x: number; y: number }
         }> = []
 
+        // Create a pad for each pin on this chip
         for (const pinId of chip.pins) {
           const pin = this.partitionInputProblem.chipPinMap[pinId]
           if (!pin) continue
+
+          // Find network for this pin from our connectivity map
           const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
+
           pads.push({
             padId: pinId,
             networkId: networkId,
@@ -138,6 +144,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           y: padsBoundingBox.maxY - padsBoundingBox.minY,
         }
 
+        // Add chip body pad (disconnected from any network) but make sure
+        // it fully envelopes the "pads" (pins)
         pads.push({
           padId: `${chipId}_body`,
           networkId: `${chipId}_body_disconnected`,
@@ -152,11 +160,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         return {
           componentId: chipId,
           pads,
-          availableRotationDegrees: chip.availableRotations || [0, 90, 180, 270],
-          pinCount: chip.pins.length, // Add pinCount for sorting
+          availableRotationDegrees: chip.availableRotations || [
+            0, 90, 180, 270,
+          ],
+          pinCount: chip.pins.length,
         }
       })
-      .sort((a, b) => b.pinCount - a.pinCount) // Sort by pin count descending
+      .sort((a, b) => b.pinCount - a.pinCount)
 
     let minGap = this.partitionInputProblem.chipGap
     if (this.partitionInputProblem.partitionType === "decoupling_caps") {
