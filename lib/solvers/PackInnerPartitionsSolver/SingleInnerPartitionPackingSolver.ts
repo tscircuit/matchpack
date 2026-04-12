@@ -16,11 +16,20 @@ import type {
   PartitionInputProblem,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
+import {
+  createFilteredNetworkMapping,
+  isPositiveVoltageNet,
+} from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
 const PIN_SIZE = 0.1
+
+/**
+ * Y-axis bias applied to pins connected to positive voltage nets.
+ * Negative value pushes them upward in the schematic layout.
+ */
+const POSITIVE_VOLTAGE_Y_BIAS = -0.3
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
@@ -65,7 +74,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   private createPackInput(): PackInput {
-    // Fall back to filtered mapping (weak + strong)
+    // Use filtered mapping (weak + strong)
     const pinToNetworkMap = createFilteredNetworkMapping({
       inputProblem: this.partitionInputProblem,
       pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
@@ -75,7 +84,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     const packComponents = Object.entries(
       this.partitionInputProblem.chipMap,
     ).map(([chipId, chip]) => {
-      // Create pads for all pins of this chip
       const pads: Array<{
         padId: string
         networkId: string
@@ -89,15 +97,22 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         const pin = this.partitionInputProblem.chipPinMap[pinId]
         if (!pin) continue
 
-        // Find network for this pin from our connectivity map
         const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
+
+        // Apply upward bias for positive voltage nets
+        const voltageBias = isPositiveVoltageNet(
+          networkId,
+          this.partitionInputProblem,
+        )
+          ? POSITIVE_VOLTAGE_Y_BIAS
+          : 0
 
         pads.push({
           padId: pinId,
           networkId: networkId,
           type: "rect" as const,
-          offset: { x: pin.offset.x, y: pin.offset.y },
-          size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
+          offset: { x: pin.offset.x, y: pin.offset.y + voltageBias },
+          size: { x: PIN_SIZE, y: PIN_SIZE },
         })
       }
 
@@ -107,9 +122,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         y: padsBoundingBox.maxY - padsBoundingBox.minY,
       }
 
-      // Add chip body pad (disconnected from any network) but make sure
-      // it fully envelopes the "pads" (pins)
-
+      // Add chip body pad (disconnected) that envelopes all pins
       pads.push({
         padId: `${chipId}_body`,
         networkId: `${chipId}_body_disconnected`,
