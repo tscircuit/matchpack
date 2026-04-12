@@ -1,8 +1,3 @@
-/**
- * Packs components within a single partition to create an optimal internal layout.
- * Uses a packing algorithm to arrange chips and their connections within the partition.
- */
-
 import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
@@ -16,11 +11,17 @@ import type {
   PartitionInputProblem,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
+import { createFilteredNetworkMapping, isPositiveVoltageNet } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
 const PIN_SIZE = 0.1
+
+/**
+ * Y-axis bias applied to pins connected to positive voltage nets.
+ * Negative value pushes them upward in the schematic layout.
+ */
+const POSITIVE_VOLTAGE_Y_BIAS = -0.3
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
@@ -38,14 +39,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
-    // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
       this.activeSubSolver = new PackSolver2(packInput)
       this.activeSubSolver = this.activeSubSolver
     }
 
-    // Run one step of the PackSolver2
     this.activeSubSolver.step()
 
     if (this.activeSubSolver.failed) {
@@ -55,7 +54,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
 
     if (this.activeSubSolver.solved) {
-      // Apply the packing result to create the layout
       this.layout = this.createLayoutFromPackingResult(
         this.activeSubSolver.packedComponents,
       )
@@ -65,17 +63,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   private createPackInput(): PackInput {
-    // Fall back to filtered mapping (weak + strong)
     const pinToNetworkMap = createFilteredNetworkMapping({
       inputProblem: this.partitionInputProblem,
       pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
     }).pinToNetworkMap
 
-    // Create pack components for each chip
     const packComponents = Object.entries(
       this.partitionInputProblem.chipMap,
     ).map(([chipId, chip]) => {
-      // Create pads for all pins of this chip
       const pads: Array<{
         padId: string
         networkId: string
@@ -84,20 +79,22 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         size: { x: number; y: number }
       }> = []
 
-      // Create a pad for each pin on this chip
       for (const pinId of chip.pins) {
         const pin = this.partitionInputProblem.chipPinMap[pinId]
         if (!pin) continue
 
-        // Find network for this pin from our connectivity map
         const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
+
+        const voltageBias = isPositiveVoltageNet(networkId, this.partitionInputProblem)
+          ? POSITIVE_VOLTAGE_Y_BIAS
+          : 0
 
         pads.push({
           padId: pinId,
           networkId: networkId,
           type: "rect" as const,
-          offset: { x: pin.offset.x, y: pin.offset.y },
-          size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
+          offset: { x: pin.offset.x, y: pin.offset.y + voltageBias },
+          size: { x: PIN_SIZE, y: PIN_SIZE },
         })
       }
 
@@ -106,9 +103,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         x: padsBoundingBox.maxX - padsBoundingBox.minX,
         y: padsBoundingBox.maxY - padsBoundingBox.minY,
       }
-
-      // Add chip body pad (disconnected from any network) but make sure
-      // it fully envelopes the "pads" (pins)
 
       pads.push({
         padId: `${chipId}_body`,
