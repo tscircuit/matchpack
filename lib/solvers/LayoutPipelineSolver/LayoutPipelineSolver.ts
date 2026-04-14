@@ -12,6 +12,7 @@ import {
   type PackedPartition,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import { PowerNetBiasSolver } from "lib/solvers/PowerNetBiasSolver/PowerNetBiasSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  powerNetBiasSolver?: PowerNetBiasSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +126,12 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep("powerNetBiasSolver", PowerNetBiasSolver, () => [
+      {
+        inputProblem: this.inputProblem,
+        inputLayout: this.partitionPackingSolver!.finalLayout!,
+      },
+    ]),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -188,8 +196,10 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
-    // If the pipeline is complete and we have a partition packing solver,
-    // show only the final chip placements
+    // If the pipeline is complete, show only the final chip placements
+    if (this.solved && this.powerNetBiasSolver?.solved) {
+      return this.powerNetBiasSolver.visualize()
+    }
     if (this.solved && this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -253,6 +263,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     // Show the most recent solver's output
+    if (this.powerNetBiasSolver?.solved) {
+      return this.powerNetBiasSolver.visualize()
+    }
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -400,8 +413,13 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the partition packing solver
+    // Prefer the bias-corrected layout if available
     if (
+      this.powerNetBiasSolver?.solved &&
+      this.powerNetBiasSolver.outputLayout
+    ) {
+      finalLayout = this.powerNetBiasSolver.outputLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
