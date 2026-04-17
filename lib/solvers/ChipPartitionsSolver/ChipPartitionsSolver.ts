@@ -16,22 +16,27 @@ import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import type { PassiveGroup } from "../IdentifyPassivesSolver/IdentifyPassivesSolver"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
   partitions: PartitionInputProblem[] = []
   decouplingCapGroups?: DecouplingCapGroup[]
+  passiveGroups?: PassiveGroup[]
 
   constructor({
     inputProblem,
     decouplingCapGroups,
+    passiveGroups,
   }: {
     inputProblem: InputProblem
     decouplingCapGroups?: DecouplingCapGroup[]
+    passiveGroups?: PassiveGroup[]
   }) {
     super()
     this.inputProblem = inputProblem
     this.decouplingCapGroups = decouplingCapGroups
+    this.passiveGroups = passiveGroups
   }
 
   override _step() {
@@ -47,7 +52,7 @@ export class ChipPartitionsSolver extends BaseSolver {
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
 
-    // 1) Build decoupling-cap-only partitions (exclude the main chip for each group)
+    // 1) Build decoupling-cap-only partitions
     const decapChipIdSet = new Set<ChipId>()
     const decapGroupPartitions: ChipId[][] = []
 
@@ -59,15 +64,20 @@ export class ChipPartitionsSolver extends BaseSolver {
             capsOnly.push(capId)
           }
         }
-        // Only add a partition if there are at least two caps present in the inputProblem
         if (capsOnly.length >= 2) {
           decapGroupPartitions.push(capsOnly)
-          // Mark these caps as handled by decoupling-cap partitions
           for (const capId of capsOnly) {
             decapChipIdSet.add(capId)
           }
         }
       }
+    }
+
+    // 1.5) Ensure passives are grouped with their main chip if not handled by decoupling caps
+    if (this.passiveGroups && this.passiveGroups.length > 0) {
+      // In this case, we don't need to do anything explicit here because
+      // passives are already strongly connected to the main chip.
+      // They will be picked up by the DFS in step 3 as long as they aren't in decapChipIdSet.
     }
 
     // 2) Build adjacency graph for NON-decap chips based on strong pin connections
