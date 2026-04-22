@@ -6,6 +6,7 @@
 import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
+import { DecouplingCapLinearLayoutSolver } from "../DecouplingCapLinearLayoutSolver/DecouplingCapLinearLayoutSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type {
   InputProblem,
@@ -25,7 +26,7 @@ const PIN_SIZE = 0.1
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
-  declare activeSubSolver: PackSolver2 | null
+  declare activeSubSolver: BaseSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -38,27 +39,36 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
-    // Initialize PackSolver2 if not already created
+    // Initialize sub-solver if not already created
     if (!this.activeSubSolver) {
-      const packInput = this.createPackInput()
-      this.activeSubSolver = new PackSolver2(packInput)
-      this.activeSubSolver = this.activeSubSolver
+      if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+        this.activeSubSolver = new DecouplingCapLinearLayoutSolver(
+          this.partitionInputProblem,
+        )
+      } else {
+        const packInput = this.createPackInput()
+        this.activeSubSolver = new PackSolver2(packInput)
+      }
     }
 
-    // Run one step of the PackSolver2
+    // Run one step of the active sub-solver
     this.activeSubSolver.step()
 
     if (this.activeSubSolver.failed) {
       this.failed = true
-      this.error = `PackSolver2 failed: ${this.activeSubSolver.error}`
+      this.error = `Sub-solver failed: ${this.activeSubSolver.error}`
       return
     }
 
     if (this.activeSubSolver.solved) {
-      // Apply the packing result to create the layout
-      this.layout = this.createLayoutFromPackingResult(
-        this.activeSubSolver.packedComponents,
-      )
+      // Apply the result to create the layout
+      if (this.activeSubSolver instanceof PackSolver2) {
+        this.layout = this.createLayoutFromPackingResult(
+          this.activeSubSolver.packedComponents,
+        )
+      } else if (this.activeSubSolver instanceof DecouplingCapLinearLayoutSolver) {
+        this.layout = this.activeSubSolver.layout
+      }
       this.solved = true
       this.activeSubSolver = null
     }

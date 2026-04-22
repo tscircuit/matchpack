@@ -47,28 +47,23 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     this.queuedChips = Object.values(inputProblem.chipMap)
   }
 
-  /** Determine if chip is a 2-pin component with restricted rotation */
-  private isTwoPinRestrictedRotation(chip: Chip): boolean {
-    if (chip.pins.length !== 2) return false
-
-    // Must be restricted to 0/180 or a single fixed orientation
-    if (!chip.availableRotations) return false
-    const allowed = new Set<0 | 180>([0, 180])
-    return (
-      chip.availableRotations.length > 0 &&
-      chip.availableRotations.every((r) => allowed.has(r as 0 | 180))
-    )
+  /** Determine if chip is a 2-pin component */
+  private isTwoPin(chip: Chip): boolean {
+    return chip.pins.length === 2
   }
 
-  /** Check that the two pins are on opposite Y sides (y+ and y-) */
-  private pinsOnOppositeYSides(chip: Chip): boolean {
+  /** Check that the two pins are on opposite sides (y+/y- or x+/x-) */
+  private pinsOnOppositeSides(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
     const [p1, p2] = chip.pins
     const cp1 = this.inputProblem.chipPinMap[p1!]
     const cp2 = this.inputProblem.chipPinMap[p2!]
     if (!cp1 || !cp2) return false
     const sides = new Set([cp1.side, cp2.side])
-    return sides.has("y+") && sides.has("y-")
+    return (
+      (sides.has("y+") && sides.has("y-")) ||
+      (sides.has("x+") && sides.has("x-"))
+    )
   }
 
   /** Get chips strongly connected (direct pin-to-pin) to this pin */
@@ -98,148 +93,108 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     for (const pinId of capChip.pins) {
       const neighbors = this.getStronglyConnectedNeighborChips(pinId)
       for (const n of neighbors) {
-        if (n === capChip.chipId) continue
         strongNeighbors.set(n, (strongNeighbors.get(n) || 0) + 1)
       }
     }
-    if (strongNeighbors.size === 0) return null
 
-    // Choose the neighbor with the most connections (tie-breaker: lexicographic)
-    let best: { id: ChipId; score: number } | null = null
-    for (const [id, score] of strongNeighbors.entries()) {
-      if (!best || score > best.score || (score === best.score && id < best.id))
-        best = { id, score }
-    }
-    return best ? best.id : null
+    // Sort by count, then pick the most frequent neighbor that isn't the cap itself
+    const sorted = Array.from(strongNeighbors.entries())
+      .filter(([id]) => id !== capChip.chipId)
+      .sort((a, b) => b[1] - a[1])
+
+    return sorted[0]?.[0] || null
   }
 
-  /** Get all net IDs connected to a pin */
-  private getNetIdsForPin(pinId: PinId): Set<NetId> {
-    const nets = new Set<NetId>()
-    for (const [connKey, connected] of Object.entries(
-      this.inputProblem.netConnMap,
-    )) {
-      if (!connected) continue
-      const [p, n] = connKey.split("-") as [PinId, NetId]
-      if (p === pinId) nets.add(n)
-    }
-    return nets
-  }
-
-  /** Get a normalized, sorted pair of net IDs connected across the two pins of a capacitor chip */
-  private getNormalizedNetPair(capChip: Chip): [NetId, NetId] | null {
-    if (capChip.pins.length !== 2) return null
-    const nets = new Set<NetId>()
-    for (const pinId of capChip.pins) {
-      const pinNets = this.getNetIdsForPin(pinId)
-      for (const n of pinNets) nets.add(n)
-    }
-    if (nets.size !== 2) return null
-    const [a, b] = Array.from(nets).sort()
-    return [a as NetId, b as NetId]
-  }
-
-  /** Adds a decoupling capacitor to the group for the given main chip and net pair */
-  private addToGroup(
-    mainChipId: ChipId,
-    netPair: [NetId, NetId],
-    capChipId: ChipId,
-  ) {
-    const [n1, n2] = netPair
-    const groupKey = `${mainChipId}__${n1}__${n2}`
-    let group = this.groupsByMainChipId.get(groupKey)
-    if (!group) {
-      group = {
-        decouplingCapGroupId: `decap_group_${mainChipId}__${n1}__${n2}`,
-        mainChipId,
-        netPair: [n1, n2],
-        decouplingCapChipIds: [],
-      }
-      this.groupsByMainChipId.set(groupKey, group)
-      this.outputDecouplingCapGroups.push(group)
-    }
-    if (!group.decouplingCapChipIds.includes(capChipId)) {
-      group.decouplingCapChipIds.push(capChipId)
-    }
-  }
-
-  lastChip: Chip | null = null
   override _step() {
-    const currentChip = this.queuedChips.shift()
-    this.lastChip = currentChip ?? null
-    if (!currentChip) {
-      this.solved = true
-      return
+    const { inputProblem } = this
+
+    // Identify all power/ground net pairs
+    const gndNets = Object.values(inputProblem.netMap).filter((n) => n.isGround)
+    const vccNets = Object.values(inputProblem.netMap).filter(
+      (n) => n.isPositiveVoltageSource,
+    )
+
+    for (const gndNet of gndNets) {
+      for (const vccNet of vccNets) {
+        const gndNetId = gndNet.netId
+        const vccNetId = vccNet.netId
+
+        // 1) Find pins connected to this net
+        const vccPins = Object.keys(inputProblem.netConnMap)
+          .filter((k) => k.endsWith(`-${vccNetId}`))
+          .map((k) => k.split("-")[0])
+        const gndPins = Object.keys(inputProblem.netConnMap)
+          .filter((k) => k.endsWith(`-${gndNetId}`))
+          .map((k) => k.split("-")[0])
+
+        const vccPinIdSet = new Set(vccPins)
+        const gndPinIdSet = new Set(gndPins)
+
+        // 2) Find chips with one pin on VCC and one on GND
+        const candidateDecapChipIds: ChipId[] = []
+        for (const chip of Object.values(inputProblem.chipMap)) {
+          if (!this.isTwoPin(chip)) continue
+
+          const [p1, p2] = chip.pins
+          if (!p1 || !p2) continue
+
+          const isDecap =
+            (vccPinIdSet.has(p1) && gndPinIdSet.has(p2)) ||
+            (vccPinIdSet.has(p2) && gndPinIdSet.has(p1))
+
+          if (isDecap) {
+            candidateDecapChipIds.push(chip.chipId)
+          }
+        }
+
+        // 3) Group candidate decaps by their main chip
+        for (const capChipId of candidateDecapChipIds) {
+          const currentChip = inputProblem.chipMap[capChipId]!
+          if (!this.pinsOnOppositeSides(currentChip)) continue
+
+          const mainChipId = this.findMainChipIdForCap(currentChip)
+          if (!mainChipId) continue
+
+          const groupId = `decap_group_${mainChipId}__${gndNetId}__${vccNetId}`
+          if (!this.groupsByMainChipId.has(groupId)) {
+            this.groupsByMainChipId.set(groupId, {
+              decouplingCapGroupId: groupId,
+              mainChipId,
+              netPair: [gndNetId, vccNetId],
+              decouplingCapChipIds: [],
+            })
+          }
+          this.groupsByMainChipId
+            .get(groupId)!
+            .decouplingCapChipIds.push(capChipId)
+        }
+      }
     }
 
-    // Apply identification criteria
-    const isDecouplingCap =
-      this.isTwoPinRestrictedRotation(currentChip) &&
-      this.pinsOnOppositeYSides(currentChip)
-
-    if (!isDecouplingCap) return
-
-    // Require at least one strong connection to another chip (main chip)
-    const mainChipId = this.findMainChipIdForCap(currentChip)
-    if (!mainChipId) return
-
-    // Require a well-defined pair of nets across the two pins
-    const netPair = this.getNormalizedNetPair(currentChip)
-    if (!netPair) return
-
-    // Ensure the net pair corresponds to a true decoupling capacitor:
-    // one net must be ground and the other a positive voltage source
-    const [n1, n2] = netPair
-    const net1 = this.inputProblem.netMap[n1]
-    const net2 = this.inputProblem.netMap[n2]
-    const isDecouplingNetPair =
-      (net1?.isGround && net2?.isPositiveVoltageSource) ||
-      (net2?.isGround && net1?.isPositiveVoltageSource)
-    if (!isDecouplingNetPair) return
-
-    this.addToGroup(mainChipId, netPair, currentChip.chipId)
+    this.outputDecouplingCapGroups = Array.from(
+      this.groupsByMainChipId.values(),
+    )
+    this.solved = true
   }
 
   override visualize(): GraphicsObject {
-    const basicLayout = doBasicInputProblemLayout(this.inputProblem)
-    const graphics: GraphicsObject = visualizeInputProblem(
-      this.inputProblem,
-      basicLayout,
-    )
+    const layout = doBasicInputProblemLayout(this.inputProblem)
+    const graphics = visualizeInputProblem(this.inputProblem, layout)
 
-    // Colorize chips that are part of decoupling groups
-    const chipDecapGroupMap = new Map<ChipId, DecouplingCapGroup>()
     for (const group of this.outputDecouplingCapGroups) {
-      chipDecapGroupMap.set(group.mainChipId, group)
-      for (const capChipId of group.decouplingCapChipIds) {
-        chipDecapGroupMap.set(capChipId, group)
+      const color = getColorFromString(group.decouplingCapGroupId)
+      for (const chipId of group.decouplingCapChipIds) {
+        graphics.addRect({
+          center: layout.chipPlacements[chipId]!,
+          size: this.inputProblem.chipMap[chipId]!.size,
+          color,
+          fill: true,
+          opacity: 0.3,
+          label: "decap",
+        })
       }
-    }
-
-    for (const rect of graphics.rects || []) {
-      if (rect.label !== this.lastChip?.chipId) {
-        rect.fill = "rgba(0,0,0,0.5)"
-      }
-    }
-
-    for (const rect of graphics.rects || []) {
-      const chipId = (rect as any).label as ChipId
-      const group = chipDecapGroupMap.get(chipId)
-      if (!group) continue
-      rect.label = `${rect.label}\n${group.decouplingCapGroupId}`
-      rect.fill = getColorFromString(group.decouplingCapGroupId, 0.8)
     }
 
     return graphics
-  }
-
-  override getConstructorParams(): [InputProblem] {
-    return [this.inputProblem]
-  }
-
-  computeProgress(): number {
-    const total = Object.keys(this.inputProblem.chipMap).length || 1
-    const processed = total - this.queuedChips.length
-    return Math.min(1, Math.max(0, processed / total))
   }
 }
