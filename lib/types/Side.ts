@@ -9,6 +9,8 @@ export const normalizeSide = (side: Side | Side2): Side => {
       return "x+"
     case "y-":
       return "y-"
+    case "y+":
+      return "y+"
     case "bottom":
       return "y-"
     case "right":
