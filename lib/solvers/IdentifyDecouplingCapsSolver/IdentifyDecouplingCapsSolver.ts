@@ -93,7 +93,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   /** Find the main chip id for a decoupling capacitor candidate */
   private findMainChipIdForCap(capChip: Chip): ChipId | null {
-    // Aggregate strong neighbors from both pins
+    // Preferred path: a direct (strong) pin-to-pin trace from the cap to a chip.
     const strongNeighbors = new Map<ChipId, number>()
     for (const pinId of capChip.pins) {
       const neighbors = this.getStronglyConnectedNeighborChips(pinId)
@@ -102,26 +102,94 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
         strongNeighbors.set(n, (strongNeighbors.get(n) || 0) + 1)
       }
     }
-    if (strongNeighbors.size === 0) return null
+    if (strongNeighbors.size > 0) {
+      // Choose the neighbor with the most connections (tie-breaker: lexicographic)
+      let best: { id: ChipId; score: number } | null = null
+      for (const [id, score] of strongNeighbors.entries()) {
+        if (
+          !best ||
+          score > best.score ||
+          (score === best.score && id < best.id)
+        )
+          best = { id, score }
+      }
+      return best ? best.id : null
+    }
 
-    // Choose the neighbor with the most connections (tie-breaker: lexicographic)
+    // Fallback: most real schematics wire decoupling caps to power/ground
+    // *nets* rather than directly to a chip pin, so no strong neighbor exists.
+    // Identify the chip being decoupled by looking for a non-cap chip that has
+    // pins connected to *both* of this cap's nets - that's the chip whose
+    // supply this cap is filtering.
+    const capNetPair = this.getNormalizedNetPair(capChip)
+    if (!capNetPair) return null
+    const [n1, n2] = capNetPair
+
+    const candidateScores = new Map<ChipId, number>()
+    for (const [otherChipId, otherChip] of Object.entries(
+      this.inputProblem.chipMap,
+    )) {
+      if (otherChipId === capChip.chipId) continue
+      // Skip other 2-pin candidates so caps don't get attributed to each other.
+      if (otherChip.pins.length === 2) continue
+
+      let touchesN1 = false
+      let touchesN2 = false
+      let totalPowerPins = 0
+      for (const pinId of otherChip.pins) {
+        const nets = this.getNetIdsForPin(pinId)
+        if (nets.has(n1)) {
+          touchesN1 = true
+          totalPowerPins++
+        }
+        if (nets.has(n2)) {
+          touchesN2 = true
+          totalPowerPins++
+        }
+      }
+      if (touchesN1 && touchesN2) {
+        candidateScores.set(otherChipId, totalPowerPins)
+      }
+    }
+    if (candidateScores.size === 0) return null
+
+    // Prefer the chip with the most pins on the supply pair (the chip that
+    // most clearly "owns" this rail), then lexicographic for stability.
     let best: { id: ChipId; score: number } | null = null
-    for (const [id, score] of strongNeighbors.entries()) {
+    for (const [id, score] of candidateScores.entries()) {
       if (!best || score > best.score || (score === best.score && id < best.id))
         best = { id, score }
     }
     return best ? best.id : null
   }
 
-  /** Get all net IDs connected to a pin */
+  /**
+   * Get all net IDs connected to a pin.
+   *
+   * Includes nets reached through strong (direct pin-to-pin) connections so
+   * that a decoupling cap whose hot pin tees off another chip's pin still
+   * resolves to the supply net that other pin sits on.
+   */
   private getNetIdsForPin(pinId: PinId): Set<NetId> {
     const nets = new Set<NetId>()
+
+    // Build a one-hop reachability set across strong connections.
+    const reachablePins = new Set<PinId>([pinId])
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      const [a, b] = connKey.split("-") as [PinId, PinId]
+      if (a === pinId) reachablePins.add(b)
+      else if (b === pinId) reachablePins.add(a)
+    }
+
     for (const [connKey, connected] of Object.entries(
       this.inputProblem.netConnMap,
     )) {
       if (!connected) continue
       const [p, n] = connKey.split("-") as [PinId, NetId]
-      if (p === pinId) nets.add(n)
+      if (reachablePins.has(p)) nets.add(n)
     }
     return nets
   }

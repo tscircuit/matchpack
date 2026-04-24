@@ -13,6 +13,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
       "chipGap": 0.2,
       "chipMap": {
         "C1": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "C1",
           "pins": [
             "C1.1",
@@ -122,6 +126,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R2": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R2",
           "pins": [
             "R2.1",
@@ -133,6 +141,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R3": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R3",
           "pins": [
             "R3.1",
@@ -144,6 +156,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R4": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R4",
           "pins": [
             "R4.1",
@@ -155,6 +171,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R5": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R5",
           "pins": [
             "R5.1",
@@ -166,6 +186,10 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           },
         },
         "R7": {
+          "availableRotations": [
+            0,
+            180,
+          ],
           "chipId": "R7",
           "pins": [
             "R7.1",
@@ -587,6 +611,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           "netId": "DISABLE",
         },
         "GND": {
+          "isGround": true,
           "netId": "GND",
         },
         "INT": {
@@ -602,9 +627,11 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           "netId": "SDA",
         },
         "V3_3": {
+          "isPositiveVoltageSource": true,
           "netId": "V3_3",
         },
         "V3_3_SW": {
+          "isPositiveVoltageSource": true,
           "netId": "V3_3_SW",
         },
       },

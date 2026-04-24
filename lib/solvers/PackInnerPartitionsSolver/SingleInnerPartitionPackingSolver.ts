@@ -38,6 +38,20 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Decoupling-cap partitions get a specialized, deterministic layout: the
+    // caps are placed in a single centered horizontal row sorted by chipId.
+    // This avoids the overlaps that PackSolver2 can produce on small same-net
+    // 2-pin components and gives the outer packer a tight, predictable
+    // bounding box to position next to the main chip.
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      Object.keys(this.partitionInputProblem.chipMap).length > 0
+    ) {
+      this.layout = this.createDecouplingCapsRowLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +75,51 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  /**
+   * Build a clean, centered horizontal row of decoupling capacitors.
+   *
+   * The caps are placed left-to-right in chipId order at y=0 with no rotation,
+   * separated by `decouplingCapsGap` (falling back to `chipGap`). The final row
+   * is recentered around the origin so the outer packer can position the
+   * partition symmetrically beneath/next to its main chip.
+   */
+  private createDecouplingCapsRowLayout(): OutputLayout {
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+    const sortedChips = [...chips].sort((a, b) =>
+      a.chipId.localeCompare(b.chipId),
+    )
+
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const chipPlacements: Record<ChipId, Placement> = {}
+    let cursorX = 0
+    for (let i = 0; i < sortedChips.length; i++) {
+      const chip = sortedChips[i]!
+      const halfWidth = chip.size.x / 2
+      const centerX = cursorX + halfWidth
+      chipPlacements[chip.chipId] = {
+        x: centerX,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      cursorX = centerX + halfWidth + gap
+    }
+
+    // Recenter the row horizontally around the origin
+    const rowWidth = cursorX - gap
+    const offset = rowWidth / 2
+    for (const chipId of Object.keys(chipPlacements)) {
+      chipPlacements[chipId]!.x -= offset
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
