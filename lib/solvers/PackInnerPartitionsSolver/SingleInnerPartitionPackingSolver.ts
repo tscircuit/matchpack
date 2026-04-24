@@ -19,13 +19,14 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { DecouplingCapsPackingSolver } from "./DecouplingCapsPackingSolver"
 
 const PIN_SIZE = 0.1
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
-  declare activeSubSolver: PackSolver2 | null
+  declare activeSubSolver: PackSolver2 | DecouplingCapsPackingSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -38,26 +39,50 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Decoupling-cap partitions get a specialised linear-row layout instead
+    // of the general PackSolver2, which produces overlapping results for
+    // large numbers of small passive components.
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.activeSubSolver
+    ) {
+      const decapSolver = new DecouplingCapsPackingSolver({
+        partitionInputProblem: this.partitionInputProblem,
+      })
+      this.activeSubSolver = decapSolver
+      decapSolver.solve()
+
+      if (decapSolver.solved && decapSolver.layout) {
+        this.layout = decapSolver.layout
+        this.solved = true
+      } else {
+        this.failed = true
+        this.error = "DecouplingCapsPackingSolver failed"
+      }
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
       this.activeSubSolver = new PackSolver2(packInput)
-      this.activeSubSolver = this.activeSubSolver
     }
 
-    // Run one step of the PackSolver2
-    this.activeSubSolver.step()
+    const packSolver = this.activeSubSolver as PackSolver2
 
-    if (this.activeSubSolver.failed) {
+    // Run one step of the PackSolver2
+    packSolver.step()
+
+    if (packSolver.failed) {
       this.failed = true
-      this.error = `PackSolver2 failed: ${this.activeSubSolver.error}`
+      this.error = `PackSolver2 failed: ${packSolver.error}`
       return
     }
 
-    if (this.activeSubSolver.solved) {
+    if (packSolver.solved) {
       // Apply the packing result to create the layout
       this.layout = this.createLayoutFromPackingResult(
-        this.activeSubSolver.packedComponents,
+        packSolver.packedComponents,
       )
       this.solved = true
       this.activeSubSolver = null

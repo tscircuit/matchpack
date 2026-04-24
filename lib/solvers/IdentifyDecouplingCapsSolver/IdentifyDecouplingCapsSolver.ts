@@ -47,17 +47,52 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     this.queuedChips = Object.values(inputProblem.chipMap)
   }
 
-  /** Determine if chip is a 2-pin component with restricted rotation */
+  /** Determine if chip is a 2-pin component with restricted rotation.
+   *
+   * A decoupling capacitor is typically a 0402/0603 passive that either:
+   *  - has an explicitly restricted rotation set (e.g. [0, 180] or [0])
+   *  - has all four rotations but its pins are on the y+/y- sides (the
+   *    component is physically a 2-pin passive oriented vertically)
+   *
+   * We accept [0], [180], [0, 180] as well as [90, 270] (horizontal) – any
+   * subset that excludes the "diagonal" orientations.  We also accept a chip
+   * with all 4 rotations when its pins are on opposite Y sides, because the
+   * converter doesn't always restrict passives to [0,180].
+   */
   private isTwoPinRestrictedRotation(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
 
-    // Must be restricted to 0/180 or a single fixed orientation
+    // If no rotation info, can't determine – skip
     if (!chip.availableRotations) return false
-    const allowed = new Set<0 | 180>([0, 180])
-    return (
-      chip.availableRotations.length > 0 &&
-      chip.availableRotations.every((r) => allowed.has(r as 0 | 180))
-    )
+
+    const rotSet = new Set(chip.availableRotations)
+    // Purely horizontal/vertical subsets: subset of {0,180} or {90,270}
+    const onlyCardinal =
+      (rotSet.size > 0 &&
+        [...rotSet].every((r) => r === 0 || r === 180 || r === 90 || r === 270))
+
+    if (!onlyCardinal) return false
+
+    // Prefer components restricted to fewer rotations (indicates passive)
+    if (rotSet.size <= 2) return true
+
+    // All 4 rotations – only accept if pins are on y+/y- or x+/x- sides
+    if (rotSet.size === 4) {
+      return this.pinsOnOppositeYSides(chip) || this.pinsOnOppositeXSides(chip)
+    }
+
+    return true
+  }
+
+  /** Check that the two pins are on opposite X sides (x+ and x-) */
+  private pinsOnOppositeXSides(chip: Chip): boolean {
+    if (chip.pins.length !== 2) return false
+    const [p1, p2] = chip.pins
+    const cp1 = this.inputProblem.chipPinMap[p1!]
+    const cp2 = this.inputProblem.chipPinMap[p2!]
+    if (!cp1 || !cp2) return false
+    const sides = new Set([cp1.side, cp2.side])
+    return sides.has("x+") && sides.has("x-")
   }
 
   /** Check that the two pins are on opposite Y sides (y+ and y-) */
@@ -91,9 +126,17 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return neighbors
   }
 
-  /** Find the main chip id for a decoupling capacitor candidate */
+  /** Find the main chip id for a decoupling capacitor candidate.
+   *
+   * Primary strategy: find chips that are directly strong-connected to one of
+   * the cap's pins.
+   *
+   * Fallback: if no direct strong connection exists, find the chip that has
+   * the most pins on the cap's supply net(s) — this handles topology where
+   * the cap is only connected via the net, not via a direct wire.
+   */
   private findMainChipIdForCap(capChip: Chip): ChipId | null {
-    // Aggregate strong neighbors from both pins
+    // Primary: strong neighbours
     const strongNeighbors = new Map<ChipId, number>()
     for (const pinId of capChip.pins) {
       const neighbors = this.getStronglyConnectedNeighborChips(pinId)
@@ -102,18 +145,56 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
         strongNeighbors.set(n, (strongNeighbors.get(n) || 0) + 1)
       }
     }
-    if (strongNeighbors.size === 0) return null
 
-    // Choose the neighbor with the most connections (tie-breaker: lexicographic)
+    if (strongNeighbors.size > 0) {
+      let best: { id: ChipId; score: number } | null = null
+      for (const [id, score] of strongNeighbors.entries()) {
+        if (
+          !best ||
+          score > best.score ||
+          (score === best.score && id < best.id)
+        )
+          best = { id, score }
+      }
+      return best ? best.id : null
+    }
+
+    // Fallback: find chip with the most pins on the same supply nets
+    const netPair = this.getNormalizedNetPair(capChip)
+    if (!netPair) return null
+
+    const netPairSet = new Set(netPair)
+    const chipScores = new Map<ChipId, number>()
+
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.netConnMap,
+    )) {
+      if (!connected) continue
+      const [pinId, netId] = connKey.split("-") as [PinId, NetId]
+      if (!netPairSet.has(netId)) continue
+      const chipId = pinId.split(".")[0]
+      if (!chipId || chipId === capChip.chipId) continue
+      chipScores.set(chipId, (chipScores.get(chipId) || 0) + 1)
+    }
+
+    if (chipScores.size === 0) return null
+
     let best: { id: ChipId; score: number } | null = null
-    for (const [id, score] of strongNeighbors.entries()) {
+    for (const [id, score] of chipScores.entries()) {
       if (!best || score > best.score || (score === best.score && id < best.id))
         best = { id, score }
     }
     return best ? best.id : null
   }
 
-  /** Get all net IDs connected to a pin */
+  /** Get all net IDs connected to a pin.
+   *
+   * Also walks one hop via pinStrongConnMap: if this pin is directly wired
+   * to another chip's pin that has a net assignment, the cap inherits that
+   * net.  This is the common RP2040 topology where a VCC capacitor pin is
+   * strong-connected to the RP2040 VCC pin but has no direct netConnMap
+   * entry of its own.
+   */
   private getNetIdsForPin(pinId: PinId): Set<NetId> {
     const nets = new Set<NetId>()
     for (const [connKey, connected] of Object.entries(
@@ -123,7 +204,34 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       const [p, n] = connKey.split("-") as [PinId, NetId]
       if (p === pinId) nets.add(n)
     }
+
+    // One-hop via strong connections
+    const strongNeighbors = this.getStronglyConnectedNeighborPins(pinId)
+    for (const neighborPin of strongNeighbors) {
+      for (const [connKey, connected] of Object.entries(
+        this.inputProblem.netConnMap,
+      )) {
+        if (!connected) continue
+        const [p, n] = connKey.split("-") as [PinId, NetId]
+        if (p === neighborPin) nets.add(n)
+      }
+    }
+
     return nets
+  }
+
+  /** Get all pins strongly connected to the given pin (excluding the pin itself) */
+  private getStronglyConnectedNeighborPins(pinId: PinId): Set<PinId> {
+    const neighbors = new Set<PinId>()
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      const [a, b] = connKey.split("-") as [PinId, PinId]
+      if (a === pinId) neighbors.add(b)
+      else if (b === pinId) neighbors.add(a)
+    }
+    return neighbors
   }
 
   /** Get a normalized, sorted pair of net IDs connected across the two pins of a capacitor chip */
