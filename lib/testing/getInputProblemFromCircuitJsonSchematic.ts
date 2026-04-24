@@ -2,6 +2,22 @@ import type { InputProblem } from "lib/types/InputProblem"
 import type { CircuitJson } from "circuit-json"
 import { cju } from "@tscircuit/circuit-json-util"
 
+/** Conventional ground/return net names (GND, AGND, DGND, VSS, ...) */
+const isGroundNetName = (name: string): boolean =>
+  /^(?:[A-Z]?GND\d*|VSS\d*|VEE\d*)$/i.test(name)
+
+/**
+ * Conventional positive supply rail names (VCC, VDD, V3_3, V1_1, USB_VDD,
+ * VBAT, VBUS, VIN, VOUT, ...). Anything matched by `isGroundNetName` is
+ * intentionally excluded.
+ */
+const isPositiveVoltageNetName = (name: string): boolean => {
+  if (isGroundNetName(name)) return false
+  return /^(?:V(?:CC|DD|BAT|BUS|IN|OUT|REF|SYS|AA)\d*|V\d[A-Z0-9_]*|.*_(?:VCC|VDD|VBAT|VBUS|VIN|VOUT|VREF|VSYS|VAA)\d*)$/i.test(
+    name,
+  )
+}
+
 export const getInputProblemFromCircuitJsonSchematic = (
   circuitJson: CircuitJson,
   options?: { useReadableIds?: boolean },
@@ -87,6 +103,20 @@ export const getInputProblemFromCircuitJsonSchematic = (
       },
     }
 
+    // 2-pin polar/passive components (capacitors, resistors, inductors, diodes)
+    // are conventionally only flipped vertically on a schematic, never rotated
+    // 90/270. Recording this here lets the decoupling-cap identifier and the
+    // packing solvers reason about them correctly.
+    if (
+      pinIds.length === 2 &&
+      (source_component.ftype === "simple_capacitor" ||
+        source_component.ftype === "simple_resistor" ||
+        source_component.ftype === "simple_inductor" ||
+        source_component.ftype === "simple_diode")
+    ) {
+      problem.chipMap[chipId]!.availableRotations = [0, 180]
+    }
+
     // Create chipPinMap entries for each pin
     for (const { schematic_port, source_port } of ports) {
       if (source_port) {
@@ -148,6 +178,10 @@ export const getInputProblemFromCircuitJsonSchematic = (
 
     problem.netMap[netId] = {
       netId: netId,
+      ...(isGroundNetName(netId) ? { isGround: true } : {}),
+      ...(isPositiveVoltageNetName(netId)
+        ? { isPositiveVoltageSource: true }
+        : {}),
     }
   }
 
