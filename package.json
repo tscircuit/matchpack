@@ -18,7 +18,7 @@
     "@react-hook/resize-observer": "^2.0.2",
     "@tscircuit/circuit-json-util": "^0.0.64",
     "@tscircuit/math-utils": "^0.0.19",
-    "@tscircuit/schematic-viewer": "^2.0.26",
+    "@tscircuit/schematic-viewer": "^2.0.59",
     "@types/bun": "latest",
     "bpc-graph": "^0.0.66",
     "calculate-packing": "^0.0.31",
@@ -31,5 +31,8 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "circuit-to-svg": "^0.0.345"
   }
 }
