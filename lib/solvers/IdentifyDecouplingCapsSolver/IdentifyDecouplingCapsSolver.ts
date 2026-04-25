@@ -68,8 +68,8 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const rotSet = new Set(chip.availableRotations)
     // Purely horizontal/vertical subsets: subset of {0,180} or {90,270}
     const onlyCardinal =
-      (rotSet.size > 0 &&
-        [...rotSet].every((r) => r === 0 || r === 180 || r === 90 || r === 270))
+      rotSet.size > 0 &&
+      [...rotSet].every((r) => r === 0 || r === 180 || r === 90 || r === 270)
 
     if (!onlyCardinal) return false
 
