@@ -3,22 +3,20 @@
  * Uses a packing algorithm to arrange chips and their connections within the partition.
  */
 
-import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
-import { BaseSolver } from "../BaseSolver"
-import type { OutputLayout, Placement } from "../../types/OutputLayout"
+import type { GraphicsObject } from "graphics-debug"
 import type {
-  InputProblem,
-  PinId,
-  ChipId,
-  NetId,
   ChipPin,
+  InputProblem,
   PartitionInputProblem,
+  PinId,
 } from "../../types/InputProblem"
-import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
-import { getPadsBoundingBox } from "./getPadsBoundingBox"
+import { BaseSolver } from "../BaseSolver"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import { getPadsBoundingBox } from "./getPadsBoundingBox"
 
 const PIN_SIZE = 0.1
 
@@ -38,6 +36,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -138,6 +142,46 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       minGap,
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
+    }
+  }
+
+  private createDecouplingCapLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const chipIds = Object.keys(this.partitionInputProblem.chipMap).sort(
+      (a, b) =>
+        a.localeCompare(b, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+    )
+
+    const widths = chipIds.map((chipId) => {
+      const chip = this.partitionInputProblem.chipMap[chipId]!
+      return chip.size.x
+    })
+    const totalWidth =
+      widths.reduce((sum, width) => sum + width, 0) +
+      Math.max(0, chipIds.length - 1) * gap
+
+    let cursorX = -totalWidth / 2
+    for (let i = 0; i < chipIds.length; i++) {
+      const chipId = chipIds[i]!
+      const width = widths[i]!
+      chipPlacements[chipId] = {
+        x: cursorX + width / 2,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      cursorX += width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
