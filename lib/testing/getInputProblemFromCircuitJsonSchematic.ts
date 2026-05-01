@@ -78,6 +78,21 @@ export const getInputProblemFromCircuitJsonSchematic = (
       })
       .filter(Boolean) as string[]
 
+    // Tag 2-pin passives with restricted rotation so the decoupling cap
+    // identification phase can recognise them.
+    const ftype = ((source_component as any).ftype || "") as string
+    const isTwoPinPassive =
+      pinIds.length === 2 &&
+      (ftype === "simple_capacitor" ||
+        ftype === "capacitor" ||
+        ftype === "simple_resistor" ||
+        ftype === "resistor" ||
+        ftype === "simple_inductor" ||
+        ftype === "inductor" ||
+        ftype === "simple_diode" ||
+        ftype === "diode" ||
+        ftype === "ferrite_bead")
+
     problem.chipMap[chipId] = {
       chipId,
       pins: pinIds,
@@ -85,6 +100,7 @@ export const getInputProblemFromCircuitJsonSchematic = (
         x: schematic_component.size?.width || 10,
         y: schematic_component.size?.height || 10,
       },
+      ...(isTwoPinPassive ? { availableRotations: [0, 180] } : {}),
     }
 
     // Create chipPinMap entries for each pin
@@ -146,8 +162,38 @@ export const getInputProblemFromCircuitJsonSchematic = (
       readableIdToSourceNetId.set(netId, originalNetId)
     }
 
+    // Detect ground and positive voltage nets by name so that
+    // IdentifyDecouplingCapsSolver can validate the net pair.
+    const name = (sourceNet.name || "").toUpperCase()
+    const isGround =
+      name === "GND" ||
+      name === "AGND" ||
+      name === "DGND" ||
+      name === "VSS" ||
+      name === "VEE" ||
+      name.startsWith("GND")
+    const isPositiveVoltageSource =
+      !isGround &&
+      (name.startsWith("VCC") ||
+        name.startsWith("VDD") ||
+        name.startsWith("VIN") ||
+        name.startsWith("VBUS") ||
+        name.startsWith("V3") ||
+        name.startsWith("V5") ||
+        name.startsWith("V1") ||
+        name.startsWith("VIO") ||
+        name.startsWith("VPP") ||
+        name === "3V3" ||
+        name === "5V" ||
+        name === "3.3V" ||
+        name === "5.0V" ||
+        name === "POWER" ||
+        name === "PWR")
+
     problem.netMap[netId] = {
       netId: netId,
+      ...(isGround ? { isGround: true } : {}),
+      ...(isPositiveVoltageSource ? { isPositiveVoltageSource: true } : {}),
     }
   }
 
