@@ -12,6 +12,7 @@ import {
   type PackedPartition,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import { PowerNetVerticalBiasSolver } from "lib/solvers/PowerNetVerticalBiasSolver/PowerNetVerticalBiasSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  powerNetVerticalBiasSolver?: PowerNetVerticalBiasSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +126,21 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep(
+      "powerNetVerticalBiasSolver",
+      PowerNetVerticalBiasSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          layout: this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+      {
+        onSolved: (_solver) => {
+          // Biased layout is now available via powerNetVerticalBiasSolver.biasedLayout
+        },
+      },
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -188,10 +205,39 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
-    // If the pipeline is complete and we have a partition packing solver,
-    // show only the final chip placements
-    if (this.solved && this.partitionPackingSolver?.solved) {
-      return this.partitionPackingSolver.visualize()
+    // If the pipeline is complete, show the final biased layout
+    if (this.solved) {
+      if (
+        this.powerNetVerticalBiasSolver?.solved &&
+        this.powerNetVerticalBiasSolver.biasedLayout
+      ) {
+        // Build a combined input problem for visualization
+        const combinedProblem: InputProblem = {
+          chipMap: {},
+          chipPinMap: {},
+          pinStrongConnMap: {},
+          netMap: {},
+          netConnMap: {},
+          chipGap: this.inputProblem.chipGap,
+          partitionGap: this.inputProblem.partitionGap,
+        }
+        for (const pp of this.packInnerPartitionsSolver?.packedPartitions ??
+          []) {
+          Object.assign(combinedProblem.chipMap, pp.inputProblem.chipMap)
+          Object.assign(combinedProblem.chipPinMap, pp.inputProblem.chipPinMap)
+          Object.assign(combinedProblem.netMap, pp.inputProblem.netMap)
+          Object.assign(combinedProblem.netConnMap, pp.inputProblem.netConnMap)
+        }
+        Object.assign(combinedProblem.netMap, this.inputProblem.netMap)
+        Object.assign(combinedProblem.netConnMap, this.inputProblem.netConnMap)
+        return visualizeInputProblem(
+          combinedProblem,
+          this.powerNetVerticalBiasSolver.biasedLayout,
+        )
+      }
+      if (this.partitionPackingSolver?.solved) {
+        return this.partitionPackingSolver.visualize()
+      }
     }
 
     const identifyDecouplingCapsViz =
@@ -253,6 +299,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     // Show the most recent solver's output
+    if (this.powerNetVerticalBiasSolver?.solved) {
+      return this.visualize()
+    }
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -400,8 +449,13 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the partition packing solver
+    // Prefer the power-net-biased layout when available
     if (
+      this.powerNetVerticalBiasSolver?.solved &&
+      this.powerNetVerticalBiasSolver.biasedLayout
+    ) {
+      finalLayout = this.powerNetVerticalBiasSolver.biasedLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
