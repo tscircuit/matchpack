@@ -26,7 +26,10 @@ const PIN_SIZE = 0.1
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
-  declare activeSubSolver: PackSolver2 | DecouplingCapsHorizontalRowSolver | null
+  declare activeSubSolver:
+    | PackSolver2
+    | DecouplingCapsHorizontalRowSolver
+    | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -41,9 +44,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   override _step() {
     // Initialize sub-solver if not already created
     if (!this.activeSubSolver) {
-      if (
-        this.partitionInputProblem.partitionType === "decoupling_caps"
-      ) {
+      if (this.partitionInputProblem.partitionType === "decoupling_caps") {
         // Use the specialized row layout for decoupling cap partitions
         this.activeSubSolver = new DecouplingCapsHorizontalRowSolver(
           this.partitionInputProblem,

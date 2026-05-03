@@ -9,21 +9,13 @@
  */
 
 import type { GraphicsObject } from "graphics-debug"
+import type { PackedComponent } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { PartitionInputProblem } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
-/**
- * Shape compatible with PackSolver2["packedComponents"] so the parent
- * SingleInnerPartitionPackingSolver can use this solver interchangeably.
- */
-export type PackedComponent = {
-  componentId: string
-  center: { x: number; y: number }
-  ccwRotationOffset?: number
-  ccwRotationDegrees?: number
-}
+export type { PackedComponent }
 
 export class DecouplingCapsHorizontalRowSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
@@ -55,8 +47,7 @@ export class DecouplingCapsHorizontalRowSolver extends BaseSolver {
     // Lay out chips in a horizontal row, centered at origin
     // Each chip occupies size.x width, separated by gap
     const totalWidth =
-      chips.reduce((sum, c) => sum + c.size.x, 0) +
-      gap * (chips.length - 1)
+      chips.reduce((sum, c) => sum + c.size.x, 0) + gap * (chips.length - 1)
 
     let cursor = -totalWidth / 2
     const packed: PackedComponent[] = []
@@ -76,6 +67,7 @@ export class DecouplingCapsHorizontalRowSolver extends BaseSolver {
         center: { x, y },
         ccwRotationDegrees: rotation,
         ccwRotationOffset: rotation,
+        pads: [],
       })
 
       cursor += chip.size.x + gap
