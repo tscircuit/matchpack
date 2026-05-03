@@ -19,13 +19,14 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { DecouplingCapsHorizontalRowSolver } from "../DecouplingCapsHorizontalRowSolver/DecouplingCapsHorizontalRowSolver"
 
 const PIN_SIZE = 0.1
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
-  declare activeSubSolver: PackSolver2 | null
+  declare activeSubSolver: PackSolver2 | DecouplingCapsHorizontalRowSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -38,19 +39,27 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
-    // Initialize PackSolver2 if not already created
+    // Initialize sub-solver if not already created
     if (!this.activeSubSolver) {
-      const packInput = this.createPackInput()
-      this.activeSubSolver = new PackSolver2(packInput)
-      this.activeSubSolver = this.activeSubSolver
+      if (
+        this.partitionInputProblem.partitionType === "decoupling_caps"
+      ) {
+        // Use the specialized row layout for decoupling cap partitions
+        this.activeSubSolver = new DecouplingCapsHorizontalRowSolver(
+          this.partitionInputProblem,
+        )
+      } else {
+        const packInput = this.createPackInput()
+        this.activeSubSolver = new PackSolver2(packInput)
+      }
     }
 
-    // Run one step of the PackSolver2
+    // Run one step of the active sub-solver
     this.activeSubSolver.step()
 
     if (this.activeSubSolver.failed) {
       this.failed = true
-      this.error = `PackSolver2 failed: ${this.activeSubSolver.error}`
+      this.error = `${this.activeSubSolver.constructor.name} failed: ${this.activeSubSolver.error}`
       return
     }
 
