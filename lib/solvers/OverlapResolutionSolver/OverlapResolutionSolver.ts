@@ -41,8 +41,7 @@ export class OverlapResolutionSolver extends BaseSolver {
       this.resolvedLayout = {
         chipPlacements: placements,
         groupPlacements:
-          this.resolvedLayout?.groupPlacements ??
-          this.layout.groupPlacements,
+          this.resolvedLayout?.groupPlacements ?? this.layout.groupPlacements,
       }
       this.solved = true
       return
@@ -57,8 +56,7 @@ export class OverlapResolutionSolver extends BaseSolver {
     this.resolvedLayout = {
       chipPlacements: placements,
       groupPlacements:
-        this.resolvedLayout?.groupPlacements ??
-        this.layout.groupPlacements,
+        this.resolvedLayout?.groupPlacements ?? this.layout.groupPlacements,
     }
   }
 
@@ -204,8 +202,7 @@ export class OverlapResolutionSolver extends BaseSolver {
     ) {
       return 0
     }
-    const overlapWidth =
-      Math.min(b1.maxX, b2.maxX) - Math.max(b1.minX, b2.minX)
+    const overlapWidth = Math.min(b1.maxX, b2.maxX) - Math.max(b1.minX, b2.minX)
     const overlapHeight =
       Math.min(b1.maxY, b2.maxY) - Math.max(b1.minY, b2.minY)
     return overlapWidth * overlapHeight
