@@ -296,7 +296,7 @@ export class PartitionPackingSolver extends BaseSolver {
       components: packComponents,
       minGap: this.inputProblem.partitionGap, // Use partitionGap from input problem
       packOrderStrategy: "largest_to_smallest",
-      packPlacementStrategy: "minimum_sum_squared_distance_to_network",
+      packPlacementStrategy: "shortest_connection_along_outline",
     }
   }
 

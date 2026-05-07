@@ -51,6 +51,7 @@ export class ChipPartitionsSolver extends BaseSolver {
     const decapChipIdSet = new Set<ChipId>()
     const decapGroupPartitions: ChipId[][] = []
 
+    // Use IdentifyDecouplingCapsSolver groups if available
     if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {
       for (const group of this.decouplingCapGroups) {
         const capsOnly: ChipId[] = []
@@ -66,6 +67,20 @@ export class ChipPartitionsSolver extends BaseSolver {
           for (const capId of capsOnly) {
             decapChipIdSet.add(capId)
           }
+        }
+      }
+    }
+
+    // Fallback: detect decoupling-cap-like chips not identified by the solver
+    const fallbackGroups = this.findDecouplingCapFallbackGroups(
+      inputProblem,
+      decapChipIdSet,
+    )
+    for (const capsOnly of fallbackGroups) {
+      if (capsOnly.length >= 2) {
+        decapGroupPartitions.push(capsOnly)
+        for (const capId of capsOnly) {
+          decapChipIdSet.add(capId)
         }
       }
     }
@@ -178,6 +193,68 @@ export class ChipPartitionsSolver extends BaseSolver {
     }
 
     return partition
+  }
+
+  /**
+   * Fallback detection for decoupling-cap-like chips when IdentifyDecouplingCapsSolver
+   * doesn't identify them (e.g. when availableRotations metadata is not set).
+   *
+   * Criteria: 2 pins, pins on y+/y- sides, strong connection to a chip with >2 pins
+   */
+  private findDecouplingCapFallbackGroups(
+    inputProblem: InputProblem,
+    alreadyMarked: Set<ChipId>,
+  ): ChipId[][] {
+    const chipIds = Object.keys(inputProblem.chipMap).filter(
+      (id) => !alreadyMarked.has(id),
+    )
+
+    // Find cap candidates: 2 pins, y+/y- sides, connected to a complex chip
+    const capToMainChip = new Map<ChipId, ChipId>()
+    for (const chipId of chipIds) {
+      const chip = inputProblem.chipMap[chipId]
+      if (!chip || chip.pins.length !== 2) continue
+
+      // Check for y+/y- pin sides
+      const sides = chip.pins
+        .map((p) => inputProblem.chipPinMap[p]?.side)
+        .filter(Boolean)
+      if (!sides.includes("y+") || !sides.includes("y-")) continue
+
+      // Find strong connections to complex chips (>2 pins)
+      for (const pinId of chip.pins) {
+        for (const [connKey, connected] of Object.entries(
+          inputProblem.pinStrongConnMap,
+        )) {
+          if (!connected) continue
+          const [a, b] = connKey.split("-")
+          const otherPinId = a === pinId ? b : b === pinId ? a : null
+          if (!otherPinId) continue
+
+          const otherOwner = this.findPinOwner(otherPinId, inputProblem)
+          if (
+            otherOwner &&
+            otherOwner !== chipId &&
+            !alreadyMarked.has(otherOwner)
+          ) {
+            const otherChip = inputProblem.chipMap[otherOwner]
+            if (otherChip && otherChip.pins.length > 2) {
+              capToMainChip.set(chipId, otherOwner)
+            }
+          }
+        }
+      }
+    }
+
+    // Group caps by their main chip
+    const groups = new Map<ChipId, ChipId[]>()
+    for (const [capId, mainChipId] of capToMainChip) {
+      const group = groups.get(mainChipId) || []
+      group.push(capId)
+      groups.set(mainChipId, group)
+    }
+
+    return Array.from(groups.values())
   }
 
   /**
