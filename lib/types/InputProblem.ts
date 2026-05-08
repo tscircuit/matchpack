@@ -42,6 +42,8 @@ export type InputProblem = {
   partitionGap: number
 
   decouplingCapsGap?: number
+  /** Layout direction for decoupling capacitors: "horizontal" or "vertical" */
+  decouplingCapsLayoutDirection?: "horizontal" | "vertical"
 
   inferDecouplingCaps?: boolean
 }
