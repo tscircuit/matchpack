@@ -25,6 +25,8 @@ export type Net = {
   netId: NetId
   isGround?: boolean
   isPositiveVoltageSource?: boolean
+  // Add a flag to indicate if this is a power net that should be routed upward
+  preferUpwardRouting?: boolean
 }
 
 export type InputProblem = {
