@@ -96,6 +96,15 @@ test("RP2040Circuit complete pipeline execution", () => {
   expect(solver.packInnerPartitionsSolver?.solved).toBe(true)
   expect(solver.partitionPackingSolver?.solved).toBe(true)
 
+  expect(
+    solver.identifyDecouplingCapsSolver?.outputDecouplingCapGroups.length,
+  ).toBeGreaterThan(0)
+  expect(
+    solver.chipPartitions?.some(
+      (partition) => partition.partitionType === "decoupling_caps",
+    ),
+  ).toBe(true)
+
   // Test getOutputLayout method
   const outputLayout = solver.getOutputLayout()
   expect(outputLayout).toBeDefined()

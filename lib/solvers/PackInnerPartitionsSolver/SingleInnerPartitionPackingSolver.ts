@@ -38,6 +38,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +68,59 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapsLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+      .map((chip) => ({
+        chip,
+        rotation: this.getPreferredDecouplingCapRotation(
+          chip.availableRotations,
+        ),
+      }))
+      .sort((a, b) =>
+        a.chip.chipId.localeCompare(b.chip.chipId, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      )
+
+    const widths = chips.map(({ chip, rotation }) =>
+      rotation === 90 || rotation === 270 ? chip.size.y : chip.size.x,
+    )
+    const totalWidth =
+      widths.reduce((sum, width) => sum + width, 0) +
+      Math.max(0, chips.length - 1) * gap
+
+    let cursorX = -totalWidth / 2
+
+    for (const [index, { chip, rotation }] of chips.entries()) {
+      const width = widths[index]!
+      chipPlacements[chip.chipId] = {
+        x: cursorX + width / 2,
+        y: 0,
+        ccwRotationDegrees: rotation,
+      }
+      cursorX += width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private getPreferredDecouplingCapRotation(
+    availableRotations: Array<0 | 90 | 180 | 270> = [0, 90, 180, 270],
+  ): 0 | 90 | 180 | 270 {
+    if (availableRotations.includes(0)) return 0
+    if (availableRotations.includes(180)) return 180
+    return availableRotations[0] ?? 0
   }
 
   private createPackInput(): PackInput {
