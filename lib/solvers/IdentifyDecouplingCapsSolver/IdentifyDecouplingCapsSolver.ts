@@ -51,8 +51,11 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   private isTwoPinRestrictedRotation(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
 
-    // Must be restricted to 0/180 or a single fixed orientation
-    if (!chip.availableRotations) return false
+    // Missing rotation metadata means the imported schematic has a fixed orientation.
+    if (!chip.availableRotations) return true
+
+    if (chip.isDecouplingCap) return true
+
     const allowed = new Set<0 | 180>([0, 180])
     return (
       chip.availableRotations.length > 0 &&
@@ -113,6 +116,19 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return best ? best.id : null
   }
 
+  private isGroundNet(netId: NetId): boolean {
+    const net = this.inputProblem.netMap[netId]
+    return Boolean(net?.isGround) || /(^|[_-])gnd($|[_-])/i.test(netId)
+  }
+
+  private isPositiveVoltageNet(netId: NetId): boolean {
+    const net = this.inputProblem.netMap[netId]
+    return (
+      Boolean(net?.isPositiveVoltageSource) ||
+      /(^v\d|vcc|vdd|vbat|vbus|usb_vdd|[_-]v\d)/i.test(netId)
+    )
+  }
+
   /** Get all net IDs connected to a pin */
   private getNetIdsForPin(pinId: PinId): Set<NetId> {
     const nets = new Set<NetId>()
@@ -123,6 +139,24 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       const [p, n] = connKey.split("-") as [PinId, NetId]
       if (p === pinId) nets.add(n)
     }
+
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      const [a, b] = connKey.split("-") as [PinId, PinId]
+      const connectedPinId = a === pinId ? b : b === pinId ? a : null
+      if (!connectedPinId) continue
+
+      for (const [netConnKey, isNetConnected] of Object.entries(
+        this.inputProblem.netConnMap,
+      )) {
+        if (!isNetConnected) continue
+        const [p, n] = netConnKey.split("-") as [PinId, NetId]
+        if (p === connectedPinId) nets.add(n)
+      }
+    }
+
     return nets
   }
 
@@ -190,11 +224,9 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     // Ensure the net pair corresponds to a true decoupling capacitor:
     // one net must be ground and the other a positive voltage source
     const [n1, n2] = netPair
-    const net1 = this.inputProblem.netMap[n1]
-    const net2 = this.inputProblem.netMap[n2]
     const isDecouplingNetPair =
-      (net1?.isGround && net2?.isPositiveVoltageSource) ||
-      (net2?.isGround && net1?.isPositiveVoltageSource)
+      (this.isGroundNet(n1) && this.isPositiveVoltageNet(n2)) ||
+      (this.isGroundNet(n2) && this.isPositiveVoltageNet(n1))
     if (!isDecouplingNetPair) return
 
     this.addToGroup(mainChipId, netPair, currentChip.chipId)
