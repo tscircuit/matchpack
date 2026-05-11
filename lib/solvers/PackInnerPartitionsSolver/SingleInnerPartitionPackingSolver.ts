@@ -13,6 +13,7 @@ import type {
   ChipId,
   NetId,
   ChipPin,
+  Chip,
   PartitionInputProblem,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
@@ -38,6 +39,15 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Decoupling-cap partitions use a dedicated linear-row layout instead of
+    // the generic packer. Caps line up horizontally with each cap rotated so
+    // its positive-voltage pin faces the same direction across the row.
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +72,126 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  /**
+   * Lay out the decoupling capacitors in a horizontal row, centered around the
+   * partition origin. Each cap is rotated (0° or 180°) so that the pin
+   * connected to a positive-voltage net consistently faces the same direction
+   * (y+ when possible) — that's the convention seen in hand-drawn schematics
+   * and is what makes a row of decoupling caps look uniform.
+   */
+  private createDecouplingCapsLayout(): OutputLayout {
+    const { chipMap } = this.partitionInputProblem
+    const chips = Object.values(chipMap)
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap ??
+      0.1
+
+    // Pick a target side for the positive-voltage pin once for the partition,
+    // by majority vote of the caps' natural (rotation=0) layout. This keeps
+    // already-correctly-oriented caps unchanged when possible.
+    const naturalSides = chips
+      .map((c) => this.getPositivePinNaturalSide(c))
+      .filter((s): s is "y+" | "y-" | "x+" | "x-" => s != null)
+    const targetSide = this.pickTargetSide(naturalSides)
+
+    const chipPlacements: Record<ChipId, Placement> = {}
+    let currentX = 0
+    for (const chip of chips) {
+      const rotation = this.pickRotationForPositivePin(chip, targetSide)
+      chipPlacements[chip.chipId] = {
+        x: currentX + chip.size.x / 2,
+        y: 0,
+        ccwRotationDegrees: rotation,
+      }
+      currentX += chip.size.x + gap
+    }
+
+    // Center the row around x=0.
+    const totalWidth = Math.max(currentX - gap, 0)
+    const offsetX = -totalWidth / 2
+    for (const id in chipPlacements) {
+      chipPlacements[id]!.x += offsetX
+    }
+
+    return { chipPlacements, groupPlacements: {} }
+  }
+
+  /**
+   * Side (y+/y-/x+/x-) of the chip where the positive-voltage pin sits at
+   * rotation 0. Returns null if no pin is connected to a positive-voltage net.
+   */
+  private getPositivePinNaturalSide(
+    chip: Chip,
+  ): "y+" | "y-" | "x+" | "x-" | null {
+    const { chipPinMap, netMap, netConnMap } = this.partitionInputProblem
+    for (const pinId of chip.pins) {
+      const pin = chipPinMap[pinId]
+      if (!pin) continue
+      for (const netId in netMap) {
+        if (!netMap[netId]?.isPositiveVoltageSource) continue
+        if (netConnMap[`${pinId}-${netId}` as `${PinId}-${NetId}`]) {
+          return pin.side
+        }
+      }
+    }
+    return null
+  }
+
+  /**
+   * Pick the consistent target side for positive-voltage pins. Prefers y+ when
+   * supported, otherwise picks the most common natural side so we minimize the
+   * number of caps that need to be flipped from their input orientation.
+   */
+  private pickTargetSide(
+    naturalSides: Array<"y+" | "y-" | "x+" | "x-">,
+  ): "y+" | "y-" | "x+" | "x-" {
+    if (naturalSides.length === 0) return "y+"
+    const counts: Record<string, number> = {}
+    for (const s of naturalSides) counts[s] = (counts[s] ?? 0) + 1
+    // Default to y+ unless another side has strictly more votes.
+    let best: "y+" | "y-" | "x+" | "x-" = "y+"
+    let bestCount = counts["y+"] ?? 0
+    for (const s of ["y-", "x+", "x-"] as const) {
+      if ((counts[s] ?? 0) > bestCount) {
+        best = s
+        bestCount = counts[s]!
+      }
+    }
+    return best
+  }
+
+  /**
+   * Pick a rotation (in degrees, ccw) such that the cap's positive-voltage pin
+   * ends up on the target side after rotation. Falls back to the first
+   * availableRotation when there's no positive-voltage pin to align.
+   */
+  private pickRotationForPositivePin(
+    chip: Chip,
+    targetSide: "y+" | "y-" | "x+" | "x-",
+  ): number {
+    const naturalSide = this.getPositivePinNaturalSide(chip)
+    const allowed = chip.availableRotations ?? [0, 90, 180, 270]
+    if (naturalSide == null) return allowed[0] ?? 0
+
+    const rotateSide = (
+      side: "y+" | "y-" | "x+" | "x-",
+      deg: 0 | 90 | 180 | 270,
+    ): "y+" | "y-" | "x+" | "x-" => {
+      // CCW rotation of a side label.
+      const order = ["x+", "y+", "x-", "y-"] as const
+      const idx = order.indexOf(side)
+      const steps = (deg / 90) | 0
+      return order[(idx + steps) % 4]!
+    }
+
+    for (const rot of allowed) {
+      if (rotateSide(naturalSide, rot) === targetSide) return rot
+    }
+    // Target unreachable with this cap's rotation set; keep its first allowed.
+    return allowed[0] ?? 0
   }
 
   private createPackInput(): PackInput {
