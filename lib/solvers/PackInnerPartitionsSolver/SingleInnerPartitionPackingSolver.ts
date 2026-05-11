@@ -38,6 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapLayout()
+      this.solved = true
+      this.activeSubSolver = null
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +69,133 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapLayout(): OutputLayout {
+    const chipIds = Object.keys(this.partitionInputProblem.chipMap)
+    const direction = this.getDecouplingCapLayoutDirection(chipIds)
+    const sortedChipIds = this.sortDecouplingCapChipIds(chipIds, direction)
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const pitch = this.getDecouplingCapPitch(sortedChipIds, direction, gap)
+    const midpoint = (sortedChipIds.length - 1) / 2
+    const chipPlacements: Record<string, Placement> = {}
+
+    for (let i = 0; i < sortedChipIds.length; i++) {
+      const chipId = sortedChipIds[i]!
+      const chip = this.partitionInputProblem.chipMap[chipId]!
+      const rotation = this.chooseDecouplingCapRotation(chip.availableRotations)
+      const centeredIndex = i - midpoint
+
+      chipPlacements[chipId] = {
+        x: direction === "horizontal" ? centeredIndex * pitch : 0,
+        y: direction === "vertical" ? -centeredIndex * pitch : 0,
+        ccwRotationDegrees: rotation,
+      }
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private getDecouplingCapLayoutDirection(
+    chipIds: ChipId[],
+  ): "horizontal" | "vertical" {
+    let xSideConnections = 0
+    let ySideConnections = 0
+
+    for (const chipId of chipIds) {
+      for (const pin of this.getExternalStrongPinsForChip(chipId)) {
+        if (pin.side === "x-" || pin.side === "x+") xSideConnections++
+        if (pin.side === "y-" || pin.side === "y+") ySideConnections++
+      }
+    }
+
+    return xSideConnections >= ySideConnections ? "vertical" : "horizontal"
+  }
+
+  private sortDecouplingCapChipIds(
+    chipIds: ChipId[],
+    direction: "horizontal" | "vertical",
+  ): ChipId[] {
+    return [...chipIds].sort((chipIdA, chipIdB) => {
+      const keyA = this.getDecouplingCapSortKey(chipIdA, direction)
+      const keyB = this.getDecouplingCapSortKey(chipIdB, direction)
+
+      if (keyA !== keyB) return keyA - keyB
+      return chipIdA.localeCompare(chipIdB, undefined, { numeric: true })
+    })
+  }
+
+  private getDecouplingCapSortKey(
+    chipId: ChipId,
+    direction: "horizontal" | "vertical",
+  ): number {
+    const externalPins = this.getExternalStrongPinsForChip(chipId)
+    if (externalPins.length === 0) return 0
+
+    const coordinateSum = externalPins.reduce((sum, pin) => {
+      return sum + (direction === "vertical" ? -pin.offset.y : pin.offset.x)
+    }, 0)
+
+    return coordinateSum / externalPins.length
+  }
+
+  private getExternalStrongPinsForChip(chipId: ChipId): ChipPin[] {
+    const chip = this.partitionInputProblem.chipMap[chipId]
+    if (!chip) return []
+
+    const partitionPinIds = new Set(
+      Object.keys(this.partitionInputProblem.chipPinMap),
+    )
+    const externalPins: ChipPin[] = []
+
+    for (const pinId of chip.pins) {
+      const stronglyConnectedPins =
+        this.pinIdToStronglyConnectedPins[pinId] ?? []
+
+      for (const connectedPin of stronglyConnectedPins) {
+        if (!partitionPinIds.has(connectedPin.pinId)) {
+          externalPins.push(connectedPin)
+        }
+      }
+    }
+
+    return externalPins
+  }
+
+  private getDecouplingCapPitch(
+    chipIds: ChipId[],
+    direction: "horizontal" | "vertical",
+    gap: number,
+  ): number {
+    const maxAxisSize = chipIds.reduce((maxSize, chipId) => {
+      const chip = this.partitionInputProblem.chipMap[chipId]
+      if (!chip) return maxSize
+      const rotation = this.chooseDecouplingCapRotation(chip.availableRotations)
+      const size = this.getRotatedChipSize(chip.size, rotation)
+      const axisSize = direction === "horizontal" ? size.x : size.y
+      return Math.max(maxSize, axisSize)
+    }, 0)
+
+    return maxAxisSize + gap
+  }
+
+  private chooseDecouplingCapRotation(
+    availableRotations?: Array<0 | 90 | 180 | 270>,
+  ): 0 | 90 | 180 | 270 {
+    if (!availableRotations || availableRotations.length === 0) return 0
+    return availableRotations.includes(0) ? 0 : availableRotations[0]!
+  }
+
+  private getRotatedChipSize(
+    size: { x: number; y: number },
+    rotation: number,
+  ): { x: number; y: number } {
+    return rotation === 90 || rotation === 270 ? { x: size.y, y: size.x } : size
   }
 
   private createPackInput(): PackInput {
