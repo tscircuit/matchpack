@@ -14,6 +14,7 @@ import type {
   NetId,
   ChipPin,
   PartitionInputProblem,
+  Chip,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
@@ -38,6 +39,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsRowLayout()
+      this.activeSubSolver = null
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +70,58 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapsRowLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const orderedChips = Object.values(this.partitionInputProblem.chipMap).sort(
+      (a, b) => a.chipId.localeCompare(b.chipId, undefined, { numeric: true }),
+    )
+    const orientedChips = orderedChips.map((chip) => {
+      const rotation = this.getPreferredRotation(chip)
+      const size = this.getChipSizeForRotation(chip, rotation)
+
+      return { chip, rotation, size }
+    })
+    const totalWidth =
+      orientedChips.reduce((sum, { size }) => sum + size.x, 0) +
+      Math.max(0, orientedChips.length - 1) * gap
+    let cursorX = -totalWidth / 2
+
+    for (const { chip, rotation, size } of orientedChips) {
+      cursorX += size.x / 2
+      chipPlacements[chip.chipId] = {
+        x: cursorX,
+        y: 0,
+        ccwRotationDegrees: rotation,
+      }
+      cursorX += size.x / 2 + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private getPreferredRotation(chip: Chip): 0 | 90 | 180 | 270 {
+    const rotations = chip.availableRotations ?? [0, 90, 180, 270]
+    if (rotations.includes(0)) return 0
+    return rotations[0] ?? 0
+  }
+
+  private getChipSizeForRotation(
+    chip: Chip,
+    rotation: 0 | 90 | 180 | 270,
+  ): { x: number; y: number } {
+    if (rotation === 90 || rotation === 270) {
+      return { x: chip.size.y, y: chip.size.x }
+    }
+
+    return chip.size
   }
 
   private createPackInput(): PackInput {
