@@ -1,6 +1,9 @@
 /**
  * Packs components within a single partition to create an optimal internal layout.
  * Uses a packing algorithm to arrange chips and their connections within the partition.
+ *
+ * For decoupling capacitor partitions, uses a specialized horizontal row layout
+ * instead of the general-purpose PackSolver2.
  */
 
 import type { GraphicsObject } from "graphics-debug"
@@ -38,6 +41,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Specialized layout for decoupling capacitor partitions:
+    // Arrange caps in a clean horizontal row instead of using PackSolver2
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +72,47 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  /**
+   * Creates a clean horizontal row layout for decoupling capacitors.
+   * Caps are placed in a single row with consistent orientation and even spacing.
+   */
+  private createDecouplingCapLayout(): OutputLayout {
+    const chipEntries = Object.entries(this.partitionInputProblem.chipMap)
+    const gap = this.partitionInputProblem.decouplingCapsGap ?? 0.5
+
+    // Calculate total width needed
+    let totalWidth = 0
+    const chipWidths: Array<{ chipId: string; width: number; height: number }> = []
+
+    for (const [chipId, chip] of chipEntries) {
+      const width = chip.size.x
+      const height = chip.size.y
+      chipWidths.push({ chipId, width, height })
+      totalWidth += width
+    }
+
+    // Add gaps between caps
+    totalWidth += gap * (chipEntries.length - 1)
+
+    // Place caps centered around origin in a horizontal row
+    const chipPlacements: Record<string, Placement> = {}
+    let currentX = -totalWidth / 2
+
+    for (const { chipId, width } of chipWidths) {
+      chipPlacements[chipId] = {
+        x: currentX + width / 2,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
