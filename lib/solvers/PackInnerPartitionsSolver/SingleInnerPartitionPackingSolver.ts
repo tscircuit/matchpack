@@ -22,6 +22,8 @@ import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputP
 
 const PIN_SIZE = 0.1
 
+const naturalChipIdCollator = new Intl.Collator(undefined, { numeric: true })
+
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
@@ -38,6 +40,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsRowLayout()
+      this.solved = true
+      this.activeSubSolver = null
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +70,47 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  private createDecouplingCapsRowLayout(): OutputLayout {
+    const chips = Object.values(this.partitionInputProblem.chipMap).sort(
+      (a, b) => naturalChipIdCollator.compare(a.chipId, b.chipId),
+    )
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const rowItems = chips.map((chip) => {
+      const rotation = chip.availableRotations?.includes(0)
+        ? 0
+        : (chip.availableRotations?.[0] ?? 0)
+      const rotationSwapsSize = rotation === 90 || rotation === 270
+      return {
+        chip,
+        rotation,
+        width: rotationSwapsSize ? chip.size.y : chip.size.x,
+      }
+    })
+
+    const totalWidth =
+      rowItems.reduce((sum, item) => sum + item.width, 0) +
+      Math.max(0, rowItems.length - 1) * gap
+    let cursorX = -totalWidth / 2
+    const chipPlacements: Record<string, Placement> = {}
+
+    for (const item of rowItems) {
+      chipPlacements[item.chip.chipId] = {
+        x: cursorX + item.width / 2,
+        y: 0,
+        ccwRotationDegrees: item.rotation,
+      }
+      cursorX += item.width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
