@@ -22,6 +22,11 @@ import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputP
 
 const PIN_SIZE = 0.1
 
+const naturalSort = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+})
+
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
@@ -38,6 +43,17 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Decoupling cap partitions get a deterministic row layout instead of PackSolver2
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.layout
+    ) {
+      this.layout = this.createDecouplingCapsRowLayout()
+      this.activeSubSolver = null
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +78,60 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  /**
+   * Arranges decoupling capacitors in a horizontal row sorted by chip ID
+   * (natural/numeric order: C1, C2, C10 not C1, C10, C2), centered at the origin.
+   */
+  private createDecouplingCapsRowLayout(): OutputLayout {
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const chips = Object.values(this.partitionInputProblem.chipMap).sort(
+      (a, b) => naturalSort.compare(a.chipId, b.chipId),
+    )
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Pick a rotation that keeps the cap in the 0/180 axis (portrait), default 0
+    const pickRotation = (chip: {
+      availableRotations?: Array<0 | 90 | 180 | 270>
+    }): 0 | 90 | 180 | 270 => {
+      const avail = chip.availableRotations ?? [0, 90, 180, 270]
+      for (const r of [0, 180, 90, 270] as const) {
+        if (avail.includes(r)) return r
+      }
+      return 0
+    }
+
+    const items = chips.map((chip) => {
+      const rotation = pickRotation(chip)
+      const swapped = rotation === 90 || rotation === 270
+      return {
+        chipId: chip.chipId,
+        rotation,
+        width: swapped ? chip.size.y : chip.size.x,
+      }
+    })
+
+    const totalWidth =
+      items.reduce((s, item) => s + item.width, 0) +
+      Math.max(0, items.length - 1) * gap
+
+    let cursor = -totalWidth / 2
+
+    for (const item of items) {
+      chipPlacements[item.chipId] = {
+        x: cursor + item.width / 2,
+        y: 0,
+        ccwRotationDegrees: item.rotation,
+      }
+      cursor += item.width + gap
+    }
+
+    return { chipPlacements, groupPlacements: {} }
   }
 
   private createPackInput(): PackInput {
