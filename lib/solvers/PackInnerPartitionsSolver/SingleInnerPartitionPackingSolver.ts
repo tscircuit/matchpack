@@ -38,6 +38,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsRowLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -157,6 +163,48 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           packedComponent.ccwRotationDegrees ||
           0,
       }
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private createDecouplingCapsRowLayout(): OutputLayout {
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const chipPlacements: Record<string, Placement> = {}
+    const chipEntries = Object.entries(this.partitionInputProblem.chipMap).sort(
+      ([chipIdA], [chipIdB]) =>
+        chipIdA.localeCompare(chipIdB, undefined, { numeric: true }),
+    )
+
+    const rowItems = chipEntries.map(([chipId, chip]) => {
+      const ccwRotationDegrees = chip.availableRotations?.includes(0)
+        ? 0
+        : (chip.availableRotations?.[0] ?? 0)
+      const rotatedSize =
+        ccwRotationDegrees === 90 || ccwRotationDegrees === 270
+          ? { x: chip.size.y, y: chip.size.x }
+          : chip.size
+
+      return { chipId, ccwRotationDegrees, size: rotatedSize }
+    })
+
+    const totalWidth = rowItems.reduce((width, item, index) => {
+      return width + item.size.x + (index === 0 ? 0 : gap)
+    }, 0)
+
+    let cursorX = -totalWidth / 2
+    for (const item of rowItems) {
+      chipPlacements[item.chipId] = {
+        x: cursorX + item.size.x / 2,
+        y: 0,
+        ccwRotationDegrees: item.ccwRotationDegrees,
+      }
+      cursorX += item.size.x + gap
     }
 
     return {
