@@ -38,6 +38,15 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (
+      !this.layout &&
+      this.partitionInputProblem.partitionType === "decoupling_caps"
+    ) {
+      this.layout = this.createDecouplingCapsLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +71,81 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapsLayout(): OutputLayout {
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const chipIds = Object.keys(this.partitionInputProblem.chipMap).sort(
+      naturalCompare,
+    )
+    const capItems = chipIds.map((chipId) => {
+      const chip = this.partitionInputProblem.chipMap[chipId]!
+      const rotation = this.getPreferredDecouplingCapRotation(chipId)
+      const footprint =
+        rotation === 90 || rotation === 270
+          ? { x: chip.size.y, y: chip.size.x }
+          : chip.size
+
+      return { chipId, rotation, footprint }
+    })
+
+    const totalWidth =
+      capItems.reduce((sum, item) => sum + item.footprint.x, 0) +
+      Math.max(0, capItems.length - 1) * gap
+    let cursorX = -totalWidth / 2
+    const chipPlacements: Record<string, Placement> = {}
+
+    for (const item of capItems) {
+      chipPlacements[item.chipId] = {
+        x: cursorX + item.footprint.x / 2,
+        y: 0,
+        ccwRotationDegrees: item.rotation,
+      }
+      cursorX += item.footprint.x + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private getPreferredDecouplingCapRotation(
+    chipId: ChipId,
+  ): 0 | 90 | 180 | 270 {
+    const chip = this.partitionInputProblem.chipMap[chipId]!
+    const allowedRotations = chip.availableRotations ?? [0, 90, 180, 270]
+    const fallback = allowedRotations[0] ?? 0
+    const positiveVoltagePin = chip.pins.find((pinId) =>
+      this.isPinConnectedToPositiveVoltage(pinId),
+    )
+
+    if (!positiveVoltagePin) return fallback
+
+    const pin = this.partitionInputProblem.chipPinMap[positiveVoltagePin]
+    if (!pin) return fallback
+
+    const preferredRotation = pin.side === "y-" ? 180 : 0
+    return allowedRotations.includes(preferredRotation)
+      ? preferredRotation
+      : fallback
+  }
+
+  private isPinConnectedToPositiveVoltage(pinId: PinId): boolean {
+    for (const [connKey, connected] of Object.entries(
+      this.partitionInputProblem.netConnMap,
+    )) {
+      if (!connected) continue
+      const [connectedPinId, netId] = connKey.split("-") as [PinId, NetId]
+      if (connectedPinId !== pinId) continue
+      if (this.partitionInputProblem.netMap[netId]?.isPositiveVoltageSource) {
+        return true
+      }
+    }
+
+    return false
   }
 
   private createPackInput(): PackInput {
@@ -181,4 +265,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   override getConstructorParams(): [InputProblem] {
     return [this.partitionInputProblem]
   }
+}
+
+function naturalCompare(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
 }
