@@ -38,6 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Handle decoupling caps partition with linear layout
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +68,61 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  /**
+   * Creates a linear layout for decoupling capacitors.
+   * Arranges capacitors in a centered horizontal row with consistent spacing.
+   */
+  private createLinearDecouplingCapLayout(): OutputLayout {
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+
+    // Sort by chipId for deterministic ordering
+    chips.sort((a, b) => a.chipId.localeCompare(b.chipId))
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Calculate gap (use decouplingCapsGap if set, otherwise chipGap)
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    // Calculate total width of all chips plus gaps
+    let totalWidth = 0
+    for (let i = 0; i < chips.length; i++) {
+      const chip = chips[i]
+      // Use rotation-aware width (if rotated 90 degrees, swap width/height)
+      const rotation = chip.availableRotations?.[0] ?? 0
+      const isRotated = rotation === 90 || rotation === 270
+      const width = isRotated ? chip.size.y : chip.size.x
+
+      totalWidth += width
+      if (i < chips.length - 1) {
+        totalWidth += gap
+      }
+    }
+
+    // Start x position (centered at 0)
+    let currentX = -totalWidth / 2
+
+    for (const chip of chips) {
+      // Use rotation-aware width
+      const rotation = chip.availableRotations?.[0] ?? 0
+      const isRotated = rotation === 90 || rotation === 270
+      const width = isRotated ? chip.size.y : chip.size.x
+
+      chipPlacements[chip.chipId] = {
+        x: currentX + width / 2,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
