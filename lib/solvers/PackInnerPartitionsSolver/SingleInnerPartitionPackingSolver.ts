@@ -11,9 +11,9 @@ import type {
   InputProblem,
   PinId,
   ChipId,
-  NetId,
   ChipPin,
   PartitionInputProblem,
+  Chip,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
@@ -21,6 +21,7 @@ import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
 const PIN_SIZE = 0.1
+type RotationDegrees = 0 | 90 | 180 | 270
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
@@ -38,6 +39,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsRowLayout()
+      this.solved = true
+      this.activeSubSolver = null
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +69,64 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  private getPreferredRotation(chip: Chip): RotationDegrees {
+    const rotations = chip.availableRotations
+    if (!rotations || rotations.length === 0) {
+      return 0
+    }
+    if (rotations.includes(0)) {
+      return 0
+    }
+    return rotations[0]!
+  }
+
+  private getWidthForRotation(chip: Chip, rotation: RotationDegrees): number {
+    return rotation === 90 || rotation === 270 ? chip.size.y : chip.size.x
+  }
+
+  private createDecouplingCapsRowLayout(): OutputLayout {
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const rowItems = Object.entries(this.partitionInputProblem.chipMap)
+      .sort(([chipIdA], [chipIdB]) =>
+        chipIdA.localeCompare(chipIdB, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      )
+      .map(([chipId, chip]) => {
+        const rotation = this.getPreferredRotation(chip)
+        return {
+          chipId,
+          rotation,
+          width: this.getWidthForRotation(chip, rotation),
+        }
+      })
+
+    const totalWidth =
+      rowItems.reduce((sum, item) => sum + item.width, 0) +
+      Math.max(0, rowItems.length - 1) * gap
+
+    let cursorX = -totalWidth / 2
+    const chipPlacements: Record<ChipId, Placement> = {}
+
+    for (const item of rowItems) {
+      chipPlacements[item.chipId] = {
+        x: cursorX + item.width / 2,
+        y: 0,
+        ccwRotationDegrees: item.rotation,
+      }
+      cursorX += item.width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
