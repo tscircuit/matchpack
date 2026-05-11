@@ -3,22 +3,22 @@
  * Uses a packing algorithm to arrange chips and their connections within the partition.
  */
 
-import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
-import { BaseSolver } from "../BaseSolver"
-import type { OutputLayout, Placement } from "../../types/OutputLayout"
+import type { GraphicsObject } from "graphics-debug"
 import type {
-  InputProblem,
-  PinId,
+  Chip,
   ChipId,
   ChipPin,
+  InputProblem,
   PartitionInputProblem,
-  Chip,
+  PinId,
 } from "../../types/InputProblem"
-import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
-import { getPadsBoundingBox } from "./getPadsBoundingBox"
+import { BaseSolver } from "../BaseSolver"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import { getPadsBoundingBox } from "./getPadsBoundingBox"
 
 const PIN_SIZE = 0.1
 type RotationDegrees = 0 | 90 | 180 | 270
