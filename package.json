@@ -22,6 +22,7 @@
     "@types/bun": "latest",
     "bpc-graph": "^0.0.66",
     "calculate-packing": "^0.0.31",
+    "circuit-to-svg": "^0.0.345",
     "circuit-json": "^0.0.226",
     "graphics-debug": "^0.0.64",
     "react-cosmos": "^7.0.0",
