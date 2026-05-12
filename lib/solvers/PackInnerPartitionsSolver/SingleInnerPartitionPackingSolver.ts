@@ -11,7 +11,7 @@ import type {
   InputProblem,
   PinId,
   ChipId,
-  NetId,
+  Chip,
   ChipPin,
   PartitionInputProblem,
 } from "../../types/InputProblem"
@@ -21,6 +21,48 @@ import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
 const PIN_SIZE = 0.1
+
+type LayoutAxis = "x" | "y"
+
+const compareNaturalChipIds = (a: ChipId, b: ChipId) => {
+  const aParts = a.match(/\d+|\D+/g) ?? [a]
+  const bParts = b.match(/\d+|\D+/g) ?? [b]
+  const partCount = Math.min(aParts.length, bParts.length)
+
+  for (let i = 0; i < partCount; i++) {
+    const aPart = aParts[i]!
+    const bPart = bParts[i]!
+    const aNumber = Number(aPart)
+    const bNumber = Number(bPart)
+    const aIsNumber = Number.isInteger(aNumber)
+    const bIsNumber = Number.isInteger(bNumber)
+
+    if (aIsNumber && bIsNumber && aNumber !== bNumber) {
+      return aNumber - bNumber
+    }
+
+    if (aPart !== bPart) {
+      return aPart.localeCompare(bPart)
+    }
+  }
+
+  return aParts.length - bParts.length
+}
+
+const getChipIdFromPinId = (pinId: PinId): ChipId =>
+  pinId.split(".")[0] ?? pinId
+
+const getPreferredRotation = (chip: Chip): 0 | 90 | 180 | 270 => {
+  if (!chip.availableRotations?.length) return 0
+  return chip.availableRotations.includes(0) ? 0 : chip.availableRotations[0]!
+}
+
+const getRotatedSize = (chip: Chip, rotation: number) => {
+  if (rotation === 90 || rotation === 270) {
+    return { x: chip.size.y, y: chip.size.x }
+  }
+  return chip.size
+}
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
@@ -38,6 +80,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsLayout()
+      this.solved = true
+      this.activeSubSolver = null
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +111,100 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapsLayout(): OutputLayout {
+    const entries = Object.entries(this.partitionInputProblem.chipMap).map(
+      ([chipId, chip]) => {
+        const connectedMainPin = this.getStronglyConnectedExternalPin(
+          chipId,
+          chip,
+        )
+        const rotation = getPreferredRotation(chip)
+        const rotatedSize = getRotatedSize(chip, rotation)
+
+        return {
+          chipId,
+          connectedMainPin,
+          rotation,
+          rotatedSize,
+        }
+      },
+    )
+
+    const externalPinSideCounts = entries.reduce(
+      (counts, entry) => {
+        if (entry.connectedMainPin?.side.startsWith("x")) counts.x += 1
+        if (entry.connectedMainPin?.side.startsWith("y")) counts.y += 1
+        return counts
+      },
+      { x: 0, y: 0 },
+    )
+    const layoutAxis: LayoutAxis =
+      externalPinSideCounts.x > externalPinSideCounts.y ? "y" : "x"
+
+    entries.sort((a, b) => {
+      const aHasMainPin = a.connectedMainPin ? 1 : 0
+      const bHasMainPin = b.connectedMainPin ? 1 : 0
+      if (aHasMainPin !== bHasMainPin) return bHasMainPin - aHasMainPin
+
+      const aCoordinate =
+        layoutAxis === "x"
+          ? (a.connectedMainPin?.offset.x ?? 0)
+          : (a.connectedMainPin?.offset.y ?? 0)
+      const bCoordinate =
+        layoutAxis === "x"
+          ? (b.connectedMainPin?.offset.x ?? 0)
+          : (b.connectedMainPin?.offset.y ?? 0)
+
+      if (aCoordinate !== bCoordinate) return aCoordinate - bCoordinate
+      return compareNaturalChipIds(a.chipId, b.chipId)
+    })
+
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const totalSpan =
+      entries.reduce((sum, entry) => {
+        return sum + entry.rotatedSize[layoutAxis]
+      }, 0) +
+      Math.max(0, entries.length - 1) * gap
+    const chipPlacements: Record<string, Placement> = {}
+    let cursor = -totalSpan / 2
+
+    for (const entry of entries) {
+      const span = entry.rotatedSize[layoutAxis]
+      const center = cursor + span / 2
+
+      chipPlacements[entry.chipId] = {
+        x: layoutAxis === "x" ? center : 0,
+        y: layoutAxis === "y" ? center : 0,
+        ccwRotationDegrees: entry.rotation,
+      }
+
+      cursor += span + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private getStronglyConnectedExternalPin(
+    chipId: ChipId,
+    chip: Chip,
+  ): ChipPin | null {
+    for (const pinId of chip.pins) {
+      for (const connectedPin of this.pinIdToStronglyConnectedPins[pinId] ??
+        []) {
+        if (getChipIdFromPinId(connectedPin.pinId) !== chipId) {
+          return connectedPin
+        }
+      }
+    }
+
+    return null
   }
 
   private createPackInput(): PackInput {
