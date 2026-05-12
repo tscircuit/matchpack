@@ -3,22 +3,22 @@
  * Uses a packing algorithm to arrange chips and their connections within the partition.
  */
 
-import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
-import { BaseSolver } from "../BaseSolver"
-import type { OutputLayout, Placement } from "../../types/OutputLayout"
+import type { GraphicsObject } from "graphics-debug"
 import type {
-  InputProblem,
-  PinId,
-  ChipId,
   Chip,
+  ChipId,
   ChipPin,
+  InputProblem,
   PartitionInputProblem,
+  PinId,
 } from "../../types/InputProblem"
-import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
-import { getPadsBoundingBox } from "./getPadsBoundingBox"
+import { BaseSolver } from "../BaseSolver"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import { getPadsBoundingBox } from "./getPadsBoundingBox"
 
 const PIN_SIZE = 0.1
 
@@ -57,11 +57,19 @@ const getPreferredRotation = (chip: Chip): 0 | 90 | 180 | 270 => {
   return chip.availableRotations.includes(0) ? 0 : chip.availableRotations[0]!
 }
 
-const getRotatedSize = (chip: Chip, rotation: number) => {
+const getRotatedSize = (size: { x: number; y: number }, rotation: number) => {
   if (rotation === 90 || rotation === 270) {
-    return { x: chip.size.y, y: chip.size.x }
+    return { x: size.y, y: size.x }
   }
-  return chip.size
+  return size
+}
+
+const getLayoutAxisForExternalSide = (
+  side: ChipPin["side"] | undefined,
+): LayoutAxis | null => {
+  if (side?.startsWith("x")) return "y"
+  if (side?.startsWith("y")) return "x"
+  return null
 }
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
@@ -121,7 +129,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           chip,
         )
         const rotation = getPreferredRotation(chip)
-        const rotatedSize = getRotatedSize(chip, rotation)
+        const layoutSize = this.getChipLayoutSize(chip)
+        const rotatedSize = getRotatedSize(layoutSize, rotation)
 
         return {
           chipId,
@@ -148,14 +157,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       const bHasMainPin = b.connectedMainPin ? 1 : 0
       if (aHasMainPin !== bHasMainPin) return bHasMainPin - aHasMainPin
 
-      const aCoordinate =
-        layoutAxis === "x"
-          ? (a.connectedMainPin?.offset.x ?? 0)
-          : (a.connectedMainPin?.offset.y ?? 0)
-      const bCoordinate =
-        layoutAxis === "x"
-          ? (b.connectedMainPin?.offset.x ?? 0)
-          : (b.connectedMainPin?.offset.y ?? 0)
+      const aCoordinate = this.getDecouplingCapSortCoordinate(a, layoutAxis)
+      const bCoordinate = this.getDecouplingCapSortCoordinate(b, layoutAxis)
 
       if (aCoordinate !== bCoordinate) return aCoordinate - bCoordinate
       return compareNaturalChipIds(a.chipId, b.chipId)
@@ -189,6 +192,42 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       chipPlacements,
       groupPlacements: {},
     }
+  }
+
+  private getChipLayoutSize(chip: Chip) {
+    let minX = -chip.size.x / 2
+    let maxX = chip.size.x / 2
+    let minY = -chip.size.y / 2
+    let maxY = chip.size.y / 2
+
+    for (const pinId of chip.pins) {
+      const pin = this.partitionInputProblem.chipPinMap[pinId]
+      if (!pin) continue
+
+      minX = Math.min(minX, pin.offset.x - PIN_SIZE / 2)
+      maxX = Math.max(maxX, pin.offset.x + PIN_SIZE / 2)
+      minY = Math.min(minY, pin.offset.y - PIN_SIZE / 2)
+      maxY = Math.max(maxY, pin.offset.y + PIN_SIZE / 2)
+    }
+
+    return {
+      x: maxX - minX,
+      y: maxY - minY,
+    }
+  }
+
+  private getDecouplingCapSortCoordinate(
+    entry: {
+      connectedMainPin: ChipPin | null
+    },
+    fallbackLayoutAxis: LayoutAxis,
+  ) {
+    const mainPin = entry.connectedMainPin
+    if (!mainPin) return 0
+
+    const sideAwareAxis =
+      getLayoutAxisForExternalSide(mainPin.side) ?? fallbackLayoutAxis
+    return mainPin.offset[sideAwareAxis]
   }
 
   private getStronglyConnectedExternalPin(

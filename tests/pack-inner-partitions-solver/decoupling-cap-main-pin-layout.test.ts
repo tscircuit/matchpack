@@ -108,3 +108,81 @@ test("decoupling caps connected to y-side main pins are laid out by main pin x o
   expect(placements.C1!.x).toBeLessThan(placements.C2!.x)
   expect(placements.C2!.x).toBeLessThan(placements.C10!.x)
 })
+
+test("decoupling cap spacing includes pin envelope beyond the chip body", () => {
+  const partition = makeDecouplingCapPartition()
+  partition.chipMap = {
+    C1: {
+      chipId: "C1",
+      pins: ["C1.1", "C1.2"],
+      size: { x: 0.2, y: 0.2 },
+      availableRotations: [0],
+    },
+    C2: {
+      chipId: "C2",
+      pins: ["C2.1", "C2.2"],
+      size: { x: 0.2, y: 0.2 },
+      availableRotations: [0],
+    },
+  }
+  partition.chipPinMap = {
+    "C1.1": { pinId: "C1.1", offset: { x: -0.6, y: 0 }, side: "x-" },
+    "C1.2": { pinId: "C1.2", offset: { x: 0.6, y: 0 }, side: "x+" },
+    "C2.1": { pinId: "C2.1", offset: { x: -0.6, y: 0 }, side: "x-" },
+    "C2.2": { pinId: "C2.2", offset: { x: 0.6, y: 0 }, side: "x+" },
+  }
+
+  const solver = new SingleInnerPartitionPackingSolver({
+    partitionInputProblem: partition,
+    pinIdToStronglyConnectedPins: {
+      "C1.1": [makeMainPin("U1.1", { x: -2, y: 2 }, "y+")],
+      "C2.1": [makeMainPin("U1.2", { x: 2, y: 2 }, "y+")],
+    },
+  })
+
+  solver.solve()
+
+  expect(solver.solved).toBe(true)
+  const placements = solver.layout!.chipPlacements
+  const centerDistance = Math.abs(placements.C2!.x - placements.C1!.x)
+
+  expect(centerDistance).toBeCloseTo(1.55)
+})
+
+test("mixed x-side and y-side main pins keep side-aware order", () => {
+  const partition = makeDecouplingCapPartition()
+  partition.chipMap.C3 = {
+    chipId: "C3",
+    pins: ["C3.1", "C3.2"],
+    size: { x: 1, y: 0.5 },
+    availableRotations: [0],
+  }
+  partition.chipPinMap["C3.1"] = {
+    pinId: "C3.1",
+    offset: { x: 0, y: 0.25 },
+    side: "y+",
+  }
+  partition.chipPinMap["C3.2"] = {
+    pinId: "C3.2",
+    offset: { x: 0, y: -0.25 },
+    side: "y-",
+  }
+
+  const solver = new SingleInnerPartitionPackingSolver({
+    partitionInputProblem: partition,
+    pinIdToStronglyConnectedPins: {
+      "C10.1": [makeMainPin("U1.10", { x: 10, y: -2 }, "x+")],
+      "C2.1": [makeMainPin("U1.2", { x: 10, y: 2 }, "x+")],
+      "C1.1": [makeMainPin("U1.1", { x: -2, y: 10 }, "y+")],
+      "C3.1": [makeMainPin("U1.3", { x: 2, y: 10 }, "y+")],
+    },
+  })
+
+  solver.solve()
+
+  expect(solver.solved).toBe(true)
+  const placements = solver.layout!.chipPlacements
+
+  expect(placements.C10!.x).toBeLessThan(placements.C2!.x)
+  expect(placements.C1!.x).toBeLessThan(placements.C3!.x)
+})
