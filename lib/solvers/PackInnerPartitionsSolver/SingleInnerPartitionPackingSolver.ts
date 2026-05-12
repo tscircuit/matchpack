@@ -22,6 +22,43 @@ import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputP
 
 const PIN_SIZE = 0.1
 
+const compareNaturalChipIds = (a: ChipId, b: ChipId) => {
+  const aParts = a.match(/\d+|\D+/g) ?? [a]
+  const bParts = b.match(/\d+|\D+/g) ?? [b]
+  const partCount = Math.min(aParts.length, bParts.length)
+
+  for (let i = 0; i < partCount; i++) {
+    const aPart = aParts[i]!
+    const bPart = bParts[i]!
+    const aIsNumber = /^\d+$/.test(aPart)
+    const bIsNumber = /^\d+$/.test(bPart)
+
+    if (aIsNumber && bIsNumber) {
+      const diff = Number(aPart) - Number(bPart)
+      if (diff !== 0) return diff
+      continue
+    }
+
+    if (aPart !== bPart) {
+      return aPart < bPart ? -1 : 1
+    }
+  }
+
+  return aParts.length - bParts.length
+}
+
+const getDecouplingCapRotation = (
+  availableRotations?: Array<0 | 90 | 180 | 270>,
+) => {
+  if (!availableRotations?.length) return 0
+  return availableRotations.includes(0) ? 0 : availableRotations[0]!
+}
+
+const getRowWidthForRotation = (
+  chipSize: { x: number; y: number },
+  rotation: number,
+) => (rotation === 90 || rotation === 270 ? chipSize.y : chipSize.x)
+
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
@@ -38,6 +75,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsRowLayout()
+      this.solved = true
+      this.activeSubSolver = null
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +105,41 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  private createDecouplingCapsRowLayout(): OutputLayout {
+    const chipEntries = Object.entries(this.partitionInputProblem.chipMap)
+      .sort(([aChipId], [bChipId]) => compareNaturalChipIds(aChipId, bChipId))
+      .map(([chipId, chip]) => {
+        const rotation = getDecouplingCapRotation(chip.availableRotations)
+        return {
+          chipId,
+          rowWidth: getRowWidthForRotation(chip.size, rotation),
+          rotation,
+        }
+      })
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const totalWidth =
+      chipEntries.reduce((sum, chipEntry) => sum + chipEntry.rowWidth, 0) +
+      Math.max(0, chipEntries.length - 1) * gap
+    const chipPlacements: Record<string, Placement> = {}
+    let cursorX = -totalWidth / 2
+
+    for (const { chipId, rowWidth, rotation } of chipEntries) {
+      chipPlacements[chipId] = {
+        x: cursorX + rowWidth / 2,
+        y: 0,
+        ccwRotationDegrees: rotation,
+      }
+      cursorX += rowWidth + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
