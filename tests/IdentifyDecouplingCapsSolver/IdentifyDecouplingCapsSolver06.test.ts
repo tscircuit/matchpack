@@ -1,6 +1,13 @@
-import { test, expect } from "bun:test"
+import { test, expect, mock } from "bun:test"
 import { IdentifyDecouplingCapsSolver } from "../../lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
-import { problem } from "../../pages/LayoutPipelineSolver/LayoutPipelineSolver06.page.tsx"
+
+mock.module("lib/components/LayoutPipelineDebugger", () => ({
+  LayoutPipelineDebugger: () => null,
+}))
+
+const { problem } = await import(
+  "../../pages/LayoutPipelineSolver/LayoutPipelineSolver06.page.tsx"
+)
 
 test("IdentifyDecouplingCapsSolver identifies decoupling capacitor groups from LayoutPipelineSolver06", () => {
   const solver = new IdentifyDecouplingCapsSolver(problem)
