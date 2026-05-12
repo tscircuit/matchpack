@@ -38,6 +38,15 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.activeSubSolver
+    ) {
+      this.layout = this.createDecouplingCapRowLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +71,37 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapRowLayout(): OutputLayout {
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    // Sort by chipId for deterministic ordering
+    const chips = Object.values(this.partitionInputProblem.chipMap).sort(
+      (a, b) => a.chipId.localeCompare(b.chipId),
+    )
+
+    // Compute total row width
+    const totalWidth = chips.reduce((sum, chip, i) => {
+      return sum + chip.size.x + (i < chips.length - 1 ? gap : 0)
+    }, 0)
+
+    const chipPlacements: Record<string, Placement> = {}
+    let x = -totalWidth / 2
+
+    for (const chip of chips) {
+      x += chip.size.x / 2
+      chipPlacements[chip.chipId] = {
+        x,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      x += chip.size.x / 2 + gap
+    }
+
+    return { chipPlacements, groupPlacements: {} }
   }
 
   private createPackInput(): PackInput {
