@@ -149,6 +149,43 @@ test("decoupling cap spacing includes pin envelope beyond the chip body", () => 
   expect(centerDistance).toBeCloseTo(1.55)
 })
 
+test("decoupling cap layout uses positive-voltage main pins for ordering", () => {
+  const partition = makeDecouplingCapPartition()
+  partition.chipMap = {
+    C1: {
+      chipId: "C1",
+      pins: ["C1.2", "C1.1"],
+      size: { x: 1, y: 0.5 },
+      availableRotations: [0],
+    },
+    C2: {
+      chipId: "C2",
+      pins: ["C2.2", "C2.1"],
+      size: { x: 1, y: 0.5 },
+      availableRotations: [0],
+    },
+  }
+
+  const solver = new SingleInnerPartitionPackingSolver({
+    partitionInputProblem: partition,
+    pinIdToStronglyConnectedPins: {
+      "C1.2": [makeMainPin("U1.GND1", { x: 2, y: 2 }, "y+")],
+      "C1.1": [makeMainPin("U1.VCC1", { x: -2, y: 2 }, "y+")],
+      "C2.2": [makeMainPin("U1.GND2", { x: -2, y: 2 }, "y+")],
+      "C2.1": [makeMainPin("U1.VCC2", { x: 2, y: 2 }, "y+")],
+    },
+  })
+
+  solver.solve()
+
+  expect(solver.solved).toBe(true)
+  const placements = solver.layout!.chipPlacements
+
+  expect(placements.C1!.y).toBeCloseTo(0)
+  expect(placements.C2!.y).toBeCloseTo(0)
+  expect(placements.C1!.x).toBeLessThan(placements.C2!.x)
+})
+
 test("caps without external main-pin data fall back to natural chip id order", () => {
   const solver = new SingleInnerPartitionPackingSolver({
     partitionInputProblem: makeDecouplingCapPartition(),

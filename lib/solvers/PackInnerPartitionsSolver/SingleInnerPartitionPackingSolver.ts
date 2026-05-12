@@ -11,6 +11,7 @@ import type {
   InputProblem,
   PinId,
   ChipId,
+  NetId,
   Chip,
   ChipPin,
   PartitionInputProblem,
@@ -124,10 +125,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   private createDecouplingCapsLayout(): OutputLayout {
     const entries = Object.entries(this.partitionInputProblem.chipMap).map(
       ([chipId, chip]) => {
-        const connectedMainPin = this.getStronglyConnectedExternalPin(
-          chipId,
-          chip,
-        )
+        const connectedMainPin = this.getPreferredExternalMainPin(chipId, chip)
         const rotation = getPreferredRotation(chip)
         const layoutSize = this.getChipLayoutSize(chip)
         const rotatedSize = getRotatedSize(layoutSize, rotation)
@@ -230,20 +228,67 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     return mainPin.offset[sideAwareAxis]
   }
 
-  private getStronglyConnectedExternalPin(
+  private getPreferredExternalMainPin(
     chipId: ChipId,
     chip: Chip,
   ): ChipPin | null {
+    const candidates: Array<{
+      capPinId: PinId
+      externalPin: ChipPin
+      isPositiveVoltage: boolean
+      isGround: boolean
+    }> = []
+
     for (const pinId of chip.pins) {
       for (const connectedPin of this.pinIdToStronglyConnectedPins[pinId] ??
         []) {
         if (getChipIdFromPinId(connectedPin.pinId) !== chipId) {
-          return connectedPin
+          const netRole = this.getPinNetRole(pinId)
+          candidates.push({
+            capPinId: pinId,
+            externalPin: connectedPin,
+            isPositiveVoltage: netRole.isPositiveVoltage,
+            isGround: netRole.isGround,
+          })
         }
       }
     }
 
-    return null
+    candidates.sort((a, b) => {
+      if (a.isPositiveVoltage !== b.isPositiveVoltage) {
+        return a.isPositiveVoltage ? -1 : 1
+      }
+      if (a.isGround !== b.isGround) {
+        return a.isGround ? -1 : 1
+      }
+      const capPinOrder = a.capPinId.localeCompare(b.capPinId)
+      if (capPinOrder !== 0) return capPinOrder
+      return a.externalPin.pinId.localeCompare(b.externalPin.pinId)
+    })
+
+    return candidates[0]?.externalPin ?? null
+  }
+
+  private getPinNetRole(pinId: PinId) {
+    const role = {
+      isPositiveVoltage: false,
+      isGround: false,
+    }
+
+    for (const [connKey, isConnected] of Object.entries(
+      this.partitionInputProblem.netConnMap,
+    )) {
+      if (!isConnected) continue
+
+      const [connectedPinId, netId] = connKey.split("-") as [PinId, NetId]
+      if (connectedPinId !== pinId) continue
+
+      const net = this.partitionInputProblem.netMap[netId]
+      role.isPositiveVoltage ||= Boolean(net?.isPositiveVoltageSource)
+      role.isGround ||= Boolean(net?.isGround)
+    }
+
+    return role
   }
 
   private createPackInput(): PackInput {
