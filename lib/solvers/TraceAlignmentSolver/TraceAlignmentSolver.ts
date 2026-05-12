@@ -6,8 +6,8 @@ import type { Point } from "@tscircuit/math-utils"
 export class TraceAlignmentSolver extends BaseSolver {
   inputProblem: InputProblem
   outputLayout: OutputLayout
-  MAX_ITERATIONS = 20
-  
+  override MAX_ITERATIONS = 20
+
   constructor(params: {
     inputProblem: InputProblem
     outputLayout: OutputLayout
@@ -19,7 +19,7 @@ export class TraceAlignmentSolver extends BaseSolver {
 
   override _step() {
     let nudgedAny = false
-    
+
     const strongConnections = Object.entries(this.inputProblem.pinStrongConnMap)
       .filter(([_, connected]) => connected)
       .map(([connKey]) => connKey.split("-") as [PinId, PinId])
@@ -27,7 +27,7 @@ export class TraceAlignmentSolver extends BaseSolver {
     for (const [pinIdA, pinIdB] of strongConnections) {
       const chipIdA = this.getChipIdForPin(pinIdA)
       const chipIdB = this.getChipIdForPin(pinIdB)
-      
+
       if (!chipIdA || !chipIdB || chipIdA === chipIdB) continue
 
       const posA = this.getAbsolutePositionForPin(pinIdA)
@@ -36,9 +36,9 @@ export class TraceAlignmentSolver extends BaseSolver {
 
       const dx = Math.abs(posA.x - posB.x)
       const dy = Math.abs(posA.y - posB.y)
-      
+
       const threshold = 1.0
-      
+
       // Determine which axis to align based on proximity
       const alignX = dx > 0 && dx < threshold && (dy === 0 || dx < dy)
       const alignY = dy > 0 && dy < threshold && (dx === 0 || dy < dx)
@@ -49,11 +49,18 @@ export class TraceAlignmentSolver extends BaseSolver {
       const pinsB = this.inputProblem.chipMap[chipIdB]?.pins.length || 0
 
       // Sort chips: nudge the one with fewer pins (or smaller ID)
-      const [toNudge, target] = (pinsA < pinsB || (pinsA === pinsB && chipIdA < chipIdB)) 
-        ? [{ id: chipIdA, pos: posA }, { id: chipIdB, pos: posB }]
-        : [{ id: chipIdB, pos: posB }, { id: chipIdA, pos: posA }]
+      const [toNudge, target] =
+        pinsA < pinsB || (pinsA === pinsB && chipIdA < chipIdB)
+          ? [
+              { id: chipIdA, pos: posA },
+              { id: chipIdB, pos: posB },
+            ]
+          : [
+              { id: chipIdB, pos: posB },
+              { id: chipIdA, pos: posA },
+            ]
 
-      const nudge = alignX 
+      const nudge = alignX
         ? { x: target.pos.x - toNudge.pos.x, y: 0 }
         : { x: 0, y: target.pos.y - toNudge.pos.y }
 
@@ -75,16 +82,16 @@ export class TraceAlignmentSolver extends BaseSolver {
 
     const originalX = placement.x
     const originalY = placement.y
-    
+
     placement.x += nudge.x
     placement.y += nudge.y
-    
+
     if (this.hasOverlaps(chipId)) {
       placement.x = originalX
       placement.y = originalY
       return false
     }
-    
+
     return true
   }
 
@@ -93,14 +100,14 @@ export class TraceAlignmentSolver extends BaseSolver {
     const placement1 = this.outputLayout.chipPlacements[chipId]!
     const chip1 = this.inputProblem.chipMap[chipId]!
     const bounds1 = this.getRotatedBounds(placement1, chip1.size)
-    
+
     for (const otherId of chipIds) {
       if (otherId === chipId) continue
-      
+
       const placement2 = this.outputLayout.chipPlacements[otherId]!
       const chip2 = this.inputProblem.chipMap[otherId]!
       const bounds2 = this.getRotatedBounds(placement2, chip2.size)
-      
+
       // Use a slightly larger epsilon for overlaps to avoid precision issues
       if (this.calculateOverlapArea(bounds1, bounds2) > 0.0001) {
         return true
@@ -120,14 +127,17 @@ export class TraceAlignmentSolver extends BaseSolver {
     const chipPin = this.inputProblem.chipPinMap[pinId]
     const chipId = this.getChipIdForPin(pinId)
     if (!chipPin || !chipId) return null
-    
+
     const placement = this.outputLayout.chipPlacements[chipId]
     if (!placement) return null
-    
-    const rotatedOffset = this.rotatePoint(chipPin.offset, placement.ccwRotationDegrees)
+
+    const rotatedOffset = this.rotatePoint(
+      chipPin.offset,
+      placement.ccwRotationDegrees,
+    )
     return {
       x: placement.x + rotatedOffset.x,
-      y: placement.y + rotatedOffset.y
+      y: placement.y + rotatedOffset.y,
     }
   }
 
@@ -163,12 +173,15 @@ export class TraceAlignmentSolver extends BaseSolver {
     b2: { minX: number; maxX: number; minY: number; maxY: number },
   ): number {
     const overlapWidth = Math.min(b1.maxX, b2.maxX) - Math.max(b1.minX, b2.minX)
-    const overlapHeight = Math.min(b1.maxY, b2.maxY) - Math.max(b1.minY, b2.minY)
+    const overlapHeight =
+      Math.min(b1.maxY, b2.maxY) - Math.max(b1.minY, b2.minY)
     if (overlapWidth <= 0 || overlapHeight <= 0) return 0
     return overlapWidth * overlapHeight
   }
 
   override getConstructorParams(): [any] {
-    return [{ inputProblem: this.inputProblem, outputLayout: this.outputLayout }]
+    return [
+      { inputProblem: this.inputProblem, outputLayout: this.outputLayout },
+    ]
   }
 }

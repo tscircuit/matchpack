@@ -216,7 +216,10 @@ export class LayoutPipelineSolver extends BaseSolver {
     // If the pipeline is complete and we have a trace alignment solver,
     // show its final layout
     if (this.solved && this.traceAlignmentSolver?.solved) {
-      return visualizeInputProblem(this.inputProblem, this.traceAlignmentSolver.outputLayout)
+      return visualizeInputProblem(
+        this.inputProblem,
+        this.traceAlignmentSolver.outputLayout,
+      )
     }
 
     // If the pipeline is complete and we have a partition packing solver,
@@ -230,7 +233,12 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
-    const traceAlignmentViz = this.traceAlignmentSolver?.solved ? visualizeInputProblem(this.inputProblem, this.traceAlignmentSolver.outputLayout) : null
+    const traceAlignmentViz = this.traceAlignmentSolver?.solved
+      ? visualizeInputProblem(
+          this.inputProblem,
+          this.traceAlignmentSolver.outputLayout,
+        )
+      : null
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)

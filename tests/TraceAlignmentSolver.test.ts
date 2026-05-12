@@ -15,10 +15,14 @@ function rotatePoint(point: Point, angleDegrees: number): Point {
   }
 }
 
-function getAbsolutePosition(pinId: string, problem: InputProblem, layout: OutputLayout): Point | null {
+function getAbsolutePosition(
+  pinId: string,
+  problem: InputProblem,
+  layout: OutputLayout,
+): Point | null {
   const chipPin = problem.chipPinMap[pinId]
   if (!chipPin) return null
-  
+
   let foundChipId: string | null = null
   for (const [chipId, chip] of Object.entries(problem.chipMap)) {
     if (chip.pins.includes(pinId)) {
@@ -26,15 +30,18 @@ function getAbsolutePosition(pinId: string, problem: InputProblem, layout: Outpu
       break
     }
   }
-  
+
   if (!foundChipId) return null
   const placement = layout.chipPlacements[foundChipId]
   if (!placement) return null
-  
-  const rotatedOffset = rotatePoint(chipPin.offset, placement.ccwRotationDegrees)
+
+  const rotatedOffset = rotatePoint(
+    chipPin.offset,
+    placement.ccwRotationDegrees,
+  )
   return {
     x: placement.x + rotatedOffset.x,
-    y: placement.y + rotatedOffset.y
+    y: placement.y + rotatedOffset.y,
   }
 }
 
@@ -49,7 +56,7 @@ test("Reproduction of SI7021 bad layout from issue #11", () => {
   expect(solver.failed).toBe(false)
 
   const outputLayout = solver.getOutputLayout()
-  
+
   // Calculate alignment metrics
   const strongConnections = Object.entries(problem.pinStrongConnMap)
     .filter(([_, connected]) => connected)
@@ -60,15 +67,15 @@ test("Reproduction of SI7021 bad layout from issue #11", () => {
     const posA = getAbsolutePosition(pinA, problem, outputLayout)
     const posB = getAbsolutePosition(pinB, problem, outputLayout)
     if (!posA || !posB) continue
-    
+
     const dx = Math.abs(posA.x - posB.x)
     const dy = Math.abs(posA.y - posB.y)
     totalDeviation += Math.min(dx, dy)
   }
-  
+
   // Check for overlaps
   const overlaps = solver.checkForOverlaps(outputLayout)
-  
+
   // Verify metrics improved
   expect(totalDeviation).toBeLessThan(0.1)
   expect(overlaps.length).toBe(0)
