@@ -12,11 +12,20 @@ import {
   type PackedPartition,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import { TraceAlignmentSolver } from "lib/solvers/TraceAlignmentSolver/TraceAlignmentSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
+
+export type LayoutPipelinePhase =
+  | "identifyDecouplingCapsSolver"
+  | "chipPartitionsSolver"
+  | "packInnerPartitionsSolver"
+  | "partitionPackingSolver"
+  | "traceAlignmentSolver"
+  | "none"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -53,6 +62,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  traceAlignmentSolver?: TraceAlignmentSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +134,21 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep(
+      "traceAlignmentSolver",
+      TraceAlignmentSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          outputLayout: this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+      {
+        onSolved: (_solver) => {
+          // Alignment complete
+        },
+      },
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -188,6 +213,12 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
+    // If the pipeline is complete and we have a trace alignment solver,
+    // show its final layout
+    if (this.solved && this.traceAlignmentSolver?.solved) {
+      return visualizeInputProblem(this.inputProblem, this.traceAlignmentSolver.outputLayout)
+    }
+
     // If the pipeline is complete and we have a partition packing solver,
     // show only the final chip placements
     if (this.solved && this.partitionPackingSolver?.solved) {
@@ -199,6 +230,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
+    const traceAlignmentViz = this.traceAlignmentSolver?.solved ? visualizeInputProblem(this.inputProblem, this.traceAlignmentSolver.outputLayout) : null
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
@@ -210,6 +242,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
+      traceAlignmentViz,
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
@@ -400,8 +433,10 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the partition packing solver
-    if (
+    // Get the final layout from the partition packing solver or trace alignment solver
+    if (this.traceAlignmentSolver?.solved) {
+      finalLayout = this.traceAlignmentSolver.outputLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
