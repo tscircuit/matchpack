@@ -38,6 +38,11 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.solveLinearDecouplingCapLayout()
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +67,37 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private solveLinearDecouplingCapLayout() {
+    const chips = Object.values(this.partitionInputProblem.chipMap).sort(
+      (a, b) => a.chipId.localeCompare(b.chipId),
+    )
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const totalWidth =
+      chips.reduce((sum, chip) => sum + chip.size.x, 0) +
+      gap * (chips.length - 1)
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    let currentX = -totalWidth / 2
+    for (const chip of chips) {
+      chipPlacements[chip.chipId] = {
+        x: currentX + chip.size.x / 2,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += chip.size.x + gap
+    }
+
+    this.layout = {
+      chipPlacements,
+      groupPlacements: {},
+    }
+    this.solved = true
   }
 
   private createPackInput(): PackInput {
