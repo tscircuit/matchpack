@@ -98,14 +98,32 @@ test("LayoutPipelineSolver06 - decoupling caps visual snapshot", () => {
   const solver = new LayoutPipelineSolver(problem)
   solver.solve()
 
+  const layout = solver.getOutputLayout()
   const viz = solver.visualize()
   expect(viz).toBeDefined()
 
-  // Snapshot the visualization structure for visual regression
+  // Extract cap placement positions for visual regression
+  const capIds = Object.keys(problem.chipMap)
+    .filter((id) => id.startsWith("C"))
+    .sort()
+  const capPlacements = capIds.map((id) => ({
+    id,
+    x: Number(layout.chipPlacements[id].x.toFixed(3)),
+    y: Number(layout.chipPlacements[id].y.toFixed(3)),
+    rot: layout.chipPlacements[id].ccwRotationDegrees,
+  }))
+
+  // Snapshot includes element counts AND actual cap positions
   expect({
     rectCount: viz.rects?.length ?? 0,
     lineCount: viz.lines?.length ?? 0,
     circleCount: viz.circles?.length ?? 0,
     pointCount: viz.points?.length ?? 0,
+    capPlacements,
+    u3: {
+      x: Number(layout.chipPlacements["U3"].x.toFixed(3)),
+      y: Number(layout.chipPlacements["U3"].y.toFixed(3)),
+      rot: layout.chipPlacements["U3"].ccwRotationDegrees,
+    },
   }).toMatchSnapshot()
 })
