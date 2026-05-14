@@ -426,10 +426,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     let finalLayout: OutputLayout
 
     // Get the final layout from the trace alignment solver (or partition packing as fallback)
-    if (
-      this.traceAlignmentSolver?.solved &&
-      this.traceAlignmentSolver.layout
-    ) {
+    if (this.traceAlignmentSolver?.solved && this.traceAlignmentSolver.layout) {
       finalLayout = this.traceAlignmentSolver.layout
     } else if (
       this.partitionPackingSolver?.solved &&

@@ -46,7 +46,8 @@ test("TraceAlignmentSolver01 - reduces zig-zag on SI7021 repro", () => {
     totalZigZagBefore += zigzag
     connectionCount++
   }
-  const avgZigZagBefore = connectionCount > 0 ? totalZigZagBefore / connectionCount : 0
+  const avgZigZagBefore =
+    connectionCount > 0 ? totalZigZagBefore / connectionCount : 0
 
   // Run trace alignment
   const aligner = new TraceAlignmentSolver({
@@ -85,13 +86,18 @@ test("TraceAlignmentSolver01 - reduces zig-zag on SI7021 repro", () => {
 
     totalZigZagAfter += zigzag
   }
-  const avgZigZagAfter = connectionCount > 0 ? totalZigZagAfter / connectionCount : 0
+  const avgZigZagAfter =
+    connectionCount > 0 ? totalZigZagAfter / connectionCount : 0
 
   // The alignment should reduce zig-zag
-  console.log(`Average zig-zag: ${avgZigZagBefore.toFixed(3)} → ${avgZigZagAfter.toFixed(3)} (${((1 - avgZigZagAfter / avgZigZagBefore) * 100).toFixed(1)}% reduction)`)
+  console.log(
+    `Average zig-zag: ${avgZigZagBefore.toFixed(3)} → ${avgZigZagAfter.toFixed(3)} (${((1 - avgZigZagAfter / avgZigZagBefore) * 100).toFixed(1)}% reduction)`,
+  )
   console.log(`Nudges applied: ${aligner.nudgesApplied.length}`)
   for (const nudge of aligner.nudgesApplied) {
-    console.log(`  ${nudge.chipId}: Δ=(${nudge.deltaX.toFixed(3)}, ${nudge.deltaY.toFixed(3)}), improvement=${nudge.improvement.toFixed(3)}`)
+    console.log(
+      `  ${nudge.chipId}: Δ=(${nudge.deltaX.toFixed(3)}, ${nudge.deltaY.toFixed(3)}), improvement=${nudge.improvement.toFixed(3)}`,
+    )
   }
 
   expect(avgZigZagAfter).toBeLessThan(avgZigZagBefore)
@@ -124,13 +130,17 @@ test("TraceAlignmentSolver02 - preserves overlap-free layout on ExampleCircuit04
 })
 
 test("TraceAlignmentSolver03 - integrated into pipeline on RP2040Circuit", () => {
-  import("lib/testing/getInputProblemFromCircuitJsonSchematic").then(({ getInputProblemFromCircuitJsonSchematic: getInput }) => {
-    // dynamic
-  })
+  import("lib/testing/getInputProblemFromCircuitJsonSchematic").then(
+    ({ getInputProblemFromCircuitJsonSchematic: getInput }) => {
+      // dynamic
+    },
+  )
   import("../assets/RP2040Circuit").then(({ getExampleCircuitJson }) => {
     // dynamic
   })
-  const { getInputProblemFromCircuitJsonSchematic: getInput } = require("lib/testing/getInputProblemFromCircuitJsonSchematic")
+  const {
+    getInputProblemFromCircuitJsonSchematic: getInput,
+  } = require("lib/testing/getInputProblemFromCircuitJsonSchematic")
   const { getExampleCircuitJson } = require("../assets/RP2040Circuit")
 
   const circuitJson = getExampleCircuitJson()
@@ -143,7 +153,9 @@ test("TraceAlignmentSolver03 - integrated into pipeline on RP2040Circuit", () =>
   const overlapsBefore = pipelineSolver.checkForOverlaps(layout)
   console.log(`RP2040 overlaps before: ${overlapsBefore.length}`)
   for (const o of overlapsBefore) {
-    console.log(`  ${o.chip1} overlaps ${o.chip2} (area: ${o.overlapArea.toFixed(4)})`)
+    console.log(
+      `  ${o.chip1} overlaps ${o.chip2} (area: ${o.overlapArea.toFixed(4)})`,
+    )
   }
 
   // Run trace alignment
@@ -158,7 +170,9 @@ test("TraceAlignmentSolver03 - integrated into pipeline on RP2040Circuit", () =>
 
   const overlapsAfter = pipelineSolver.checkForOverlaps(aligner.layout)
   console.log(`RP2040 overlaps after: ${overlapsAfter.length}`)
-  console.log(`Zig-zag: ${aligner.totalZigZagBefore.toFixed(3)} → ${aligner.totalZigZagAfter.toFixed(3)}`)
+  console.log(
+    `Zig-zag: ${aligner.totalZigZagBefore.toFixed(3)} → ${aligner.totalZigZagAfter.toFixed(3)}`,
+  )
 
   // Should not introduce new overlaps
   expect(overlapsAfter.length).toBeLessThanOrEqual(overlapsBefore.length)

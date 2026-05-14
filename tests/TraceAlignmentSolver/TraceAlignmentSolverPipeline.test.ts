@@ -28,6 +28,10 @@ test("TraceAlignmentSolver - integrated into pipeline reduces zig-zag on SI7021"
     expect(layout.chipPlacements[chipId]).toBeDefined()
   }
 
-  console.log(`Pipeline zig-zag: ${solver.traceAlignmentSolver!.totalZigZagBefore.toFixed(3)} → ${solver.traceAlignmentSolver!.totalZigZagAfter.toFixed(3)}`)
-  console.log(`Pipeline nudges: ${solver.traceAlignmentSolver!.nudgesApplied.length}`)
+  console.log(
+    `Pipeline zig-zag: ${solver.traceAlignmentSolver!.totalZigZagBefore.toFixed(3)} → ${solver.traceAlignmentSolver!.totalZigZagAfter.toFixed(3)}`,
+  )
+  console.log(
+    `Pipeline nudges: ${solver.traceAlignmentSolver!.nudgesApplied.length}`,
+  )
 })

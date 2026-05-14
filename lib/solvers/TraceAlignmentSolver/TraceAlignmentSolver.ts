@@ -14,9 +14,9 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 export interface TraceAlignmentSolverInput {
   inputProblem: InputProblem
   layout: OutputLayout
-  maxNudge: number // maximum single-axis nudge distance
-  minImprovement: number // minimum zig-zag reduction to accept a nudge
-  passes: number // number of alignment passes
+  maxNudge?: number // maximum single-axis nudge distance
+  minImprovement?: number // minimum zig-zag reduction to accept a nudge
+  passes?: number // number of alignment passes
 }
 
 export class TraceAlignmentSolver extends BaseSolver {
@@ -45,10 +45,8 @@ export class TraceAlignmentSolver extends BaseSolver {
   }> = []
 
   // Chip world pin positions cache
-  chipWorldPinPositions: Map<
-    PinId,
-    { x: number; y: number; side: string }
-  > = new Map()
+  chipWorldPinPositions: Map<PinId, { x: number; y: number; side: string }> =
+    new Map()
 
   constructor(input: TraceAlignmentSolverInput) {
     super()
@@ -63,7 +61,7 @@ export class TraceAlignmentSolver extends BaseSolver {
     this.buildStrongConnectionPairs()
   }
 
-  private buildStrongConnectionPairs() {
+  public buildStrongConnectionPairs() {
     const { pinStrongConnMap, chipPinMap } = this.inputProblem
 
     for (const [connKey, connected] of Object.entries(pinStrongConnMap)) {
@@ -103,7 +101,7 @@ export class TraceAlignmentSolver extends BaseSolver {
     }
   }
 
-  private computeWorldPinPos(pinId: PinId): {
+  public computeWorldPinPos(pinId: PinId): {
     x: number
     y: number
     side: string
@@ -212,11 +210,7 @@ export class TraceAlignmentSolver extends BaseSolver {
     return chipIds.size > 0 ? total / chipIds.size : 0
   }
 
-  private checkOverlap(
-    chipId: string,
-    newX: number,
-    newY: number,
-  ): boolean {
+  private checkOverlap(chipId: string, newX: number, newY: number): boolean {
     const chip1 = this.inputProblem.chipMap[chipId]
     if (!chip1) return false
 
@@ -236,6 +230,7 @@ export class TraceAlignmentSolver extends BaseSolver {
       if (!chip2) continue
 
       const placement2 = this.layout.chipPlacements[otherId]
+      if (!placement2) continue
       const rot2 = ((placement2?.ccwRotationDegrees || 0) * Math.PI) / 180
       const cos2 = Math.abs(Math.cos(rot2))
       const sin2 = Math.abs(Math.sin(rot2))
@@ -385,8 +380,7 @@ export class TraceAlignmentSolver extends BaseSolver {
             chipId,
             deltaX: clampedDx,
             deltaY: 0,
-            improvement:
-              currentZigZag - this.computeZigZagForChip(chipId),
+            improvement: currentZigZag - this.computeZigZagForChip(chipId),
           })
         }
       }
@@ -400,8 +394,7 @@ export class TraceAlignmentSolver extends BaseSolver {
             chipId,
             deltaX: 0,
             deltaY: clampedDy,
-            improvement:
-              currentZigZag - this.computeZigZagForChip(chipId),
+            improvement: currentZigZag - this.computeZigZagForChip(chipId),
           })
         }
       }
@@ -435,7 +428,9 @@ export class TraceAlignmentSolver extends BaseSolver {
 
   override visualize(): GraphicsObject {
     // Delegate to the input problem visualization with the aligned layout
-    const { visualizeInputProblem } = require("../LayoutPipelineSolver/visualizeInputProblem")
+    const {
+      visualizeInputProblem,
+    } = require("../LayoutPipelineSolver/visualizeInputProblem")
     return visualizeInputProblem(this.inputProblem, this.layout)
   }
 }
