@@ -1,0 +1,10 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`LayoutPipelineSolver06 - decoupling caps visual snapshot 1`] = `
+{
+  "circleCount": 0,
+  "lineCount": 133,
+  "pointCount": 79,
+  "rectCount": 12,
+}
+`;
