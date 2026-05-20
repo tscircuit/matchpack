@@ -38,6 +38,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -62,6 +68,62 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapLayout(): OutputLayout {
+    const chipEntries = Object.entries(this.partitionInputProblem.chipMap).sort(
+      ([a], [b]) => a.localeCompare(b, undefined, { numeric: true }),
+    )
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const chipWidths = chipEntries.map(([, chip]) =>
+      this.getChipWidthForRotation(
+        chip.size,
+        this.getDecouplingCapRotation(chip),
+      ),
+    )
+    const totalWidth =
+      chipWidths.reduce((sum, width) => sum + width, 0) +
+      Math.max(0, chipWidths.length - 1) * gap
+    const chipPlacements: Record<string, Placement> = {}
+    let nextLeftEdge = -totalWidth / 2
+
+    for (let i = 0; i < chipEntries.length; i++) {
+      const [chipId, chip] = chipEntries[i]!
+      const rotation = this.getDecouplingCapRotation(chip)
+      const width = chipWidths[i]!
+
+      chipPlacements[chipId] = {
+        x: nextLeftEdge + width / 2,
+        y: 0,
+        ccwRotationDegrees: rotation,
+      }
+      nextLeftEdge += width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private getDecouplingCapRotation(
+    chip: PartitionInputProblem["chipMap"][string],
+  ): 0 | 90 | 180 | 270 {
+    const availableRotations = chip.availableRotations ?? [0]
+
+    if (availableRotations.includes(0)) return 0
+    if (availableRotations.includes(180)) return 180
+
+    return availableRotations[0] ?? 0
+  }
+
+  private getChipWidthForRotation(
+    size: { x: number; y: number },
+    rotation: 0 | 90 | 180 | 270,
+  ): number {
+    return rotation === 90 || rotation === 270 ? size.y : size.x
   }
 
   private createPackInput(): PackInput {
