@@ -3,22 +3,21 @@
  * Uses a packing algorithm to arrange chips and their connections within the partition.
  */
 
-import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
-import { BaseSolver } from "../BaseSolver"
-import type { OutputLayout, Placement } from "../../types/OutputLayout"
+import type { GraphicsObject } from "graphics-debug"
 import type {
-  InputProblem,
-  PinId,
   ChipId,
-  NetId,
   ChipPin,
+  InputProblem,
   PartitionInputProblem,
+  PinId,
 } from "../../types/InputProblem"
-import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
-import { getPadsBoundingBox } from "./getPadsBoundingBox"
+import { BaseSolver } from "../BaseSolver"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import { getPadsBoundingBox } from "./getPadsBoundingBox"
 
 const PIN_SIZE = 0.1
 
@@ -38,6 +37,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapsLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -165,6 +170,65 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
   }
 
+  private createDecouplingCapsLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const chipIds = Object.keys(this.partitionInputProblem.chipMap).sort(
+      compareNaturalIds,
+    )
+
+    let cursorX = 0
+    let rowMinX = Infinity
+    let rowMaxX = -Infinity
+    const placed: Array<{
+      chipId: ChipId
+      x: number
+      y: number
+      ccwRotationDegrees: Placement["ccwRotationDegrees"]
+    }> = []
+
+    for (const chipId of chipIds) {
+      const chip = this.partitionInputProblem.chipMap[chipId]!
+      const ccwRotationDegrees = getPreferredDecouplingCapRotation(
+        chip.availableRotations,
+      )
+      const bounds = getChipEnvelopeBounds({
+        chipId,
+        chip,
+        chipPinMap: this.partitionInputProblem.chipPinMap,
+        ccwRotationDegrees,
+      })
+
+      const x = placed.length === 0 ? -bounds.minX : cursorX - bounds.minX
+      const minX = x + bounds.minX
+      const maxX = x + bounds.maxX
+      rowMinX = Math.min(rowMinX, minX)
+      rowMaxX = Math.max(rowMaxX, maxX)
+      cursorX = maxX + gap
+      placed.push({ chipId, x, y: 0, ccwRotationDegrees })
+    }
+
+    if (placed.length === 0) {
+      return { chipPlacements, groupPlacements: {} }
+    }
+
+    const rowCenterX = (rowMinX + rowMaxX) / 2
+    for (const placement of placed) {
+      chipPlacements[placement.chipId] = {
+        x: placement.x - rowCenterX,
+        y: placement.y,
+        ccwRotationDegrees: placement.ccwRotationDegrees,
+      }
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
   override visualize(): GraphicsObject {
     if (this.activeSubSolver && !this.solved) {
       return this.activeSubSolver.visualize()
@@ -181,4 +245,90 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   override getConstructorParams(): [InputProblem] {
     return [this.partitionInputProblem]
   }
+}
+
+type Bounds = {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+const compareNaturalIds = (a: string, b: string) =>
+  a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+
+const getPreferredDecouplingCapRotation = (
+  availableRotations?: Array<0 | 90 | 180 | 270>,
+): Placement["ccwRotationDegrees"] => {
+  if (!availableRotations || availableRotations.length === 0) return 0
+  if (availableRotations.includes(0)) return 0
+  if (availableRotations.includes(180)) return 180
+  return availableRotations[0] ?? 0
+}
+
+const getChipEnvelopeBounds = ({
+  chipId,
+  chip,
+  chipPinMap,
+  ccwRotationDegrees,
+}: {
+  chipId: ChipId
+  chip: InputProblem["chipMap"][ChipId]
+  chipPinMap: InputProblem["chipPinMap"]
+  ccwRotationDegrees: Placement["ccwRotationDegrees"]
+}): Bounds => {
+  const halfBodySize = rotateSize(chip.size, ccwRotationDegrees)
+  const bounds = {
+    minX: -halfBodySize.x / 2,
+    maxX: halfBodySize.x / 2,
+    minY: -halfBodySize.y / 2,
+    maxY: halfBodySize.y / 2,
+  }
+
+  for (const pinId of chip.pins) {
+    const pin = chipPinMap[pinId]
+    if (!pin) continue
+    const offset = rotatePoint(pin.offset, ccwRotationDegrees)
+    bounds.minX = Math.min(bounds.minX, offset.x - PIN_SIZE / 2)
+    bounds.maxX = Math.max(bounds.maxX, offset.x + PIN_SIZE / 2)
+    bounds.minY = Math.min(bounds.minY, offset.y - PIN_SIZE / 2)
+    bounds.maxY = Math.max(bounds.maxY, offset.y + PIN_SIZE / 2)
+  }
+
+  if (
+    !Number.isFinite(bounds.minX) ||
+    !Number.isFinite(bounds.maxX) ||
+    !Number.isFinite(bounds.minY) ||
+    !Number.isFinite(bounds.maxY)
+  ) {
+    throw new Error(`Invalid envelope bounds for ${chipId}`)
+  }
+
+  return bounds
+}
+
+const rotateSize = (
+  size: { x: number; y: number },
+  ccwRotationDegrees: Placement["ccwRotationDegrees"],
+) => {
+  if (ccwRotationDegrees === 90 || ccwRotationDegrees === 270) {
+    return { x: size.y, y: size.x }
+  }
+  return size
+}
+
+const rotatePoint = (
+  point: { x: number; y: number },
+  ccwRotationDegrees: Placement["ccwRotationDegrees"],
+) => {
+  if (ccwRotationDegrees === 90) {
+    return { x: -point.y, y: point.x }
+  }
+  if (ccwRotationDegrees === 180) {
+    return { x: -point.x, y: -point.y }
+  }
+  if (ccwRotationDegrees === 270) {
+    return { x: point.y, y: -point.x }
+  }
+  return point
 }
