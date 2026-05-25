@@ -38,6 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Intercept decoupling capacitors and use deterministic linear placement
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearPackingResult()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
@@ -61,6 +68,60 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       )
       this.solved = true
       this.activeSubSolver = null
+    }
+  }
+
+  private createLinearPackingResult(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    let minGap = this.partitionInputProblem.chipGap
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      minGap = this.partitionInputProblem.decouplingCapsGap ?? minGap
+    }
+
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+    
+    // Sort chips deterministically
+    chips.sort((a, b) => a.chipId.localeCompare(b.chipId))
+
+    // Determine stacking direction based on pin locations
+    // If pins are on left/right (x-axis), we stack them vertically (y-axis)
+    // If pins are on top/bottom (y-axis), we stack them horizontally (x-axis)
+    let stackDir: "x" | "y" = "y"
+    let ccwRotationDegrees = 0
+
+    if (chips.length > 0) {
+      const firstChip = chips[0]
+      if (firstChip.pins.length >= 2) {
+        const pin1 = this.partitionInputProblem.chipPinMap[firstChip.pins[0]]
+        const pin2 = this.partitionInputProblem.chipPinMap[firstChip.pins[1]]
+        if (pin1 && pin2) {
+          if (pin1.offset.x !== pin2.offset.x) {
+            stackDir = "y"
+            ccwRotationDegrees = 90
+          } else {
+            stackDir = "x"
+            ccwRotationDegrees = 0
+          }
+        }
+      }
+    }
+
+    let currentPos = 0
+    
+    for (const chip of chips) {
+      chipPlacements[chip.chipId] = {
+        x: stackDir === "x" ? currentPos : 0,
+        y: stackDir === "y" ? currentPos : 0,
+        ccwRotationDegrees,
+      }
+      
+      const chipSizeInStackDir = stackDir === "x" ? chip.size.x : chip.size.y
+      currentPos += chipSizeInStackDir + minGap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
     }
   }
 
