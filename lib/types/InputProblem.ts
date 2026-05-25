@@ -49,4 +49,7 @@ export type InputProblem = {
 export interface PartitionInputProblem extends InputProblem {
   isPartition?: true
   partitionType?: "default" | "decoupling_caps"
+  decouplingCapGroupId?: string
+  decouplingCapMainChipId?: ChipId
+  decouplingCapNetPair?: [NetId, NetId]
 }

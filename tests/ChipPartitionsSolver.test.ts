@@ -188,3 +188,113 @@ test("ChipPartitionsSolver visualization contains partition components", () => {
   expect(visualization.rects?.length).toBeGreaterThan(0)
   expect(visualization.texts?.length).toBeGreaterThan(0)
 })
+
+test("ChipPartitionsSolver preserves decoupling group metadata and inherited main-chip nets", () => {
+  const inputProblem: InputProblem = {
+    chipMap: {
+      U1: {
+        chipId: "U1",
+        pins: ["U1.VCC", "U1.GND", "U1.SIG"],
+        size: { x: 3, y: 3 },
+      },
+      C1: {
+        chipId: "C1",
+        pins: ["C1.VCC", "C1.GND"],
+        size: { x: 0.4, y: 0.8 },
+      },
+      C2: {
+        chipId: "C2",
+        pins: ["C2.VCC", "C2.GND"],
+        size: { x: 0.4, y: 0.8 },
+      },
+    },
+    chipPinMap: {
+      "U1.VCC": {
+        pinId: "U1.VCC",
+        offset: { x: 1.5, y: 1 },
+        side: "x+",
+      },
+      "U1.GND": {
+        pinId: "U1.GND",
+        offset: { x: -1.5, y: -1 },
+        side: "x-",
+      },
+      "U1.SIG": {
+        pinId: "U1.SIG",
+        offset: { x: 0, y: 1.5 },
+        side: "y+",
+      },
+      "C1.VCC": {
+        pinId: "C1.VCC",
+        offset: { x: 0, y: 0.4 },
+        side: "y+",
+      },
+      "C1.GND": {
+        pinId: "C1.GND",
+        offset: { x: 0, y: -0.4 },
+        side: "y-",
+      },
+      "C2.VCC": {
+        pinId: "C2.VCC",
+        offset: { x: 0, y: 0.4 },
+        side: "y+",
+      },
+      "C2.GND": {
+        pinId: "C2.GND",
+        offset: { x: 0, y: -0.4 },
+        side: "y-",
+      },
+    },
+    netMap: {
+      VCC: { netId: "VCC", isPositiveVoltageSource: true },
+      GND: { netId: "GND", isGround: true },
+      SIG: { netId: "SIG" },
+    },
+    pinStrongConnMap: {
+      "C1.VCC-U1.VCC": true,
+      "U1.VCC-C1.VCC": true,
+      "C1.GND-U1.GND": true,
+      "U1.GND-C1.GND": true,
+      "C2.VCC-U1.VCC": true,
+      "U1.VCC-C2.VCC": true,
+      "C2.GND-U1.GND": true,
+      "U1.GND-C2.GND": true,
+    },
+    netConnMap: {
+      "U1.VCC-VCC": true,
+      "U1.GND-GND": true,
+      "U1.SIG-SIG": true,
+    },
+    chipGap: 0.2,
+    partitionGap: 1,
+  }
+
+  const solver = new ChipPartitionsSolver({
+    inputProblem,
+    decouplingCapGroups: [
+      {
+        decouplingCapGroupId: "decap_group_U1__GND__VCC",
+        mainChipId: "U1",
+        netPair: ["GND", "VCC"],
+        decouplingCapChipIds: ["C1", "C2"],
+      },
+    ],
+  })
+
+  solver.solve()
+
+  const decapPartition = solver.partitions.find(
+    (partition) => partition.partitionType === "decoupling_caps",
+  )
+
+  expect(decapPartition).toBeDefined()
+  expect(decapPartition!.decouplingCapMainChipId).toBe("U1")
+  expect(decapPartition!.decouplingCapNetPair).toEqual(["GND", "VCC"])
+  expect(Object.keys(decapPartition!.chipMap).sort()).toEqual(["C1", "C2"])
+  expect(Object.keys(decapPartition!.netMap).sort()).toEqual(["GND", "VCC"])
+  expect(decapPartition!.netConnMap["C1.VCC-VCC"]).toBe(true)
+  expect(decapPartition!.netConnMap["C1.GND-GND"]).toBe(true)
+  expect(decapPartition!.netConnMap["C2.VCC-VCC"]).toBe(true)
+  expect(decapPartition!.netConnMap["C2.GND-GND"]).toBe(true)
+  expect(decapPartition!.netConnMap["C1.VCC-SIG"]).toBeUndefined()
+})
