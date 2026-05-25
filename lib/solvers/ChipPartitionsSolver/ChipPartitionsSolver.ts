@@ -49,7 +49,10 @@ export class ChipPartitionsSolver extends BaseSolver {
 
     // 1) Build decoupling-cap-only partitions (exclude the main chip for each group)
     const decapChipIdSet = new Set<ChipId>()
-    const decapGroupPartitions: ChipId[][] = []
+    const decapGroupPartitions: Array<{
+      chipIds: ChipId[]
+      group: DecouplingCapGroup
+    }> = []
 
     if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {
       for (const group of this.decouplingCapGroups) {
@@ -61,7 +64,7 @@ export class ChipPartitionsSolver extends BaseSolver {
         }
         // Only add a partition if there are at least two caps present in the inputProblem
         if (capsOnly.length >= 2) {
-          decapGroupPartitions.push(capsOnly)
+          decapGroupPartitions.push({ chipIds: capsOnly, group })
           // Mark these caps as handled by decoupling-cap partitions
           for (const capId of capsOnly) {
             decapChipIdSet.add(capId)
@@ -119,8 +122,11 @@ export class ChipPartitionsSolver extends BaseSolver {
 
     return [
       ...decapGroupPartitions.map((partition) =>
-        this.createInputProblemFromPartition(partition, inputProblem, {
+        this.createInputProblemFromPartition(partition.chipIds, inputProblem, {
           partitionType: "decoupling_caps",
+          decouplingCapGroupId: partition.group.decouplingCapGroupId,
+          decouplingCapMainChipId: partition.group.mainChipId,
+          decouplingCapNetPair: partition.group.netPair,
         }),
       ),
       ...nonDecapPartitions.map((partition) =>
@@ -188,6 +194,9 @@ export class ChipPartitionsSolver extends BaseSolver {
     originalProblem: InputProblem,
     opts?: {
       partitionType?: "default" | "decoupling_caps"
+      decouplingCapGroupId?: string
+      decouplingCapMainChipId?: ChipId
+      decouplingCapNetPair?: [NetId, NetId]
     },
   ): PartitionInputProblem {
     const chipIds = partition
@@ -242,6 +251,19 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
+    if (
+      opts?.partitionType === "decoupling_caps" &&
+      opts.decouplingCapNetPair
+    ) {
+      this.copyInheritedDecouplingNetConnections({
+        originalProblem,
+        relevantPinIds,
+        allowedNetIds: new Set(opts.decouplingCapNetPair),
+        relevantNetIds,
+        netConnMap,
+      })
+    }
+
     for (const netId of relevantNetIds) {
       if (originalProblem.netMap[netId]) {
         netMap[netId] = originalProblem.netMap[netId]
@@ -257,6 +279,58 @@ export class ChipPartitionsSolver extends BaseSolver {
       netConnMap,
       isPartition: true,
       partitionType: opts?.partitionType,
+      decouplingCapGroupId: opts?.decouplingCapGroupId,
+      decouplingCapMainChipId: opts?.decouplingCapMainChipId,
+      decouplingCapNetPair: opts?.decouplingCapNetPair,
+    }
+  }
+
+  private copyInheritedDecouplingNetConnections({
+    originalProblem,
+    relevantPinIds,
+    allowedNetIds,
+    relevantNetIds,
+    netConnMap,
+  }: {
+    originalProblem: InputProblem
+    relevantPinIds: Set<PinId>
+    allowedNetIds: Set<NetId>
+    relevantNetIds: Set<NetId>
+    netConnMap: Record<`${PinId}-${NetId}`, boolean>
+  }) {
+    const copyAllowedExternalNets = (
+      decapPinId: PinId,
+      externalPinId: PinId,
+    ) => {
+      for (const [connKey, isConnected] of Object.entries(
+        originalProblem.netConnMap,
+      )) {
+        if (!isConnected) continue
+
+        const [pinId, netId] = connKey.split("-") as [PinId, NetId]
+        if (pinId !== externalPinId || !allowedNetIds.has(netId)) continue
+
+        relevantNetIds.add(netId)
+        netConnMap[`${decapPinId}-${netId}`] = true
+      }
+    }
+
+    for (const [connKey, isConnected] of Object.entries(
+      originalProblem.pinStrongConnMap,
+    )) {
+      if (!isConnected) continue
+
+      const [pinAId, pinBId] = connKey.split("-") as [PinId, PinId]
+      const pinAInPartition = relevantPinIds.has(pinAId)
+      const pinBInPartition = relevantPinIds.has(pinBId)
+
+      if (pinAInPartition === pinBInPartition) continue
+
+      if (pinAInPartition) {
+        copyAllowedExternalNets(pinAId, pinBId)
+      } else {
+        copyAllowedExternalNets(pinBId, pinAId)
+      }
     }
   }
 
