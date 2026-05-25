@@ -1,8 +1,18 @@
-import { test, expect } from "bun:test"
-import { IdentifyDecouplingCapsSolver } from "../../lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
-import { problem } from "../../pages/LayoutPipelineSolver/LayoutPipelineSolver06.page.tsx"
+import { expect, mock, test } from "bun:test"
 
-test("IdentifyDecouplingCapsSolver identifies decoupling capacitor groups from LayoutPipelineSolver06", () => {
+mock.module("circuit-to-svg", () => ({
+  convertCircuitJsonToSchematicSvg: () => "",
+  convertCircuitJsonToSchematicSimulationSvg: () => "",
+  convertCircuitJsonToPcbSvg: () => "",
+  default: () => "",
+}))
+
+import { IdentifyDecouplingCapsSolver } from "../../lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+
+test("IdentifyDecouplingCapsSolver identifies decoupling capacitor groups from LayoutPipelineSolver06", async () => {
+  const { problem } = await import(
+    "../../pages/LayoutPipelineSolver/LayoutPipelineSolver06.page.tsx"
+  )
   const solver = new IdentifyDecouplingCapsSolver(problem)
   solver.solve()
 
