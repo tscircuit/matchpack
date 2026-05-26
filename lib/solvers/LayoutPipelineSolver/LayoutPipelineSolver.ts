@@ -12,6 +12,7 @@ import {
   type PackedPartition,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import { LayoutConstraintSolver } from "lib/solvers/LayoutConstraintSolver/LayoutConstraintSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  layoutConstraintSolver?: LayoutConstraintSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -121,6 +123,21 @@ export class LayoutPipelineSolver extends BaseSolver {
       {
         onSolved: (_solver) => {
           // Store final packed layout as output
+        },
+      },
+    ),
+    definePipelineStep(
+      "layoutConstraintSolver",
+      LayoutConstraintSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          inputLayout: this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+      {
+        onSolved: (_solver) => {
+          // Layout constraints have been checked and resolved
         },
       },
     ),
@@ -199,6 +216,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
+    const layoutConstraintViz = this.layoutConstraintSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
@@ -210,6 +228,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
+      layoutConstraintViz,
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
@@ -396,6 +415,11 @@ export class LayoutPipelineSolver extends BaseSolver {
       throw new Error(
         "Pipeline not solved yet. Call solve() or step() until solved.",
       )
+    }
+
+    // Return the constraint-satisfied layout if available
+    if (this.layoutConstraintSolver?.solved) {
+      return this.layoutConstraintSolver.getOutputLayout()
     }
 
     let finalLayout: OutputLayout
