@@ -1,6 +1,7 @@
 /**
  * Packs components within a single partition to create an optimal internal layout.
  * Uses a packing algorithm to arrange chips and their connections within the partition.
+ * For decoupling capacitor partitions, applies specialized linear layout instead.
  */
 
 import type { GraphicsObject } from "graphics-debug"
@@ -11,7 +12,6 @@ import type {
   InputProblem,
   PinId,
   ChipId,
-  NetId,
   ChipPin,
   PartitionInputProblem,
 } from "../../types/InputProblem"
@@ -38,14 +38,17 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
-    // Initialize PackSolver2 if not already created
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
       this.activeSubSolver = new PackSolver2(packInput)
-      this.activeSubSolver = this.activeSubSolver
     }
 
-    // Run one step of the PackSolver2
     this.activeSubSolver.step()
 
     if (this.activeSubSolver.failed) {
@@ -55,7 +58,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
 
     if (this.activeSubSolver.solved) {
-      // Apply the packing result to create the layout
       this.layout = this.createLayoutFromPackingResult(
         this.activeSubSolver.packedComponents,
       )
@@ -64,18 +66,55 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
   }
 
+  private createLinearDecouplingCapLayout(): OutputLayout {
+    const chipIds = Object.keys(this.partitionInputProblem.chipMap).sort()
+    const chipGap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap ??
+      0.2
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    const totalWidth = chipIds.reduce((acc, chipId, i) => {
+      const chip = this.partitionInputProblem.chipMap[chipId]!
+      const capWidth = chip.size.x
+      const capHeight = chip.size.y
+      const maxDim = Math.max(capWidth, capHeight)
+      if (i === 0) return maxDim
+      return acc + chipGap + maxDim
+    }, 0)
+
+    let currentX = -totalWidth / 2
+    for (const chipId of chipIds) {
+      const chip = this.partitionInputProblem.chipMap[chipId]!
+      const capWidth = chip.size.x
+      const capHeight = chip.size.y
+      const maxDim = Math.max(capWidth, capHeight)
+
+      const placementX = currentX + maxDim / 2
+      chipPlacements[chipId] = {
+        x: placementX,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += maxDim + chipGap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
   private createPackInput(): PackInput {
-    // Fall back to filtered mapping (weak + strong)
     const pinToNetworkMap = createFilteredNetworkMapping({
       inputProblem: this.partitionInputProblem,
       pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
     }).pinToNetworkMap
 
-    // Create pack components for each chip
     const packComponents = Object.entries(
       this.partitionInputProblem.chipMap,
     ).map(([chipId, chip]) => {
-      // Create pads for all pins of this chip
       const pads: Array<{
         padId: string
         networkId: string
@@ -84,12 +123,10 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         size: { x: number; y: number }
       }> = []
 
-      // Create a pad for each pin on this chip
       for (const pinId of chip.pins) {
         const pin = this.partitionInputProblem.chipPinMap[pinId]
         if (!pin) continue
 
-        // Find network for this pin from our connectivity map
         const networkId = pinToNetworkMap.get(pinId) || `${pinId}_isolated`
 
         pads.push({
@@ -97,7 +134,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           networkId: networkId,
           type: "rect" as const,
           offset: { x: pin.offset.x, y: pin.offset.y },
-          size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
+          size: { x: PIN_SIZE, y: PIN_SIZE },
         })
       }
 
@@ -106,9 +143,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         x: padsBoundingBox.maxX - padsBoundingBox.minX,
         y: padsBoundingBox.maxY - padsBoundingBox.minY,
       }
-
-      // Add chip body pad (disconnected from any network) but make sure
-      // it fully envelopes the "pads" (pins)
 
       pads.push({
         padId: `${chipId}_body`,
