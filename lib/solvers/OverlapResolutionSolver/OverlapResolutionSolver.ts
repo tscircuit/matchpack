@@ -239,22 +239,57 @@ export class OverlapResolutionSolver extends BaseSolver {
   }
 
   override visualize(): GraphicsObject {
-    const rects = Object.entries(this.finalLayout.chipPlacements).map(
-      ([chipId, placement]) => {
-        const chip = this.inputProblem.chipMap[chipId]!
-        const aabb = this.getRotatedAABB(placement, chip.size)
-        return {
-          center: { x: placement.x, y: placement.y },
-          width: aabb.maxX - aabb.minX,
-          height: aabb.maxY - aabb.minY,
-          fill: "rgba(80,180,255,0.15)",
-          stroke: "rgba(80,180,255,0.8)",
-          label: chipId,
-        }
-      },
-    )
+    const rects: NonNullable<GraphicsObject["rects"]> = []
+    const lines: NonNullable<GraphicsObject["lines"]> = []
+
+    // Render BEFORE position in a muted ghost outline so reviewers can see
+    // where the upstream packing put each chip, and AFTER position in solid
+    // color. A line connects the two when the chip moved.
+    for (const [chipId, after] of Object.entries(
+      this.finalLayout.chipPlacements,
+    )) {
+      const chip = this.inputProblem.chipMap[chipId]
+      const before = this.inputLayout.chipPlacements[chipId]
+      if (!chip || !before) continue
+
+      const afterAABB = this.getRotatedAABB(after, chip.size)
+      const beforeAABB = this.getRotatedAABB(before, chip.size)
+
+      // Ghost of original position (only meaningful if the chip moved)
+      const moved =
+        Math.abs(after.x - before.x) > 1e-6 ||
+        Math.abs(after.y - before.y) > 1e-6
+      if (moved) {
+        rects.push({
+          center: { x: before.x, y: before.y },
+          width: beforeAABB.maxX - beforeAABB.minX,
+          height: beforeAABB.maxY - beforeAABB.minY,
+          fill: "rgba(255,100,100,0.05)",
+          stroke: "rgba(255,100,100,0.4)",
+          label: `${chipId} (before)`,
+        })
+        lines.push({
+          points: [
+            { x: before.x, y: before.y },
+            { x: after.x, y: after.y },
+          ],
+          strokeColor: "rgba(255,100,100,0.5)",
+        })
+      }
+
+      // Final position
+      rects.push({
+        center: { x: after.x, y: after.y },
+        width: afterAABB.maxX - afterAABB.minX,
+        height: afterAABB.maxY - afterAABB.minY,
+        fill: moved ? "rgba(80,200,120,0.15)" : "rgba(80,180,255,0.15)",
+        stroke: moved ? "rgba(80,200,120,0.9)" : "rgba(80,180,255,0.8)",
+        label: chipId,
+      })
+    }
+
     return {
-      lines: [],
+      lines,
       points: [],
       circles: [],
       texts: [],
