@@ -7,6 +7,7 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import { OverlapResolutionSolver } from "lib/solvers/OverlapResolutionSolver/OverlapResolutionSolver"
 import {
   PackInnerPartitionsSolver,
   type PackedPartition,
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  overlapResolutionSolver?: OverlapResolutionSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +126,21 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep(
+      "overlapResolutionSolver",
+      OverlapResolutionSolver,
+      () => [
+        {
+          layout: this.partitionPackingSolver!.finalLayout!,
+          inputProblem: this.inputProblem,
+        },
+      ],
+      {
+        onSolved: (_solver) => {
+          // Final de-overlapped layout is read via getOutputLayout()
+        },
+      },
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -188,8 +205,11 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
-    // If the pipeline is complete and we have a partition packing solver,
-    // show only the final chip placements
+    // If the pipeline is complete, prefer the de-overlapped layout from
+    // OverlapResolutionSolver; fall back to the raw packed layout otherwise.
+    if (this.solved && this.overlapResolutionSolver?.solved) {
+      return this.overlapResolutionSolver.visualize()
+    }
     if (this.solved && this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -400,8 +420,12 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the partition packing solver
-    if (
+    // Prefer the de-overlapped layout produced by OverlapResolutionSolver.
+    // Fall back to partitionPackingSolver.finalLayout for callers that step
+    // the pipeline manually without running the overlap resolution phase.
+    if (this.overlapResolutionSolver?.solved) {
+      finalLayout = this.overlapResolutionSolver.finalLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
