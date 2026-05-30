@@ -4,7 +4,7 @@
  */
 
 import type { GraphicsObject } from "graphics-debug"
-import { type PackInput, PackSolver2 } from "calculate-packing"
+import { type PackInput, PackSolver2, pack } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type {
@@ -41,6 +41,17 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
+      // Force-directed path: one-shot pack() (includes the validate +
+      // greedy-fallback gate), not step-based like PackSolver2.
+      if (
+        this.partitionInputProblem.packPlacementStrategy === "force_directed"
+      ) {
+        this.layout = this.createLayoutFromPackingResult(
+          pack(packInput).components,
+        )
+        this.solved = true
+        return
+      }
       this.activeSubSolver = new PackSolver2(packInput)
       this.activeSubSolver = this.activeSubSolver
     }
@@ -137,7 +148,10 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       components: packComponents,
       minGap,
       packOrderStrategy: "largest_to_smallest",
-      packPlacementStrategy: "minimum_closest_sum_squared_distance",
+      packPlacementStrategy:
+        this.partitionInputProblem.packPlacementStrategy === "force_directed"
+          ? "force_directed"
+          : "minimum_closest_sum_squared_distance",
     }
   }
 

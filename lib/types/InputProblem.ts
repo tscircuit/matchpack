@@ -44,6 +44,15 @@ export type InputProblem = {
   decouplingCapsGap?: number
 
   inferDecouplingCaps?: boolean
+
+  /**
+   * Packing strategy for the chip/partition packers. Default (undefined) keeps
+   * the established greedy outline packer. Set to "force_directed" to use the
+   * analytical force-directed packer instead — far faster on large boards
+   * (the O(n^3) greedy packer is the cause of tscircuit#3208), behind a
+   * validate + greedy-fallback gate so a layout is never silently worse.
+   */
+  packPlacementStrategy?: "force_directed"
 }
 
 export interface PartitionInputProblem extends InputProblem {

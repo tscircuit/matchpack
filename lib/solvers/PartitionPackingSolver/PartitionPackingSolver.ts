@@ -4,7 +4,7 @@
  */
 
 import type { GraphicsObject } from "graphics-debug"
-import { type PackInput, PackSolver2 } from "calculate-packing"
+import { type PackInput, PackSolver2, pack } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem } from "../../types/InputProblem"
@@ -53,6 +53,17 @@ export class PartitionPackingSolver extends BaseSolver {
       // Initialize PackSolver2 if not already created
       if (!this.packSolver2) {
         const packInput = this.createPackInput(partitionGroups)
+        // Force-directed path: one-shot pack() (includes the validate +
+        // greedy-fallback gate), not step-based like PackSolver2.
+        if (this.inputProblem.packPlacementStrategy === "force_directed") {
+          const result = pack(packInput)
+          this.finalLayout = this.applyPackingResult(
+            result.components,
+            partitionGroups,
+          )
+          this.solved = true
+          return
+        }
         this.packSolver2 = new PackSolver2(packInput)
         this.activeSubSolver = this.packSolver2
       }
@@ -296,7 +307,10 @@ export class PartitionPackingSolver extends BaseSolver {
       components: packComponents,
       minGap: this.inputProblem.partitionGap, // Use partitionGap from input problem
       packOrderStrategy: "largest_to_smallest",
-      packPlacementStrategy: "minimum_sum_squared_distance_to_network",
+      packPlacementStrategy:
+        this.inputProblem.packPlacementStrategy === "force_directed"
+          ? "force_directed"
+          : "minimum_sum_squared_distance_to_network",
     }
   }
 
