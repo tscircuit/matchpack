@@ -12,6 +12,7 @@ import {
   type PackedPartition,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import { LayoutRefinementSolver } from "lib/solvers/LayoutRefinementSolver/LayoutRefinementSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  layoutRefinementSolver?: LayoutRefinementSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +126,24 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep(
+      "layoutRefinementSolver",
+      LayoutRefinementSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          initialLayout: this.partitionPackingSolver?.finalLayout ?? {
+            chipPlacements: {},
+            groupPlacements: {},
+          },
+        },
+      ],
+      {
+        onSolved: (_solver) => {
+          // Refined layout is stored in the refinement solver
+        },
+      },
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -188,6 +208,12 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
+    // If the pipeline is complete and we have a refinement solver,
+    // show its refined layout
+    if (this.solved && this.layoutRefinementSolver?.solved) {
+      return this.layoutRefinementSolver.visualize()
+    }
+
     // If the pipeline is complete and we have a partition packing solver,
     // show only the final chip placements
     if (this.solved && this.partitionPackingSolver?.solved) {
@@ -199,6 +225,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
+    const layoutRefinementViz = this.layoutRefinementSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
@@ -210,6 +237,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
+      layoutRefinementViz,
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
@@ -253,6 +281,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     // Show the most recent solver's output
+    if (this.layoutRefinementSolver?.solved) {
+      return this.layoutRefinementSolver.visualize()
+    }
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -400,8 +431,12 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the partition packing solver
     if (
+      this.layoutRefinementSolver?.solved &&
+      this.layoutRefinementSolver.refinedLayout
+    ) {
+      finalLayout = this.layoutRefinementSolver.refinedLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
