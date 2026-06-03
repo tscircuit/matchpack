@@ -13,6 +13,7 @@ export type Chip = {
   size: Point
   isDecouplingCap?: boolean
   availableRotations?: Array<0 | 90 | 180 | 270>
+  fixedPosition?: Point
 }
 export type Group = {
   groupId: GroupId
