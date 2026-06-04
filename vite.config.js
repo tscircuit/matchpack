@@ -6,5 +6,6 @@ export default defineConfig({
     alias: {
       lib: resolve(__dirname, "lib"),
     },
+    dedupe: ["react", "react-dom"],
   },
 })
