@@ -19,6 +19,7 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { layoutDecouplingCapPartition } from "./layoutDecouplingCapPartition"
 
 const PIN_SIZE = 0.1
 
@@ -38,6 +39,14 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Decoupling capacitor partitions use a specialized bank layout instead
+    // of the generic packing algorithm
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = layoutDecouplingCapPartition(this.partitionInputProblem)
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const packInput = this.createPackInput()
