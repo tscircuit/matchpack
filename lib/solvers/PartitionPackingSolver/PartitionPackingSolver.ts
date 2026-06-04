@@ -7,7 +7,7 @@ import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import type { InputProblem } from "../../types/InputProblem"
+import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
@@ -97,8 +97,8 @@ export class PartitionPackingSolver extends BaseSolver {
     }
   }
 
-  private buildConnectivityMap(): Map<string, string> {
-    const pinToNetworkMap = new Map<string, string>()
+  private buildConnectivityMap(): Map<PinId, NetId> {
+    const pinToNetworkMap = new Map<PinId, NetId>()
     for (const packedPartition of this.packedPartitions) {
       for (const [connKey, connected] of Object.entries(
         packedPartition.inputProblem.netConnMap,
