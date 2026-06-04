@@ -30,7 +30,7 @@ export const getInputProblemFromCircuitJsonSchematic = (
   const cjChips = db.schematic_component.list().map((schematic_component) => ({
     schematic_component,
     source_component: db.source_component.get(
-      schematic_component.source_component_id,
+      schematic_component.source_component_id!,
     ),
     ports: db.schematic_port
       .list({

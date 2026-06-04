@@ -10,8 +10,6 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type {
   InputProblem,
   PinId,
-  ChipId,
-  NetId,
   ChipPin,
   PartitionInputProblem,
 } from "../../types/InputProblem"
@@ -40,9 +38,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   override _step() {
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
-      const packInput = this.createPackInput()
+      const pinToNetworkMap = createFilteredNetworkMapping({
+        inputProblem: this.partitionInputProblem,
+        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+      }).pinToNetworkMap
+
+      const packInput = this.createPackInput(pinToNetworkMap)
       this.activeSubSolver = new PackSolver2(packInput)
-      this.activeSubSolver = this.activeSubSolver
     }
 
     // Run one step of the PackSolver2
@@ -64,14 +66,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
   }
 
-  private createPackInput(): PackInput {
-    // Fall back to filtered mapping (weak + strong)
-    const pinToNetworkMap = createFilteredNetworkMapping({
-      inputProblem: this.partitionInputProblem,
-      pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-    }).pinToNetworkMap
-
-    // Create pack components for each chip
+  private createPackInput(pinToNetworkMap: Map<PinId, string>): PackInput {
     const packComponents = Object.entries(
       this.partitionInputProblem.chipMap,
     ).map(([chipId, chip]) => {
@@ -94,10 +89,10 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
 
         pads.push({
           padId: pinId,
-          networkId: networkId,
+          networkId,
           type: "rect" as const,
           offset: { x: pin.offset.x, y: pin.offset.y },
-          size: { x: PIN_SIZE, y: PIN_SIZE }, // Small size for pins
+          size: { x: PIN_SIZE, y: PIN_SIZE },
         })
       }
 
@@ -121,10 +116,16 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         },
       })
 
+      const fixedRotation = chip.availableRotations?.[0] ?? 0
       return {
         componentId: chipId,
         pads,
-        availableRotationDegrees: chip.availableRotations || [0, 90, 180, 270],
+        availableRotationDegrees: chip.availableRotations ?? [0, 90, 180, 270],
+        ...(chip.fixedPosition && {
+          isStatic: true as const,
+          center: chip.fixedPosition,
+          ccwRotationOffset: fixedRotation,
+        }),
       }
     })
 
@@ -153,8 +154,8 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         x: packedComponent.center.x,
         y: packedComponent.center.y,
         ccwRotationDegrees:
-          packedComponent.ccwRotationOffset ||
-          packedComponent.ccwRotationDegrees ||
+          packedComponent.ccwRotationDegrees ??
+          packedComponent.ccwRotationOffset ??
           0,
       }
     }
