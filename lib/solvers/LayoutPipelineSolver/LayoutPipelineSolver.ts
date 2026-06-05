@@ -12,6 +12,7 @@ import {
   type PackedPartition,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
+import { PartitionFlipOptimizationSolver } from "lib/solvers/PartitionFlipOptimizationSolver/PartitionFlipOptimizationSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  partitionFlipOptimizationSolver?: PartitionFlipOptimizationSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +126,17 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep(
+      "partitionFlipOptimizationSolver",
+      PartitionFlipOptimizationSolver,
+      () => [
+        {
+          currentLayout: this.partitionPackingSolver!.finalLayout!,
+          packedPartitions: this.packedPartitions || [],
+          inputProblem: this.inputProblem,
+        },
+      ],
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -188,8 +201,13 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
-    // If the pipeline is complete and we have a partition packing solver,
-    // show only the final chip placements
+    // If the pipeline is complete, show the flip-optimized layout
+    if (this.solved && this.partitionFlipOptimizationSolver?.solved) {
+      const finalLayout = this.partitionFlipOptimizationSolver.improvedLayout
+      if (finalLayout && this.partitionPackingSolver) {
+        return this.partitionPackingSolver.visualize()
+      }
+    }
     if (this.solved && this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -400,8 +418,13 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the partition packing solver
+    // Prefer the flip-optimized layout; fall back to raw partition packing
     if (
+      this.partitionFlipOptimizationSolver?.solved &&
+      this.partitionFlipOptimizationSolver.improvedLayout
+    ) {
+      finalLayout = this.partitionFlipOptimizationSolver.improvedLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
