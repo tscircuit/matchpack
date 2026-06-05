@@ -6,10 +6,21 @@
 
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
-import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
+import type {
+  ChipPin,
+  InputProblem,
+  PartitionInputProblem,
+  PinId,
+} from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
+import { DecouplingCapBankLayoutSolver } from "./DecouplingCapBankLayoutSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
+
+type PartitionSolver = (SingleInnerPartitionPackingSolver | DecouplingCapBankLayoutSolver) & {
+  layout: OutputLayout | null
+  visualize(): GraphicsObject
+}
 
 export type PackedPartition = {
   inputProblem: InputProblem
@@ -19,11 +30,11 @@ export type PackedPartition = {
 export class PackInnerPartitionsSolver extends BaseSolver {
   partitions: InputProblem[]
   packedPartitions: PackedPartition[] = []
-  completedSolvers: SingleInnerPartitionPackingSolver[] = []
-  activeSolver: SingleInnerPartitionPackingSolver | null = null
+  completedSolvers: PartitionSolver[] = []
+  activeSolver: PartitionSolver | null = null
   currentPartitionIndex = 0
 
-  declare activeSubSolver: SingleInnerPartitionPackingSolver | null
+  declare activeSubSolver: PartitionSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -45,10 +56,17 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     // If no active solver, create one for the current partition
     if (!this.activeSolver) {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
-      this.activeSolver = new SingleInnerPartitionPackingSolver({
-        partitionInputProblem: currentPartition,
-        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-      })
+      const partitionType = (currentPartition as PartitionInputProblem).partitionType
+      if (partitionType === "decoupling_caps") {
+        this.activeSolver = new DecouplingCapBankLayoutSolver(
+          currentPartition as PartitionInputProblem,
+        )
+      } else {
+        this.activeSolver = new SingleInnerPartitionPackingSolver({
+          partitionInputProblem: currentPartition,
+          pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+        })
+      }
       this.activeSubSolver = this.activeSolver
     }
 
