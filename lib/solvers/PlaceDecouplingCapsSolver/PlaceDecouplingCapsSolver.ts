@@ -73,17 +73,17 @@ export class PlaceDecouplingCapsSolver extends BaseSolver {
             let rotation = 0
 
             if (side === "x-") {
-              capX -= (cap.size.x / 2) + GAP
+              capX -= cap.size.x / 2 + GAP
               capY += shift
             } else if (side === "x+") {
-              capX += (cap.size.x / 2) + GAP
+              capX += cap.size.x / 2 + GAP
               capY += shift
             } else if (side === "y+") {
-              capY += (cap.size.y / 2) + GAP
+              capY += cap.size.y / 2 + GAP
               capX += shift
               rotation = 90
             } else if (side === "y-") {
-              capY -= (cap.size.y / 2) + GAP
+              capY -= cap.size.y / 2 + GAP
               capX += shift
               rotation = 90
             }
