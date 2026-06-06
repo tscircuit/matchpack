@@ -7,6 +7,7 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import { PlaceDecouplingCapsSolver } from "lib/solvers/PlaceDecouplingCapsSolver/PlaceDecouplingCapsSolver"
 import {
   PackInnerPartitionsSolver,
   type PackedPartition,
@@ -50,6 +51,7 @@ function definePipelineStep<
 
 export class LayoutPipelineSolver extends BaseSolver {
   identifyDecouplingCapsSolver?: IdentifyDecouplingCapsSolver
+  placeDecouplingCapsSolver?: PlaceDecouplingCapsSolver
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
@@ -74,6 +76,22 @@ export class LayoutPipelineSolver extends BaseSolver {
       {
         onSolved: (_layoutSolver) => {
           // Decoupling cap groups are now identified and available for subsequent phases
+        },
+      },
+    ),
+    definePipelineStep(
+      "placeDecouplingCapsSolver",
+      PlaceDecouplingCapsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          decouplingCapGroups:
+            this.identifyDecouplingCapsSolver?.outputDecouplingCapGroups || [],
+        },
+      ],
+      {
+        onSolved: (_layoutSolver) => {
+          // Decoupling caps placed around main chip
         },
       },
     ),
@@ -196,6 +214,7 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     const identifyDecouplingCapsViz =
       this.identifyDecouplingCapsSolver?.visualize()
+    const placeDecouplingCapsViz = this.placeDecouplingCapsSolver?.visualize()
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
@@ -207,6 +226,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const visualizations = [
       inputViz,
       identifyDecouplingCapsViz,
+      placeDecouplingCapsViz,
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
@@ -261,6 +281,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
     if (this.chipPartitionsSolver?.solved) {
       return this.chipPartitionsSolver.visualize()
+    }
+    if (this.placeDecouplingCapsSolver?.solved) {
+      return this.placeDecouplingCapsSolver.visualize()
     }
     if (this.identifyDecouplingCapsSolver?.solved) {
       return this.identifyDecouplingCapsSolver.visualize()
