@@ -79,10 +79,19 @@ export function doBasicInputProblemLayout(
   > = {}
 
   for (const component of packResult.components) {
-    chipPlacements[component.componentId] = {
-      x: component.center.x,
-      y: component.center.y,
-      ccwRotationDegrees: component.ccwRotationOffset,
+    const chip = inputProblem.chipMap[component.componentId]
+    if (chip?.fixedPosition) {
+      chipPlacements[component.componentId] = {
+        x: chip.fixedPosition.x,
+        y: chip.fixedPosition.y,
+        ccwRotationDegrees: chip.availableRotations?.[0] ?? 0,
+      }
+    } else {
+      chipPlacements[component.componentId] = {
+        x: component.center.x,
+        y: component.center.y,
+        ccwRotationDegrees: component.ccwRotationOffset,
+      }
     }
   }
 

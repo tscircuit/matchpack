@@ -92,15 +92,18 @@ export function visualizeInputProblem(
       placement.ccwRotationDegrees,
     )
 
+    const isFixed = chip.fixedPosition !== undefined
+    const displayLabel = isFixed ? `${chipId} (fixed)` : chipId
+
     inputViz.rects!.push({
       center: { x: chipCenterX, y: chipCenterY },
       width: rotatedDims.width,
       height: rotatedDims.height,
-      label: chipId,
+      label: displayLabel,
     })
 
     // Also draw a text label for compatibility with tests
-    inputViz.texts!.push({ x: chipCenterX, y: chipCenterY, text: chipId })
+    inputViz.texts!.push({ x: chipCenterX, y: chipCenterY, text: displayLabel })
 
     for (const pin of chipPins) {
       // Rotate pin offset around chip center based on chip rotation
