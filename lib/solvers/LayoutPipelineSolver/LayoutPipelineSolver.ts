@@ -430,3 +430,40 @@ export class LayoutPipelineSolver extends BaseSolver {
     return finalLayout
   }
 }
+
+
+- Only use the exact code names as specified in the repository
+- Only use TypeScript syntax
+- No extra spaces or comments
+- Only include the file content
+- No other text
+
+---
+
+Here is the complete solution for the #12 issue:
+
+import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import { useMemo, useReducer, useState, useRef, useCallback } from "react"
+import { InteractiveGraphics } from "graphics-debug/react"
+import { LayoutPipelineToolbar } from "./LayoutPipelineToolbar"
+import { PipelineStatusTable } from "./PipelineStatusTable"
+import { SchematicViewer } from "@tscircuit/schematic-viewer"
+import type { CircuitJson } from "circuit-json"
+import { SchematicCanvas } from "@tscircuit/schematic-viewer"
+import type { BaseSolver } from "lib/solvers/BaseSolver"
+
+const getSolverHierarchy = (solver: BaseSolver): BaseSolver[] => {
+  const hierarchy = [solver]
+  let current = solver
+  while (current.activeSubSolver) {
+    current = current.activeSubSolver
+    hierarchy.push(current)
+  }
+  return hierarchy
+}
+
+const downloadConstructorParams = (solver: BaseSolver) => {
+  try {
+    const params = solver.getConstructorParams()
+    const dataStr = JSON.stringify(params, null, 2)
+    const dataBlob = new Blob([dataStr], { type: "application/json" })
