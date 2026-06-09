@@ -36,8 +36,15 @@ function getChipLabelFontSize(width: number, height: number): number {
   return Math.min(0.35, Math.max(0.08, smallerDimension * 0.22))
 }
 
-function getChipFillColor(chipId: string): string {
+function getChipFillColor(chipId: string, isFixed = false): string {
   const chipType = chipId.charAt(0).toUpperCase()
+
+  if (isFixed) {
+    if (chipType === "C") return "rgba(30, 64, 175, 0.35)"
+    if (chipType === "R") return "rgba(5, 150, 105, 0.35)"
+    if (chipType === "L") return "rgba(126, 34, 206, 0.35)"
+    if (chipType === "U") return "rgba(180, 83, 9, 0.35)"
+  }
 
   if (chipType === "C") return "rgba(59, 130, 246, 0.18)"
   if (chipType === "R") return "rgba(16, 185, 129, 0.18)"
@@ -108,12 +115,14 @@ export function visualizeInputProblem(
       placement.ccwRotationDegrees,
     )
 
+    const chipLabel = chip.fixedPosition ? `${chipId} [fixed]` : chipId
+
     inputViz.rects!.push({
       center: { x: chipCenterX, y: chipCenterY },
       width: rotatedDims.width,
       height: rotatedDims.height,
-      label: chipId,
-      fill: getChipFillColor(chipId),
+      label: chipLabel,
+      fill: getChipFillColor(chipId, Boolean(chip.fixedPosition)),
       stroke: "none",
     })
 
@@ -121,7 +130,7 @@ export function visualizeInputProblem(
     inputViz.texts!.push({
       x: chipCenterX,
       y: chipCenterY,
-      text: chipId,
+      text: chipLabel,
       fontSize: getChipLabelFontSize(rotatedDims.width, rotatedDims.height),
     })
 

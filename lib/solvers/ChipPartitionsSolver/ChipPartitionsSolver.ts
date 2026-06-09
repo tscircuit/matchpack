@@ -262,7 +262,8 @@ export class ChipPartitionsSolver extends BaseSolver {
 
   override visualize(): GraphicsObject {
     if (this.partitions.length === 0) {
-      return super.visualize()
+      const layout = doBasicInputProblemLayout(this.inputProblem)
+      return visualizeInputProblem(this.inputProblem, layout)
     }
 
     const partitionVisualizations = this.partitions.map((partition) => {

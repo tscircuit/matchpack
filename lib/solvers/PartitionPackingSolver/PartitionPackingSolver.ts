@@ -314,16 +314,7 @@ export class PartitionPackingSolver extends BaseSolver {
     }
   }
 
-  override visualize(): GraphicsObject {
-    if (this.packSolver2 && !this.solved) {
-      return this.packSolver2.visualize()
-    }
-
-    if (!this.finalLayout) {
-      return super.visualize()
-    }
-
-    // Create a combined problem for visualization from all packed partitions
+  private getCombinedPackedPartitionsProblem(): InputProblem {
     const combinedProblem: InputProblem = {
       chipMap: {},
       chipPinMap: {},
@@ -334,7 +325,6 @@ export class PartitionPackingSolver extends BaseSolver {
       partitionGap: this.inputProblem.partitionGap,
     }
 
-    // Combine all packed partitions
     for (const packedPartition of this.packedPartitions) {
       Object.assign(
         combinedProblem.chipMap,
@@ -355,7 +345,42 @@ export class PartitionPackingSolver extends BaseSolver {
       )
     }
 
-    return visualizeInputProblem(combinedProblem, this.finalLayout)
+    return combinedProblem
+  }
+
+  private getCombinedPackedPartitionsLayout(): OutputLayout {
+    const chipPlacements: OutputLayout["chipPlacements"] = {}
+
+    for (const packedPartition of this.packedPartitions) {
+      Object.assign(chipPlacements, packedPartition.layout.chipPlacements)
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  override visualize(): GraphicsObject {
+    if (this.packSolver2 && !this.solved) {
+      return this.packSolver2.visualize()
+    }
+
+    if (!this.finalLayout) {
+      if (this.packedPartitions.length === 0) {
+        return super.visualize()
+      }
+
+      return visualizeInputProblem(
+        this.getCombinedPackedPartitionsProblem(),
+        this.getCombinedPackedPartitionsLayout(),
+      )
+    }
+
+    return visualizeInputProblem(
+      this.getCombinedPackedPartitionsProblem(),
+      this.finalLayout,
+    )
   }
 
   override getConstructorParams(): PartitionPackingSolverInput {
