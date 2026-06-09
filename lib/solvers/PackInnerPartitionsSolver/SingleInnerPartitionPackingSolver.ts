@@ -17,6 +17,7 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import type { PassiveGroup } from "../IdentifyPassivesSolver/IdentifyPassivesSolver"
 
 const PIN_SIZE = 0.1
 
@@ -25,14 +26,17 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   layout: OutputLayout | null = null
   declare activeSubSolver: PackSolver2 | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+  passiveGroups?: PassiveGroup[]
 
   constructor(params: {
     partitionInputProblem: PartitionInputProblem
     pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+    passiveGroups?: PassiveGroup[]
   }) {
     super()
     this.partitionInputProblem = params.partitionInputProblem
     this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
+    this.passiveGroups = params.passiveGroups
   }
 
   override _step() {
@@ -129,6 +133,42 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     })
 
+    // Add relative constraints for passives
+    const relativeConstraints: PackInput["relativeConstraints"] = []
+    if (this.passiveGroups) {
+      for (const group of this.passiveGroups) {
+        // Only if both chips are in this partition
+        if (
+          this.partitionInputProblem.chipMap[group.mainChipId] &&
+          this.partitionInputProblem.chipMap[group.passiveChipId]
+        ) {
+          const mainPin = this.partitionInputProblem.chipPinMap[group.mainPinId]
+          if (!mainPin) continue
+
+          // Suggest placement near the pin
+          // We want the passive's center to be near the pin offset
+          // Passive pins are usually at x= +/- something. 
+          // Let's just suggest a small offset based on the pin side.
+          let dx = 0
+          let dy = 0
+          const gap = 0.5
+          if (mainPin.side === "left") dx = -gap
+          else if (mainPin.side === "right") dx = gap
+          else if (mainPin.side === "top" || mainPin.side === "y+") dy = gap
+          else if (mainPin.side === "bottom" || mainPin.side === "y-") dy = -gap
+
+          relativeConstraints.push({
+            componentId: group.passiveChipId,
+            toComponentId: group.mainChipId,
+            relativeOffset: {
+              x: mainPin.offset.x + dx,
+              y: mainPin.offset.y + dy,
+            },
+          })
+        }
+      }
+    }
+
     let minGap = this.partitionInputProblem.chipGap
     if (this.partitionInputProblem.partitionType === "decoupling_caps") {
       minGap = this.partitionInputProblem.decouplingCapsGap ?? minGap
@@ -139,6 +179,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       minGap,
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
+      relativeConstraints,
     }
   }
 

@@ -10,6 +10,7 @@ import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
+import type { PassiveGroup } from "../IdentifyPassivesSolver/IdentifyPassivesSolver"
 
 export type PackedPartition = {
   inputProblem: InputProblem
@@ -25,14 +26,17 @@ export class PackInnerPartitionsSolver extends BaseSolver {
 
   declare activeSubSolver: SingleInnerPartitionPackingSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+  passiveGroups?: PassiveGroup[]
 
   constructor(params: {
     partitions: InputProblem[]
     pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+    passiveGroups?: PassiveGroup[]
   }) {
     super()
     this.partitions = params.partitions
     this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
+    this.passiveGroups = params.passiveGroups
   }
 
   override _step() {
@@ -48,6 +52,7 @@ export class PackInnerPartitionsSolver extends BaseSolver {
       this.activeSolver = new SingleInnerPartitionPackingSolver({
         partitionInputProblem: currentPartition,
         pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+        passiveGroups: this.passiveGroups,
       })
       this.activeSubSolver = this.activeSolver
     }
