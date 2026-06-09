@@ -3,11 +3,11 @@
  * Combines all the individually processed partitions into the final schematic layout.
  */
 
-import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
-import { BaseSolver } from "../BaseSolver"
+import type { GraphicsObject } from "graphics-debug"
+import type { InputProblem, NetId, PinId } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
+import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
@@ -99,30 +99,48 @@ export class PartitionPackingSolver extends BaseSolver {
 
   private buildConnectivityMap(): Map<PinId, NetId> {
     const pinToNetworkMap = new Map<PinId, NetId>()
+    const addNetConnection = (connKey: string, connected: boolean) => {
+      if (!connected) return
+      const [pinId, netId] = connKey.split("-")
+      if (pinId && netId) pinToNetworkMap.set(pinId, netId)
+    }
+    const addStrongConnection = (connKey: string, connected: boolean) => {
+      if (!connected) return
+      const pins = connKey.split("-")
+      if (pins.length === 2 && pins[0] && pins[1]) {
+        const existingNet =
+          pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
+        if (existingNet) {
+          pinToNetworkMap.set(pins[0], existingNet)
+          pinToNetworkMap.set(pins[1], existingNet)
+        } else {
+          pinToNetworkMap.set(pins[0], connKey)
+          pinToNetworkMap.set(pins[1], connKey)
+        }
+      }
+    }
+
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.netConnMap,
+    )) {
+      addNetConnection(connKey, connected)
+    }
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      addStrongConnection(connKey, connected)
+    }
+
     for (const packedPartition of this.packedPartitions) {
       for (const [connKey, connected] of Object.entries(
         packedPartition.inputProblem.netConnMap,
       )) {
-        if (!connected) continue
-        const [pinId, netId] = connKey.split("-")
-        if (pinId && netId) pinToNetworkMap.set(pinId, netId)
+        addNetConnection(connKey, connected)
       }
       for (const [connKey, connected] of Object.entries(
         packedPartition.inputProblem.pinStrongConnMap,
       )) {
-        if (!connected) continue
-        const pins = connKey.split("-")
-        if (pins.length === 2 && pins[0] && pins[1]) {
-          const existingNet =
-            pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
-          if (existingNet) {
-            pinToNetworkMap.set(pins[0], existingNet)
-            pinToNetworkMap.set(pins[1], existingNet)
-          } else {
-            pinToNetworkMap.set(pins[0], connKey)
-            pinToNetworkMap.set(pins[1], connKey)
-          }
-        }
+        addStrongConnection(connKey, connected)
       }
     }
     return pinToNetworkMap
@@ -279,6 +297,7 @@ export class PartitionPackingSolver extends BaseSolver {
     for (const packedComponent of packedComponents) {
       const partitionIndex = parseInt(
         packedComponent.componentId.replace("partition_", ""),
+        10,
       )
       const group = partitionGroups.find(
         (g) => g.partitionIndex === partitionIndex,
