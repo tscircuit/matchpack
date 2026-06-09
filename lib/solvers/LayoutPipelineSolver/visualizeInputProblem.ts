@@ -36,6 +36,17 @@ function getChipLabelFontSize(width: number, height: number): number {
   return Math.min(0.35, Math.max(0.08, smallerDimension * 0.22))
 }
 
+function getChipFillColor(chipId: string): string {
+  const chipType = chipId.charAt(0).toUpperCase()
+
+  if (chipType === "C") return "rgba(59, 130, 246, 0.18)"
+  if (chipType === "R") return "rgba(16, 185, 129, 0.18)"
+  if (chipType === "L") return "rgba(168, 85, 247, 0.18)"
+  if (chipType === "U") return "rgba(245, 158, 11, 0.18)"
+
+  return "rgba(59, 130, 246, 0.12)"
+}
+
 /**
  * Build a simple visualization of the raw input problem: chips, pins, and
  * connectivity (both net-group connections and direct pin-to-pin connections).
@@ -102,7 +113,7 @@ export function visualizeInputProblem(
       width: rotatedDims.width,
       height: rotatedDims.height,
       label: chipId,
-      fill: "rgba(59, 130, 246, 0.12)",
+      fill: getChipFillColor(chipId),
       stroke: "none",
     })
 
