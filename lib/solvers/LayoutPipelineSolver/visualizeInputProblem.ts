@@ -1,7 +1,7 @@
-import type { GraphicsObject } from "graphics-debug"
-import type { InputProblem, PinId, NetId } from "lib/types/InputProblem"
-import type { OutputLayout } from "lib/types/OutputLayout"
 import type { Point } from "@tscircuit/math-utils"
+import type { GraphicsObject } from "graphics-debug"
+import type { InputProblem, NetId, PinId } from "lib/types/InputProblem"
+import type { OutputLayout } from "lib/types/OutputLayout"
 
 /**
  * Rotate a point around the origin by the given angle (counterclockwise)
@@ -29,6 +29,11 @@ function getRotatedDimensions(
     return { width: height, height: width }
   }
   return { width, height }
+}
+
+function getChipLabelFontSize(width: number, height: number): number {
+  const smallerDimension = Math.min(width, height)
+  return Math.min(0.35, Math.max(0.08, smallerDimension * 0.22))
 }
 
 /**
@@ -97,10 +102,17 @@ export function visualizeInputProblem(
       width: rotatedDims.width,
       height: rotatedDims.height,
       label: chipId,
+      fill: "rgba(59, 130, 246, 0.12)",
+      stroke: "none",
     })
 
     // Also draw a text label for compatibility with tests
-    inputViz.texts!.push({ x: chipCenterX, y: chipCenterY, text: chipId })
+    inputViz.texts!.push({
+      x: chipCenterX,
+      y: chipCenterY,
+      text: chipId,
+      fontSize: getChipLabelFontSize(rotatedDims.width, rotatedDims.height),
+    })
 
     for (const pin of chipPins) {
       // Rotate pin offset around chip center based on chip rotation
