@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "start": "cosmos",
+    "test": "bun test",
     "build": "tsup-node --format esm --dts --clean ./lib/index.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
@@ -20,6 +21,7 @@
     "@tscircuit/math-utils": "^0.0.36",
     "@tscircuit/schematic-viewer": "^2.0.61",
     "@types/bun": "^1.3.14",
+    "bun-match-svg": "^0.0.15",
     "bpc-graph": "^0.0.66",
     "calculate-packing": "^0.0.74",
     "circuit-json": "^0.0.432",
