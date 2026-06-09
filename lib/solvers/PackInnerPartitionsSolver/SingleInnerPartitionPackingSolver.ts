@@ -36,6 +36,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Early return for decoupling caps: arrange them in a clean horizontal row
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createLinearDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const pinToNetworkMap = createFilteredNetworkMapping({
@@ -140,6 +147,45 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
     }
+  }
+
+  private createLinearDecouplingCapLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Get all chips in this partition (which should all be decoupling caps)
+    // Sort by chipId for deterministic ordering
+    const chips = Object.entries(this.partitionInputProblem.chipMap).sort(
+      ([idA], [idB]) => idA.localeCompare(idB),
+    )
+
+    let minGap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    // Calculate total width to center the row
+    const chipWidths = chips.map(([_, chip]) => chip.size.x)
+    const totalWidth =
+      chipWidths.reduce((sum, w) => sum + w, 0) +
+      minGap * Math.max(0, chips.length - 1)
+
+    // Start placing from the left side to center around x=0
+    let currentX = -totalWidth / 2
+
+    for (let i = 0; i < chips.length; i++) {
+      const chipEntry = chips[i]
+      const [chipId, chip] = chipEntry!
+      const halfWidth = chip.size.x / 2
+
+      chipPlacements[chipId] = {
+        x: currentX + halfWidth,
+        y: 0, // centered vertically
+        ccwRotationDegrees: 0, // Keep them uniformly rotated
+      }
+
+      currentX += chip.size.x + minGap
+    }
+
+    return { chipPlacements, groupPlacements: {} }
   }
 
   private createLayoutFromPackingResult(
