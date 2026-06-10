@@ -587,6 +587,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           "netId": "DISABLE",
         },
         "GND": {
+          "isGround": true,
           "netId": "GND",
         },
         "INT": {
@@ -602,9 +603,11 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
           "netId": "SDA",
         },
         "V3_3": {
+          "isPositiveVoltageSource": true,
           "netId": "V3_3",
         },
         "V3_3_SW": {
+          "isPositiveVoltageSource": true,
           "netId": "V3_3_SW",
         },
       },

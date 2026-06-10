@@ -2,6 +2,32 @@ import type { InputProblem } from "lib/types/InputProblem"
 import type { CircuitJson } from "circuit-json"
 import { cju } from "@tscircuit/circuit-json-util"
 
+function isPositiveVoltageName(name: string): boolean {
+  if (!name) return false
+  const n = name.toUpperCase().trim()
+  return (
+    /^(VCC|VDD|VBUS|VIN|VOUT|VSUP|VBAT|VPP)$/.test(n) ||
+    /^V\d/.test(n) ||
+    /^\d+[._]?\d*V[\d_]*$/.test(n) ||
+    /^(VCC|VDD|VIN|VOUT)_/.test(n)
+  )
+}
+
+function isGroundName(name: string): boolean {
+  if (!name) return false
+  const n = name.toUpperCase().trim()
+  return (
+    n === "GND" ||
+    n === "VSS" ||
+    n === "AGND" ||
+    n === "DGND" ||
+    n === "PGND" ||
+    n === "SGND" ||
+    n.startsWith("GND_") ||
+    n.startsWith("VSS_")
+  )
+}
+
 export const getInputProblemFromCircuitJsonSchematic = (
   circuitJson: CircuitJson,
   options?: { useReadableIds?: boolean },
@@ -146,8 +172,11 @@ export const getInputProblemFromCircuitJsonSchematic = (
       readableIdToSourceNetId.set(netId, originalNetId)
     }
 
+    const netName = sourceNet.name || ""
     problem.netMap[netId] = {
       netId: netId,
+      ...(isPositiveVoltageName(netName) && { isPositiveVoltageSource: true }),
+      ...(isGroundName(netName) && { isGround: true }),
     }
   }
 
