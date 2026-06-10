@@ -173,7 +173,7 @@ test("voltage-biased rotation places VCC pin on top and GND pin on bottom", () =
   // VCC pin was on x+ (right), GND pin was on x- (left).
   // 90° CCW rotation maps x+ → y+ (top) and x- → y- (bottom),
   // satisfying the voltage-biased orientation heuristic.
-  const placement = solver.layout!.chipPlacements.U1
+  const placement = solver.layout!.chipPlacements.U1!
   expect(placement).toBeDefined()
   expect(placement.ccwRotationDegrees).toBe(90)
 })

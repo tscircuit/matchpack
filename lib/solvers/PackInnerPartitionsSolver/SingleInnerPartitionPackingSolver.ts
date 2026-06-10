@@ -226,16 +226,41 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   ): OutputLayout {
     const chipPlacements: Record<string, Placement> = {}
 
+    // PackSolver2 always places a partition's single dynamic component at
+    // rotation 0, ignoring availableRotationDegrees. When the partition holds a
+    // single free chip, apply the voltage-biased rotation directly so power
+    // pins end up on top (y+) and ground pins on the bottom (y-).
+    const dynamicChipCount = Object.values(
+      this.partitionInputProblem.chipMap,
+    ).filter((chip) => !chip.fixedPosition).length
+
     for (const packedComponent of packedComponents) {
       const chipId = packedComponent.componentId
+
+      let ccwRotationDegrees =
+        packedComponent.ccwRotationDegrees ??
+        packedComponent.ccwRotationOffset ??
+        0
+
+      const chip = this.partitionInputProblem.chipMap[chipId]
+      if (chip && !chip.fixedPosition && dynamicChipCount === 1) {
+        const preferredRotations: number[] = getVoltageBiasedRotations(
+          chip,
+          this.partitionInputProblem,
+        )
+        const preferredRotation = preferredRotations[0]
+        if (
+          preferredRotation !== undefined &&
+          !preferredRotations.includes(ccwRotationDegrees)
+        ) {
+          ccwRotationDegrees = preferredRotation
+        }
+      }
 
       chipPlacements[chipId] = {
         x: packedComponent.center.x,
         y: packedComponent.center.y,
-        ccwRotationDegrees:
-          packedComponent.ccwRotationDegrees ??
-          packedComponent.ccwRotationOffset ??
-          0,
+        ccwRotationDegrees,
       }
     }
 
