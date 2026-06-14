@@ -10,6 +10,8 @@ import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
+import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
 export type PackedPartition = {
   inputProblem: InputProblem
@@ -89,7 +91,13 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     }
 
     if (this.completedSolvers.length === 0) {
-      return super.visualize()
+      const partitionVisualizations = this.partitions.map((partition) => {
+        const layout = doBasicInputProblemLayout(partition)
+        return visualizeInputProblem(partition, layout)
+      })
+      const titles = this.partitions.map((_, index) => `partition${index}`)
+
+      return stackGraphicsHorizontally(partitionVisualizations, { titles })
     }
 
     // Show all completed partition visualizations

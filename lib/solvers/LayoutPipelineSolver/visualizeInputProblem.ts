@@ -1,7 +1,7 @@
-import type { GraphicsObject } from "graphics-debug"
-import type { InputProblem, PinId, NetId } from "lib/types/InputProblem"
-import type { OutputLayout } from "lib/types/OutputLayout"
 import type { Point } from "@tscircuit/math-utils"
+import type { GraphicsObject } from "graphics-debug"
+import type { InputProblem, NetId, PinId } from "lib/types/InputProblem"
+import type { OutputLayout } from "lib/types/OutputLayout"
 
 /**
  * Rotate a point around the origin by the given angle (counterclockwise)
@@ -29,6 +29,29 @@ function getRotatedDimensions(
     return { width: height, height: width }
   }
   return { width, height }
+}
+
+function getChipLabelFontSize(width: number, height: number): number {
+  const smallerDimension = Math.min(width, height)
+  return Math.min(0.35, Math.max(0.08, smallerDimension * 0.22))
+}
+
+function getChipFillColor(chipId: string, isFixed = false): string {
+  const chipType = chipId.charAt(0).toUpperCase()
+
+  if (isFixed) {
+    if (chipType === "C") return "rgba(30, 64, 175, 0.35)"
+    if (chipType === "R") return "rgba(5, 150, 105, 0.35)"
+    if (chipType === "L") return "rgba(126, 34, 206, 0.35)"
+    if (chipType === "U") return "rgba(180, 83, 9, 0.35)"
+  }
+
+  if (chipType === "C") return "rgba(59, 130, 246, 0.18)"
+  if (chipType === "R") return "rgba(16, 185, 129, 0.18)"
+  if (chipType === "L") return "rgba(168, 85, 247, 0.18)"
+  if (chipType === "U") return "rgba(245, 158, 11, 0.18)"
+
+  return "rgba(59, 130, 246, 0.12)"
 }
 
 /**
@@ -92,18 +115,24 @@ export function visualizeInputProblem(
       placement.ccwRotationDegrees,
     )
 
-    const isFixed = chip.fixedPosition !== undefined
-    const displayLabel = isFixed ? `${chipId} (fixed)` : chipId
+    const chipLabel = chip.fixedPosition ? `${chipId} [fixed]` : chipId
 
     inputViz.rects!.push({
       center: { x: chipCenterX, y: chipCenterY },
       width: rotatedDims.width,
       height: rotatedDims.height,
-      label: displayLabel,
+      label: chipLabel,
+      fill: getChipFillColor(chipId, Boolean(chip.fixedPosition)),
+      stroke: "none",
     })
 
     // Also draw a text label for compatibility with tests
-    inputViz.texts!.push({ x: chipCenterX, y: chipCenterY, text: displayLabel })
+    inputViz.texts!.push({
+      x: chipCenterX,
+      y: chipCenterY,
+      text: chipLabel,
+      fontSize: getChipLabelFontSize(rotatedDims.width, rotatedDims.height),
+    })
 
     for (const pin of chipPins) {
       // Rotate pin offset around chip center based on chip rotation

@@ -57,9 +57,16 @@ export function doBasicInputProblemLayout(
         size: { x: chip.size.x, y: chip.size.y },
       })
 
+      const fixedRotation = chip.availableRotations?.[0] ?? 0
       return {
         componentId: chipId,
         pads,
+        availableRotationDegrees: chip.availableRotations ?? [0, 90, 180, 270],
+        ...(chip.fixedPosition && {
+          isStatic: true as const,
+          center: chip.fixedPosition,
+          ccwRotationOffset: fixedRotation,
+        }),
       }
     },
   )

@@ -10,8 +10,8 @@ test("LayoutPipelineSolver: example01 iteration 0 visualization respects fixed p
   const viz = solver.visualize()
 
   // Find the rect and text for C5 (which is the fixed component)
-  const c5Rect = viz.rects?.find((r) => r.label === "C5 (fixed)")
-  const c5Text = viz.texts?.find((t) => t.text === "C5 (fixed)")
+  const c5Rect = viz.rects?.find((r) => r.label === "C5 [fixed]")
+  const c5Text = viz.texts?.find((t) => t.text === "C5 [fixed]")
 
   expect(c5Rect).toBeDefined()
   expect(c5Rect!.center.x).toBeCloseTo(4, 5)
@@ -28,10 +28,10 @@ test("LayoutPipelineSolver: example02 iteration 0 visualization respects fixed p
   const viz = solver.visualize()
 
   // In example02, C2 (fixed at 2,2) and C5 (fixed at 4,2) are fixed
-  const c2Rect = viz.rects?.find((r) => r.label === "C2 (fixed)")
-  const c2Text = viz.texts?.find((t) => t.text === "C2 (fixed)")
-  const c5Rect = viz.rects?.find((r) => r.label === "C5 (fixed)")
-  const c5Text = viz.texts?.find((t) => t.text === "C5 (fixed)")
+  const c2Rect = viz.rects?.find((r) => r.label === "C2 [fixed]")
+  const c2Text = viz.texts?.find((t) => t.text === "C2 [fixed]")
+  const c5Rect = viz.rects?.find((r) => r.label === "C5 [fixed]")
+  const c5Text = viz.texts?.find((t) => t.text === "C5 [fixed]")
 
   expect(c2Rect).toBeDefined()
   expect(c2Rect!.center.x).toBeCloseTo(2, 5)
