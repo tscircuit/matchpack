@@ -1,6 +1,7 @@
 import type { InputProblem } from "lib/types/InputProblem"
 import type { CircuitJson } from "circuit-json"
 import { cju } from "@tscircuit/circuit-json-util"
+import { applyTwoPinPowerGroundRotationConstraints } from "lib/utils/applyTwoPinPowerGroundRotationConstraints"
 
 export const getInputProblemFromCircuitJsonSchematic = (
   circuitJson: CircuitJson,
@@ -148,6 +149,10 @@ export const getInputProblemFromCircuitJsonSchematic = (
 
     problem.netMap[netId] = {
       netId: netId,
+      isGround: sourceNet.is_ground === true,
+      isPositiveVoltageSource:
+        sourceNet.is_power === true ||
+        sourceNet.is_positive_voltage_source === true,
     }
   }
 
@@ -235,5 +240,5 @@ export const getInputProblemFromCircuitJsonSchematic = (
     // net or bus, so these should be weak connections (handled by netConnMap)
   }
 
-  return problem
+  return applyTwoPinPowerGroundRotationConstraints(problem)
 }

@@ -1,6 +1,7 @@
 import { pack } from "calculate-packing"
 import type { InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
+import { applyTwoPinPowerGroundRotationConstraints } from "lib/utils/applyTwoPinPowerGroundRotationConstraints"
 import { hashInputProblem } from "./hashInputProblem"
 
 const cachedProblems: Map<string, OutputLayout> = new Map()
@@ -8,6 +9,7 @@ const cachedProblems: Map<string, OutputLayout> = new Map()
 export function doBasicInputProblemLayout(
   inputProblem: InputProblem,
 ): OutputLayout {
+  inputProblem = applyTwoPinPowerGroundRotationConstraints(inputProblem)
   const problemHash = hashInputProblem(inputProblem)
   if (cachedProblems.has(problemHash)) {
     return structuredClone(cachedProblems.get(problemHash)!)
@@ -54,10 +56,9 @@ export function doBasicInputProblemLayout(
         networkId: chipId,
         type: "rect" as const,
         offset: { x: 0, y: 0 },
-        size: { x: chip.size.x, y: chip.size.y },
+        size: chip.size,
       })
 
-      const fixedRotation = chip.availableRotations?.[0] ?? 0
       return {
         componentId: chipId,
         pads,
@@ -65,7 +66,7 @@ export function doBasicInputProblemLayout(
         ...(chip.fixedPosition && {
           isStatic: true as const,
           center: chip.fixedPosition,
-          ccwRotationOffset: fixedRotation,
+          ccwRotationOffset: chip.availableRotations?.[0] ?? 0,
         }),
       }
     },
@@ -89,7 +90,8 @@ export function doBasicInputProblemLayout(
     chipPlacements[component.componentId] = {
       x: component.center.x,
       y: component.center.y,
-      ccwRotationDegrees: component.ccwRotationOffset,
+      ccwRotationDegrees:
+        component.ccwRotationDegrees ?? component.ccwRotationOffset ?? 0,
     }
   }
 

@@ -28,7 +28,7 @@
     "graphics-debug": "^0.0.95",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",
-    "tscircuit": "^0.0.1819",
+    "tscircuit": "^0.0.1885",
     "tsup": "^8.5.1",
     "circuit-to-svg": "^0.0.351"
   },

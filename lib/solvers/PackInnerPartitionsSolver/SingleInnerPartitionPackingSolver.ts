@@ -17,6 +17,7 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { applyTwoPinPowerGroundRotationConstraints } from "lib/utils/applyTwoPinPowerGroundRotationConstraints"
 
 const PIN_SIZE = 0.1
 
@@ -31,7 +32,9 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
   }) {
     super()
-    this.partitionInputProblem = params.partitionInputProblem
+    this.partitionInputProblem = applyTwoPinPowerGroundRotationConstraints(
+      params.partitionInputProblem,
+    )
     this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
   }
 
@@ -91,7 +94,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           padId: pinId,
           networkId,
           type: "rect" as const,
-          offset: { x: pin.offset.x, y: pin.offset.y },
+          offset: pin.offset,
           size: { x: PIN_SIZE, y: PIN_SIZE },
         })
       }
@@ -116,7 +119,6 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         },
       })
 
-      const fixedRotation = chip.availableRotations?.[0] ?? 0
       return {
         componentId: chipId,
         pads,
@@ -124,7 +126,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         ...(chip.fixedPosition && {
           isStatic: true as const,
           center: chip.fixedPosition,
-          ccwRotationOffset: fixedRotation,
+          ccwRotationOffset: chip.availableRotations?.[0] ?? 0,
         }),
       }
     })

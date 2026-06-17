@@ -17,6 +17,7 @@ import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
+import { applyTwoPinPowerGroundRotationConstraints } from "lib/utils/applyTwoPinPowerGroundRotationConstraints"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -128,14 +129,15 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   constructor(inputProblem: InputProblem) {
     super()
-    this.inputProblem = inputProblem
+    this.inputProblem = applyTwoPinPowerGroundRotationConstraints(inputProblem)
     this.MAX_ITERATIONS = 1e6
     this.startTimeOfPhase = {}
     this.endTimeOfPhase = {}
     this.timeSpentOnPhase = {}
     this.firstIterationOfPhase = {}
-    this.pinIdToStronglyConnectedPins =
-      getPinIdToStronglyConnectedPinsObj(inputProblem)
+    this.pinIdToStronglyConnectedPins = getPinIdToStronglyConnectedPinsObj(
+      this.inputProblem,
+    )
   }
 
   currentPipelineStepIndex = 0
