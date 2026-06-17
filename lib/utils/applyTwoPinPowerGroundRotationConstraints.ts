@@ -1,10 +1,4 @@
-import type {
-  Chip,
-  InputProblem,
-  Net,
-  PartitionInputProblem,
-  PinId,
-} from "lib/types/InputProblem"
+import type { Chip, InputProblem, PinId } from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
 
 type Rotation = NonNullable<Chip["availableRotations"]>[number]
@@ -12,81 +6,40 @@ type Rotation = NonNullable<Chip["availableRotations"]>[number]
 const DEFAULT_ROTATIONS: Rotation[] = [0, 90, 180, 270]
 const SIDE_ORDER: Side[] = ["x+", "y+", "x-", "y-"]
 
-type PinSideConstraint = {
-  pinId: PinId
-  side: "y+" | "y-"
-}
-
 const rotateSide = (side: Side, rotation: Rotation): Side => {
   const currentIndex = SIDE_ORDER.indexOf(side)
   const steps = rotation / 90
   return SIDE_ORDER[(currentIndex + steps) % SIDE_ORDER.length]!
 }
 
-const getConnectedNetsForPin = (
+const getRequiredSideForPowerGroundPin = (
   inputProblem: InputProblem,
   pinId: PinId,
-): Net[] => {
-  const nets: Net[] = []
+): "y+" | "y-" | undefined => {
+  let isPower = false
+  let isGround = false
 
   for (const [netId, net] of Object.entries(inputProblem.netMap)) {
-    if (inputProblem.netConnMap[`${pinId}-${netId}`]) {
-      nets.push(net)
-    }
+    if (!inputProblem.netConnMap[`${pinId}-${netId}`]) continue
+    if (net.isPositiveVoltageSource) isPower = true
+    if (net.isGround) isGround = true
   }
 
-  return nets
-}
-
-const getPowerGroundConstraintsForChip = (
-  inputProblem: InputProblem,
-  chip: Chip,
-): PinSideConstraint[] => {
-  if (chip.pins.length !== 2) return []
-
-  const constraints: PinSideConstraint[] = []
-  let powerPinId: PinId | undefined
-  let groundPinId: PinId | undefined
-  let powerPinCount = 0
-  let groundPinCount = 0
-
-  for (const pinId of chip.pins) {
-    const connectedNets = getConnectedNetsForPin(inputProblem, pinId)
-    let isPower = false
-    let isGround = false
-
-    for (const net of connectedNets) {
-      if (net.isPositiveVoltageSource) isPower = true
-      if (net.isGround) isGround = true
-    }
-
-    if (isPower && !isGround) {
-      powerPinId = pinId
-      powerPinCount++
-    }
-    if (isGround && !isPower) {
-      groundPinId = pinId
-      groundPinCount++
-    }
-  }
-
-  if (powerPinCount === 1 && powerPinId) {
-    constraints.push({ pinId: powerPinId, side: "y+" })
-  }
-  if (groundPinCount === 1 && groundPinId) {
-    constraints.push({ pinId: groundPinId, side: "y-" })
-  }
-
-  return constraints
+  if (isPower === isGround) return undefined
+  return isPower ? "y+" : "y-"
 }
 
 const getRequiredPowerGroundRotation = (
   inputProblem: InputProblem,
   chip: Chip,
 ): Rotation | undefined => {
-  if (chip.availableRotations) return undefined
+  if (chip.availableRotations || chip.pins.length !== 2) return undefined
 
-  const constraints = getPowerGroundConstraintsForChip(inputProblem, chip)
+  const constraints: Array<{ pinId: PinId; side: "y+" | "y-" }> = []
+  for (const pinId of chip.pins) {
+    const side = getRequiredSideForPowerGroundPin(inputProblem, pinId)
+    if (side) constraints.push({ pinId, side })
+  }
   if (constraints.length === 0) return undefined
 
   for (const rotation of DEFAULT_ROTATIONS) {
@@ -106,15 +59,9 @@ const getRequiredPowerGroundRotation = (
   return undefined
 }
 
-export function applyTwoPinPowerGroundRotationConstraints(
-  inputProblem: PartitionInputProblem,
-): PartitionInputProblem
-export function applyTwoPinPowerGroundRotationConstraints(
-  inputProblem: InputProblem,
-): InputProblem
-export function applyTwoPinPowerGroundRotationConstraints(
-  inputProblem: InputProblem,
-): InputProblem {
+export function applyTwoPinPowerGroundRotationConstraints<
+  T extends InputProblem,
+>(inputProblem: T): T {
   let nextChipMap: InputProblem["chipMap"] | undefined
 
   for (const [chipId, chip] of Object.entries(inputProblem.chipMap)) {
