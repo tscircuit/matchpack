@@ -9,6 +9,7 @@ import { BaseSolver } from "../BaseSolver"
 import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
+import { DecouplingCapsPackingSolver } from "./DecouplingCapsPackingSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
@@ -47,10 +48,18 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     // If no active solver, create one for the current partition
     if (!this.activeSolver) {
       const currentPartition = this.partitions[this.currentPartitionIndex]!
-      this.activeSolver = new SingleInnerPartitionPackingSolver({
-        partitionInputProblem: currentPartition,
-        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-      })
+      
+      // Use specialized solver for decoupling_caps partitions
+      if (currentPartition.partitionType === "decoupling_caps") {
+        this.activeSolver = new DecouplingCapsPackingSolver({
+          partitionInputProblem: currentPartition,
+        })
+      } else {
+        this.activeSolver = new SingleInnerPartitionPackingSolver({
+          partitionInputProblem: currentPartition,
+          pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+        })
+      }
       this.activeSubSolver = this.activeSolver
     }
 

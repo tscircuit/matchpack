@@ -28,11 +28,11 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
 
   constructor(params: {
     partitionInputProblem: PartitionInputProblem
-    pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+    pinIdToStronglyConnectedPins?: Record<PinId, ChipPin[]>
   }) {
     super()
     this.partitionInputProblem = params.partitionInputProblem
-    this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
+    this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins || {}
   }
 
   override _step() {
@@ -145,6 +145,28 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   private createLayoutFromPackingResult(
     packedComponents: PackSolver2["packedComponents"],
   ): OutputLayout {
+    // Custom layout for decoupling_caps: arrange in horizontal row
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      const chips = Object.entries(this.partitionInputProblem.chipMap)
+      const chipPlacements: Record<string, Placement> = {}
+      const gap = this.partitionInputProblem.decouplingCapsGap ?? 0.05
+      
+      // Sort by size (largest first)
+      const sorted = chips.sort((a, b) => {
+        const areaA = (a[1]?.size?.x ?? 0) * (a[1]?.size?.y ?? 0)
+        const areaB = (b[1]?.size?.x ?? 0) * (b[1]?.size?.y ?? 0)
+        return areaB - areaA
+      })
+      
+      let currentX = 0
+      for (const [chipId, chip] of sorted) {
+        const size = chip?.size || { x: 0.1, y: 0.1 }
+        chipPlacements[chipId] = { x: currentX, y: 0, ccwRotationDegrees: 0 }
+        currentX += size.x + gap
+      }
+      return { chipPlacements, groupPlacements: {} }
+    }
+
     const chipPlacements: Record<string, Placement> = {}
 
     for (const packedComponent of packedComponents) {
