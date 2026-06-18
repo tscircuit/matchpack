@@ -7,16 +7,17 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import { OverlapResolutionSolver } from "lib/solvers/OverlapResolutionSolver/OverlapResolutionSolver"
 import {
-  PackInnerPartitionsSolver,
   type PackedPartition,
+  PackInnerPartitionsSolver,
 } from "lib/solvers/PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { PartitionPackingSolver } from "lib/solvers/PartitionPackingSolver/PartitionPackingSolver"
 import type { ChipPin, InputProblem, PinId } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
-import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
+import { visualizeInputProblem } from "./visualizeInputProblem"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  overlapResolutionSolver?: OverlapResolutionSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +126,16 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep(
+      "overlapResolutionSolver",
+      OverlapResolutionSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          initialLayout: this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -166,7 +178,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     const constructorParams = pipelineStepDef.getConstructorParams(this)
-    // @ts-ignore
+    // @ts-expect-error
     this.activeSubSolver = new pipelineStepDef.solverClass(...constructorParams)
     ;(this as any)[pipelineStepDef.solverName] = this.activeSubSolver
     this.timeSpentOnPhase[pipelineStepDef.solverName] = 0
@@ -190,6 +202,9 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     // If the pipeline is complete and we have a partition packing solver,
     // show only the final chip placements
+    if (this.solved && this.overlapResolutionSolver?.solved) {
+      return this.overlapResolutionSolver.visualize()
+    }
     if (this.solved && this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -199,6 +214,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
+    const overlapResolutionViz = this.overlapResolutionSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
@@ -210,6 +226,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
+      overlapResolutionViz,
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
@@ -253,6 +270,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     // Show the most recent solver's output
+    if (this.overlapResolutionSolver?.solved) {
+      return this.overlapResolutionSolver.visualize()
+    }
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -402,6 +422,11 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     // Get the final layout from the partition packing solver
     if (
+      this.overlapResolutionSolver?.solved &&
+      this.overlapResolutionSolver.resolvedLayout
+    ) {
+      finalLayout = this.overlapResolutionSolver.resolvedLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
