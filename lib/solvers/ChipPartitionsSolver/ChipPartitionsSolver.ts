@@ -60,7 +60,8 @@ export class ChipPartitionsSolver extends BaseSolver {
           }
         }
         // Only add a partition if there are at least two caps present in the inputProblem
-        if (capsOnly.length >= 2) {
+        // We disabled this to allow PlaceDecouplingCapsSolver to place them around the main chip
+        if (false) {
           decapGroupPartitions.push(capsOnly)
           // Mark these caps as handled by decoupling-cap partitions
           for (const capId of capsOnly) {
