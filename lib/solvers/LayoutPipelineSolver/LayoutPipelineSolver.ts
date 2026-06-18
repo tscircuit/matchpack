@@ -53,7 +53,8 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
-
+  voltageBiasSolver?: any
+  overlapResolutionSolver?: any
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
   timeSpentOnPhase: Record<string, number>
@@ -93,6 +94,17 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    // Voltage bias phase
+    definePipelineStep(
+      "voltageBiasSolver",
+      require("./VoltageBiasSolver").VoltageBiasSolver,
+      () => [this.inputProblem],
+      {
+        onSolved: (_solver) => {
+          // Optionally store voltage-biased layout
+        },
+      },
+    ),
     definePipelineStep(
       "packInnerPartitionsSolver",
       PackInnerPartitionsSolver,
@@ -121,6 +133,20 @@ export class LayoutPipelineSolver extends BaseSolver {
       {
         onSolved: (_solver) => {
           // Store final packed layout as output
+        },
+      },
+    ),
+    // Overlap resolution phase
+    definePipelineStep(
+      "overlapResolutionSolver",
+      require("./OverlapResolutionSolver").OverlapResolutionSolver,
+      () => [
+        this.partitionPackingSolver?.finalLayout,
+        this.inputProblem.chipMap,
+      ],
+      {
+        onSolved: (_solver) => {
+          // Optionally store resolved layout
         },
       },
     ),
