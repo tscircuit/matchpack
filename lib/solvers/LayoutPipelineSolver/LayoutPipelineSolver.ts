@@ -391,6 +391,68 @@ export class LayoutPipelineSolver extends BaseSolver {
     return overlapWidth * overlapHeight
   }
 
+  private repositionDecouplingCaps(layout: OutputLayout) {
+    if (!this.identifyDecouplingCapsSolver?.outputDecouplingCapGroups) {
+      return
+    }
+
+    // Group decoupling cap groups by main chip
+    const groupsByMainChip: Record<string, any[]> = {}
+    for (const group of this.identifyDecouplingCapsSolver.outputDecouplingCapGroups) {
+      if (!groupsByMainChip[group.mainChipId]) {
+        groupsByMainChip[group.mainChipId] = []
+      }
+      groupsByMainChip[group.mainChipId].push(group)
+    }
+
+    for (const [mainChipId, groups] of Object.entries(groupsByMainChip)) {
+      const mainPlacement = layout.chipPlacements[mainChipId]
+      const mainChip = this.inputProblem.chipMap[mainChipId]
+      if (!mainPlacement || !mainChip) continue
+
+      const rotation = mainPlacement.ccwRotationDegrees % 180 === 90 ? 90 : 0
+      const mainW = rotation === 90 ? mainChip.size.y : mainChip.size.x
+      const mainH = rotation === 90 ? mainChip.size.x : mainChip.size.y
+
+      let currentY = mainPlacement.y + mainH / 2
+      const gap =
+        this.inputProblem.decouplingCapsGap ??
+        this.inputProblem.chipGap ??
+        0.4
+
+      for (const group of groups) {
+        const capsInfo = group.decouplingCapChipIds.map((capId: string) => {
+          const capChip = this.inputProblem.chipMap[capId]
+          const capW = capChip?.size.x ?? 0.53
+          const capH = capChip?.size.y ?? 1.06
+          return { capId, capW, capH }
+        })
+
+        if (capsInfo.length === 0) continue
+
+        const totalCapsWidth =
+          capsInfo.reduce((sum: number, info: any) => sum + info.capW, 0) +
+          gap * (capsInfo.length - 1)
+
+        let currentX = mainPlacement.x - totalCapsWidth / 2
+        const maxCapH = Math.max(...capsInfo.map((info: any) => info.capH))
+        const rowY = currentY + gap + maxCapH / 2
+
+        for (const info of capsInfo) {
+          const capCenterX = currentX + info.capW / 2
+          layout.chipPlacements[info.capId] = {
+            x: capCenterX,
+            y: rowY,
+            ccwRotationDegrees: 0,
+          }
+          currentX += info.capW + gap
+        }
+
+        currentY = rowY + maxCapH / 2
+      }
+    }
+  }
+
   getOutputLayout(): OutputLayout {
     if (!this.solved) {
       throw new Error(
@@ -412,8 +474,17 @@ export class LayoutPipelineSolver extends BaseSolver {
       )
     }
 
+    // Clone layout to avoid mutating solver's internal state directly
+    const layoutCopy: OutputLayout = {
+      chipPlacements: { ...finalLayout.chipPlacements },
+      groupPlacements: { ...finalLayout.groupPlacements },
+    }
+
+    // Reposition decoupling capacitors adjacent to their main chip
+    this.repositionDecouplingCaps(layoutCopy)
+
     // Check for overlaps in the final layout
-    const overlaps = this.checkForOverlaps(finalLayout)
+    const overlaps = this.checkForOverlaps(layoutCopy)
     if (overlaps.length > 0) {
       const overlapDetails = overlaps
         .map(
@@ -427,6 +498,6 @@ export class LayoutPipelineSolver extends BaseSolver {
       )
     }
 
-    return finalLayout
+    return layoutCopy
   }
 }
