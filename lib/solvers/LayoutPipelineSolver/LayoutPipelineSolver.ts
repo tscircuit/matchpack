@@ -7,6 +7,7 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import { AlignPowerGroundRowsSolver } from "lib/solvers/AlignPowerGroundRowsSolver/AlignPowerGroundRowsSolver"
 import {
   PackInnerPartitionsSolver,
   type PackedPartition,
@@ -53,6 +54,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -124,6 +126,16 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       },
     ),
+    definePipelineStep(
+      "alignPowerGroundRowsSolver",
+      AlignPowerGroundRowsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          inputLayout: this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -188,8 +200,10 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (!this.solved && this.activeSubSolver)
       return this.activeSubSolver.visualize()
 
-    // If the pipeline is complete and we have a partition packing solver,
-    // show only the final chip placements
+    // If the pipeline is complete, show only the final chip placements.
+    if (this.solved && this.alignPowerGroundRowsSolver?.solved) {
+      return this.alignPowerGroundRowsSolver.visualize()
+    }
     if (this.solved && this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -199,6 +213,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
+    const alignPowerGroundRowsViz = this.alignPowerGroundRowsSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
@@ -210,6 +225,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
+      alignPowerGroundRowsViz,
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
@@ -253,6 +269,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     // Show the most recent solver's output
+    if (this.alignPowerGroundRowsSolver?.solved) {
+      return this.alignPowerGroundRowsSolver.visualize()
+    }
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -400,8 +419,13 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     let finalLayout: OutputLayout
 
-    // Get the final layout from the partition packing solver
+    // Get the final layout from the last layout stage.
     if (
+      this.alignPowerGroundRowsSolver?.solved &&
+      this.alignPowerGroundRowsSolver.outputLayout
+    ) {
+      finalLayout = this.alignPowerGroundRowsSolver.outputLayout
+    } else if (
       this.partitionPackingSolver?.solved &&
       this.partitionPackingSolver.finalLayout
     ) {
