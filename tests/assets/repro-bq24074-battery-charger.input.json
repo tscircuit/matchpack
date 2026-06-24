@@ -1,0 +1,530 @@
+{
+  "chipMap": {
+    "J1": {
+      "chipId": "J1",
+      "pins": ["J1.1", "J1.2"],
+      "size": {
+        "x": 1.8000000000000003,
+        "y": 1.4
+      },
+      "availableRotations": [0]
+    },
+    "U1": {
+      "chipId": "U1",
+      "pins": [
+        "U1.1",
+        "U1.2",
+        "U1.4",
+        "U1.5",
+        "U1.6",
+        "U1.7",
+        "U1.8",
+        "U1.9",
+        "U1.10",
+        "U1.12",
+        "U1.13",
+        "U1.14",
+        "U1.15",
+        "U1.16"
+      ],
+      "size": {
+        "x": 3.1,
+        "y": 5.1000000000000005
+      },
+      "availableRotations": [0]
+    },
+    "C1": {
+      "chipId": "C1",
+      "pins": ["C1.1", "C1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 1.24
+      },
+      "availableRotations": [270]
+    },
+    "C2": {
+      "chipId": "C2",
+      "pins": ["C2.1", "C2.2"],
+      "size": {
+        "x": 1.1,
+        "y": 1.24
+      },
+      "availableRotations": [270]
+    },
+    "BT1": {
+      "chipId": "BT1",
+      "pins": ["BT1.1", "BT1.2", "BT1.3"],
+      "size": {
+        "x": 2.1,
+        "y": 1.6
+      },
+      "availableRotations": [0]
+    },
+    "C3": {
+      "chipId": "C3",
+      "pins": ["C3.1", "C3.2"],
+      "size": {
+        "x": 1.1,
+        "y": 1.24
+      },
+      "availableRotations": [270]
+    },
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [270]
+    },
+    "R2": {
+      "chipId": "R2",
+      "pins": ["R2.1", "R2.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [270]
+    },
+    "R3": {
+      "chipId": "R3",
+      "pins": ["R3.1", "R3.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [270]
+    },
+    "R4": {
+      "chipId": "R4",
+      "pins": ["R4.1", "R4.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D1": {
+      "chipId": "D1",
+      "pins": ["D1.1", "D1.2"],
+      "size": {
+        "x": 1.13,
+        "y": 0.65
+      },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "R5": {
+      "chipId": "R5",
+      "pins": ["R5.1", "R5.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D2": {
+      "chipId": "D2",
+      "pins": ["D2.1", "D2.2"],
+      "size": {
+        "x": 1.13,
+        "y": 0.65
+      },
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "J1.1": {
+      "pinId": "J1.1",
+      "offset": {
+        "x": 1.3000000000000003,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "J1.2": {
+      "pinId": "J1.2",
+      "offset": {
+        "x": 1.3000000000000003,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": -0.7000000000000001
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": -0.9
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.85
+      },
+      "side": "x+"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.2499999999999999
+      },
+      "side": "x+"
+    },
+    "U1.6": {
+      "pinId": "U1.6",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.44999999999999996
+      },
+      "side": "x+"
+    },
+    "U1.7": {
+      "pinId": "U1.7",
+      "offset": {
+        "x": -0.44999999999999996,
+        "y": 2.55
+      },
+      "side": "y+"
+    },
+    "U1.8": {
+      "pinId": "U1.8",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": 0.7
+      },
+      "side": "x-"
+    },
+    "U1.9": {
+      "pinId": "U1.9",
+      "offset": {
+        "x": 0.44999999999999996,
+        "y": 2.55
+      },
+      "side": "y+"
+    },
+    "U1.10": {
+      "pinId": "U1.10",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": 0.85
+      },
+      "side": "x+"
+    },
+    "U1.12": {
+      "pinId": "U1.12",
+      "offset": {
+        "x": 0,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "U1.13": {
+      "pinId": "U1.13",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": 0.9
+      },
+      "side": "x-"
+    },
+    "U1.14": {
+      "pinId": "U1.14",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.6499999999999999
+      },
+      "side": "x+"
+    },
+    "U1.15": {
+      "pinId": "U1.15",
+      "offset": {
+        "x": -0.65,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "U1.16": {
+      "pinId": "U1.16",
+      "offset": {
+        "x": 0.65,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "C1.1": {
+      "pinId": "C1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C1.2": {
+      "pinId": "C1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C2.1": {
+      "pinId": "C2.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C2.2": {
+      "pinId": "C2.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "BT1.1": {
+      "pinId": "BT1.1",
+      "offset": {
+        "x": 1.4500000000000002,
+        "y": 0.2
+      },
+      "side": "x+"
+    },
+    "BT1.2": {
+      "pinId": "BT1.2",
+      "offset": {
+        "x": 1.4500000000000002,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "BT1.3": {
+      "pinId": "BT1.3",
+      "offset": {
+        "x": 1.4500000000000002,
+        "y": -0.2
+      },
+      "side": "x+"
+    },
+    "C3.1": {
+      "pinId": "C3.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C3.2": {
+      "pinId": "C3.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R1.1": {
+      "pinId": "R1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R1.2": {
+      "pinId": "R1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R2.1": {
+      "pinId": "R2.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R2.2": {
+      "pinId": "R2.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R3.1": {
+      "pinId": "R3.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R3.2": {
+      "pinId": "R3.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R4.1": {
+      "pinId": "R4.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R4.2": {
+      "pinId": "R4.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D1.1": {
+      "pinId": "D1.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D1.2": {
+      "pinId": "D1.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R5.1": {
+      "pinId": "R5.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R5.2": {
+      "pinId": "R5.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D2.1": {
+      "pinId": "D2.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D2.2": {
+      "pinId": "D2.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "charger_connectivity_net1": {
+      "netId": "charger_connectivity_net1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "charger_connectivity_net0": {
+      "netId": "charger_connectivity_net0",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "charger_connectivity_net2": {
+      "netId": "charger_connectivity_net2",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "charger_connectivity_net3": {
+      "netId": "charger_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "J1.1-U1.13": true,
+    "U1.13-J1.1": true,
+    "C1.1-U1.13": true,
+    "U1.13-C1.1": true,
+    "C1.2-U1.8": true,
+    "U1.8-C1.2": true,
+    "BT1.1-U1.1": true,
+    "U1.1-BT1.1": true,
+    "BT1.2-U1.2": true,
+    "U1.2-BT1.2": true,
+    "C3.1-U1.2": true,
+    "U1.2-C3.1": true,
+    "C2.1-U1.10": true,
+    "U1.10-C2.1": true,
+    "D1.2-U1.7": true,
+    "U1.7-D1.2": true,
+    "D2.2-U1.9": true,
+    "U1.9-D2.2": true,
+    "R2.1-U1.12": true,
+    "U1.12-R2.1": true,
+    "R1.1-U1.15": true,
+    "U1.15-R1.1": true,
+    "R3.1-U1.16": true,
+    "U1.16-R3.1": true,
+    "R4.2-D1.1": true,
+    "D1.1-R4.2": true,
+    "R5.2-D2.1": true,
+    "D2.1-R5.2": true
+  },
+  "netConnMap": {
+    "J1.1-charger_connectivity_net1": true,
+    "U1.13-charger_connectivity_net1": true,
+    "C1.1-charger_connectivity_net1": true,
+    "J1.2-charger_connectivity_net0": true,
+    "U1.4-charger_connectivity_net0": true,
+    "U1.6-charger_connectivity_net0": true,
+    "U1.8-charger_connectivity_net0": true,
+    "U1.14-charger_connectivity_net0": true,
+    "C1.2-charger_connectivity_net0": true,
+    "C2.2-charger_connectivity_net0": true,
+    "BT1.3-charger_connectivity_net0": true,
+    "C3.2-charger_connectivity_net0": true,
+    "R1.2-charger_connectivity_net0": true,
+    "R2.2-charger_connectivity_net0": true,
+    "R3.2-charger_connectivity_net0": true,
+    "U1.2-charger_connectivity_net2": true,
+    "BT1.2-charger_connectivity_net2": true,
+    "C3.1-charger_connectivity_net2": true,
+    "U1.5-charger_connectivity_net3": true,
+    "U1.10-charger_connectivity_net3": true,
+    "C2.1-charger_connectivity_net3": true,
+    "R4.1-charger_connectivity_net3": true,
+    "R5.1-charger_connectivity_net3": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
