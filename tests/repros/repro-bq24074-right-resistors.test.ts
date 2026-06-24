@@ -9,8 +9,8 @@ import inputProblem from "../assets/repro-bq24074-right-resistors.input.json"
 // The fixture is the *enriched* matchpack InputProblem captured from
 // @tscircuit/core's "matchpack-input-problem-charger" debug output for the
 // corresponding tsx (U1 is fixed at the origin via schX/schY=0). It isolates the
-// same-side passive-bank case on the right edge: calculate-packing places the
-// resistors one at a time and does not lay them out as a clean column beside U1.
+// same-side passive group on the right edge: calculate-packing places the
+// resistors one at a time and does not lay them out as a clean row beside U1.
 test("repro bq24074 right resistors layout", async () => {
   const solver = new LayoutPipelineSolver(inputProblem as any)
   solver.solve()

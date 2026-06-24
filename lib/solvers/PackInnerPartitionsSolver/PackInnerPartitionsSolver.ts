@@ -6,9 +6,16 @@
 
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
-import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
+import type {
+  ChipPin,
+  InputProblem,
+  PartitionInputProblem,
+  PinId,
+} from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
+import { ChipPassivesLayoutSolver } from "./ChipPassivesLayoutSolver"
+import { findSameSidePassiveGroups } from "./findSameSidePassiveGroups"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
@@ -18,14 +25,19 @@ export type PackedPartition = {
   layout: OutputLayout
 }
 
+/** Both inner-partition layout strategies expose a `.layout` result. */
+type InnerPartitionSolver =
+  | SingleInnerPartitionPackingSolver
+  | ChipPassivesLayoutSolver
+
 export class PackInnerPartitionsSolver extends BaseSolver {
   partitions: InputProblem[]
   packedPartitions: PackedPartition[] = []
-  completedSolvers: SingleInnerPartitionPackingSolver[] = []
-  activeSolver: SingleInnerPartitionPackingSolver | null = null
+  completedSolvers: InnerPartitionSolver[] = []
+  activeSolver: InnerPartitionSolver | null = null
   currentPartitionIndex = 0
 
-  declare activeSubSolver: SingleInnerPartitionPackingSolver | null
+  declare activeSubSolver: InnerPartitionSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -44,13 +56,25 @@ export class PackInnerPartitionsSolver extends BaseSolver {
       return
     }
 
-    // If no active solver, create one for the current partition
+    // If no active solver, create one for the current partition. The layout
+    // algorithm is chosen by partition contents: a chip surrounded by a group of
+    // same-side passives uses the structure-aware ChipPassivesLayoutSolver,
+    // everything else uses the generic packer.
     if (!this.activeSolver) {
-      const currentPartition = this.partitions[this.currentPartitionIndex]!
-      this.activeSolver = new SingleInnerPartitionPackingSolver({
-        partitionInputProblem: currentPartition,
-        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-      })
+      const currentPartition = this.partitions[
+        this.currentPartitionIndex
+      ]! as PartitionInputProblem
+      const hasPassiveGroup =
+        findSameSidePassiveGroups(currentPartition).length > 0
+      this.activeSolver = hasPassiveGroup
+        ? new ChipPassivesLayoutSolver({
+            partitionInputProblem: currentPartition,
+            pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+          })
+        : new SingleInnerPartitionPackingSolver({
+            partitionInputProblem: currentPartition,
+            pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+          })
       this.activeSubSolver = this.activeSolver
     }
 
