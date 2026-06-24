@@ -13,12 +13,88 @@ import type {
   ChipPin,
   PartitionInputProblem,
 } from "../../types/InputProblem"
+import type { Side } from "../../types/Side"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
 const PIN_SIZE = 0.1
+
+function getRotatedSide(side: Side, ccwDegrees: 0 | 90 | 180 | 270): Side {
+  if (ccwDegrees === 0) return side
+  if (ccwDegrees === 90) {
+    const map: Record<Side, Side> = {
+      "y+": "x-",
+      "x-": "y-",
+      "y-": "x+",
+      "x+": "y+",
+    }
+    return map[side]
+  }
+  if (ccwDegrees === 180) {
+    const map: Record<Side, Side> = {
+      "y+": "y-",
+      "y-": "y+",
+      "x+": "x-",
+      "x-": "x+",
+    }
+    return map[side]
+  }
+  // 270° CCW
+  const map: Record<Side, Side> = {
+    "y+": "x+",
+    "x+": "y-",
+    "y-": "x-",
+    "x-": "y+",
+  }
+  return map[side]
+}
+
+function getVoltageBiasedRotations(
+  chip: { pins: string[]; availableRotations?: Array<0 | 90 | 180 | 270> },
+  inputProblem: InputProblem,
+): Array<0 | 90 | 180 | 270> {
+  const baseRotations: Array<0 | 90 | 180 | 270> = chip.availableRotations ?? [
+    0, 90, 180, 270,
+  ]
+
+  const powerPinSides: Side[] = []
+  const groundPinSides: Side[] = []
+
+  for (const connKey of Object.keys(inputProblem.netConnMap)) {
+    const dashIdx = connKey.indexOf("-")
+    if (dashIdx === -1) continue
+    const pinId = connKey.slice(0, dashIdx)
+    const netId = connKey.slice(dashIdx + 1)
+    if (!chip.pins.includes(pinId)) continue
+    const net = inputProblem.netMap[netId]
+    if (!net) continue
+    const pin = inputProblem.chipPinMap[pinId]
+    if (!pin) continue
+    if (net.isPositiveVoltageSource) powerPinSides.push(pin.side)
+    if (net.isGround) groundPinSides.push(pin.side)
+  }
+
+  if (powerPinSides.length === 0 && groundPinSides.length === 0)
+    return baseRotations
+
+  // Prefer rotations where power pins are on top (y+) and ground pins on bottom (y-)
+  const strictRotations = baseRotations.filter(
+    (rot) =>
+      powerPinSides.every((s) => getRotatedSide(s, rot) === "y+") &&
+      groundPinSides.every((s) => getRotatedSide(s, rot) === "y-"),
+  )
+  if (strictRotations.length > 0) return strictRotations
+
+  // Relaxed fallback: at least put power pins on top
+  const powerOnlyRotations = baseRotations.filter((rot) =>
+    powerPinSides.every((s) => getRotatedSide(s, rot) === "y+"),
+  )
+  if (powerOnlyRotations.length > 0) return powerOnlyRotations
+
+  return baseRotations
+}
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
@@ -117,10 +193,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       })
 
       const fixedRotation = chip.availableRotations?.[0] ?? 0
+      const availableRotationDegrees = chip.fixedPosition
+        ? (chip.availableRotations ?? [0, 90, 180, 270])
+        : getVoltageBiasedRotations(chip, this.partitionInputProblem)
       return {
         componentId: chipId,
         pads,
-        availableRotationDegrees: chip.availableRotations ?? [0, 90, 180, 270],
+        availableRotationDegrees,
         ...(chip.fixedPosition && {
           isStatic: true as const,
           center: chip.fixedPosition,
@@ -147,16 +226,41 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   ): OutputLayout {
     const chipPlacements: Record<string, Placement> = {}
 
+    // PackSolver2 always places a partition's single dynamic component at
+    // rotation 0, ignoring availableRotationDegrees. When the partition holds a
+    // single free chip, apply the voltage-biased rotation directly so power
+    // pins end up on top (y+) and ground pins on the bottom (y-).
+    const dynamicChipCount = Object.values(
+      this.partitionInputProblem.chipMap,
+    ).filter((chip) => !chip.fixedPosition).length
+
     for (const packedComponent of packedComponents) {
       const chipId = packedComponent.componentId
+
+      let ccwRotationDegrees =
+        packedComponent.ccwRotationDegrees ??
+        packedComponent.ccwRotationOffset ??
+        0
+
+      const chip = this.partitionInputProblem.chipMap[chipId]
+      if (chip && !chip.fixedPosition && dynamicChipCount === 1) {
+        const preferredRotations: number[] = getVoltageBiasedRotations(
+          chip,
+          this.partitionInputProblem,
+        )
+        const preferredRotation = preferredRotations[0]
+        if (
+          preferredRotation !== undefined &&
+          !preferredRotations.includes(ccwRotationDegrees)
+        ) {
+          ccwRotationDegrees = preferredRotation
+        }
+      }
 
       chipPlacements[chipId] = {
         x: packedComponent.center.x,
         y: packedComponent.center.y,
-        ccwRotationDegrees:
-          packedComponent.ccwRotationDegrees ??
-          packedComponent.ccwRotationOffset ??
-          0,
+        ccwRotationDegrees,
       }
     }
 

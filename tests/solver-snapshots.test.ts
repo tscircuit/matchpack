@@ -1,8 +1,12 @@
 import { expect, test } from "bun:test"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import { SingleInnerPartitionPackingSolver } from "lib/solvers/PackInnerPartitionsSolver/SingleInnerPartitionPackingSolver"
 import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputProblemFromCircuitJsonSchematic"
-import type { InputProblem } from "lib/types/InputProblem"
+import type {
+  InputProblem,
+  PartitionInputProblem,
+} from "lib/types/InputProblem"
 import { normalizeSide } from "lib/types/Side"
 import { getExampleCircuitJson } from "./assets/ExampleCircuit02"
 
@@ -120,4 +124,56 @@ test("LayoutPipelineSolver SVG snapshot for ExampleCircuit02", async () => {
     svgWidth: 900,
     svgHeight: 620,
   })
+})
+
+test("voltage-biased rotation places VCC pin on top and GND pin on bottom", () => {
+  const partitionInputProblem: PartitionInputProblem = {
+    chipMap: {
+      U1: {
+        chipId: "U1",
+        pins: ["U1.VCC", "U1.GND"],
+        size: { x: 1, y: 0.5 },
+      },
+    },
+    chipPinMap: {
+      "U1.VCC": {
+        pinId: "U1.VCC",
+        offset: { x: 0.5, y: 0 },
+        side: normalizeSide("right"),
+      },
+      "U1.GND": {
+        pinId: "U1.GND",
+        offset: { x: -0.5, y: 0 },
+        side: normalizeSide("left"),
+      },
+    },
+    netMap: {
+      VCC: { netId: "VCC", isPositiveVoltageSource: true },
+      GND: { netId: "GND", isGround: true },
+    },
+    pinStrongConnMap: {},
+    netConnMap: {
+      "U1.VCC-VCC": true,
+      "U1.GND-GND": true,
+    },
+    chipGap: 0.2,
+    partitionGap: 2,
+  }
+
+  const solver = new SingleInnerPartitionPackingSolver({
+    partitionInputProblem,
+    pinIdToStronglyConnectedPins: {},
+  })
+
+  solver.solve()
+
+  expect(solver.solved).toBe(true)
+  expect(solver.failed).toBe(false)
+
+  // VCC pin was on x+ (right), GND pin was on x- (left).
+  // 90° CCW rotation maps x+ → y+ (top) and x- → y- (bottom),
+  // satisfying the voltage-biased orientation heuristic.
+  const placement = solver.layout!.chipPlacements.U1!
+  expect(placement).toBeDefined()
+  expect(placement.ccwRotationDegrees).toBe(90)
 })
