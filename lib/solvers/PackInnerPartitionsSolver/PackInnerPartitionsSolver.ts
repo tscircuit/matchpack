@@ -59,6 +59,7 @@ function definePartitionSolverStrategy<
   T extends new (
     ...args: any[]
   ) => BaseSolver,
+  const P extends ConstructorParameters<T>,
 >(
   solverName: string,
   solverClass: T,
@@ -66,7 +67,7 @@ function definePartitionSolverStrategy<
   getConstructorParams: (
     solver: PackInnerPartitionsSolver,
     partition: PartitionInputProblem,
-  ) => ConstructorParameters<T>,
+  ) => P,
 ): PartitionSolverStrategy<T> {
   return { solverName, solverClass, appliesTo, getConstructorParams }
 }
