@@ -39,19 +39,12 @@ type InnerPartitionSolver =
  * order; the last one matches any partition (the generic packer), so new
  * partition solvers are added by inserting a strategy before it.
  */
-type PartitionSolverStrategy<
-  T extends new (
-    ...args: any[]
-  ) => BaseSolver = new (
-    ...args: any[]
-  ) => BaseSolver,
-> = {
+type PartitionSolverStrategy<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
   solverClass: T
   appliesTo: (partition: PartitionInputProblem) => boolean
   getConstructorParams: (
-    solver: PackInnerPartitionsSolver,
-    partition: PartitionInputProblem,
+    instance: PackInnerPartitionsSolver,
   ) => ConstructorParameters<T>
 }
 
@@ -64,10 +57,7 @@ function definePartitionSolverStrategy<
   solverName: string,
   solverClass: T,
   appliesTo: (partition: PartitionInputProblem) => boolean,
-  getConstructorParams: (
-    solver: PackInnerPartitionsSolver,
-    partition: PartitionInputProblem,
-  ) => P,
+  getConstructorParams: (instance: PackInnerPartitionsSolver) => P,
 ): PartitionSolverStrategy<T> {
   return { solverName, solverClass, appliesTo, getConstructorParams }
 }
@@ -77,10 +67,12 @@ const PARTITION_SOLVER_STRATEGIES = [
     "parallelAlignedPassiveSolver",
     ParallelAlignedPassiveSolver,
     (partition) => findSameSidePassiveGroups(partition).length > 0,
-    (solver, partition) => [
+    (instance) => [
       {
-        partitionInputProblem: partition,
-        pinIdToStronglyConnectedPins: solver.pinIdToStronglyConnectedPins,
+        partitionInputProblem: instance.partitions[
+          instance.currentPartitionIndex
+        ]! as PartitionInputProblem,
+        pinIdToStronglyConnectedPins: instance.pinIdToStronglyConnectedPins,
       },
     ],
   ),
@@ -88,10 +80,12 @@ const PARTITION_SOLVER_STRATEGIES = [
     "singleInnerPartitionPackingSolver",
     SingleInnerPartitionPackingSolver,
     () => true,
-    (solver, partition) => [
+    (instance) => [
       {
-        partitionInputProblem: partition,
-        pinIdToStronglyConnectedPins: solver.pinIdToStronglyConnectedPins,
+        partitionInputProblem: instance.partitions[
+          instance.currentPartitionIndex
+        ]! as PartitionInputProblem,
+        pinIdToStronglyConnectedPins: instance.pinIdToStronglyConnectedPins,
       },
     ],
   ),
@@ -133,10 +127,7 @@ export class PackInnerPartitionsSolver extends BaseSolver {
       const strategy = PARTITION_SOLVER_STRATEGIES.find((s) =>
         s.appliesTo(currentPartition),
       )!
-      const constructorParams = strategy.getConstructorParams(
-        this,
-        currentPartition,
-      )
+      const constructorParams = strategy.getConstructorParams(this)
       // @ts-ignore
       this.activeSolver = new strategy.solverClass(...constructorParams)
       this.activeSubSolver = this.activeSolver
