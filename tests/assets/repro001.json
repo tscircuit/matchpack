@@ -1,0 +1,97 @@
+{
+  "chipMap": {
+    "TP5": {
+      "chipId": "TP5",
+      "pins": ["TP5.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP6": {
+      "chipId": "TP6",
+      "pins": ["TP6.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP7": {
+      "chipId": "TP7",
+      "pins": ["TP7.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP8": {
+      "chipId": "TP8",
+      "pins": ["TP8.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP9": {
+      "chipId": "TP9",
+      "pins": ["TP9.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "TP5.1": {
+      "pinId": "TP5.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP6.1": {
+      "pinId": "TP6.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP7.1": {
+      "pinId": "TP7.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP8.1": {
+      "pinId": "TP8.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP9.1": {
+      "pinId": "TP9.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    }
+  },
+  "netMap": {},
+  "pinStrongConnMap": {},
+  "netConnMap": {},
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
