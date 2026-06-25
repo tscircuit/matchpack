@@ -59,7 +59,7 @@ const axisGap = (a: Bounds, b: Bounds, axis: "x" | "y"): number => {
   return Math.max(0, a.minY - b.maxY, b.minY - a.maxY)
 }
 
-export class ChipPassivesLayoutSolver extends BaseSolver {
+export class ParallelAlignedPassiveSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>

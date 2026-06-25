@@ -10,8 +10,8 @@
  *
  * calculate-packing places these one at a time with no concept of pin sides and
  * scatters them. PackInnerPartitionsSolver routes a partition that contains a
- * group to ChipPassivesLayoutSolver, which keeps the rest of the packed layout
- * and re-flows just the group into a clean row.
+ * group to ParallelAlignedPassiveSolver, which keeps the rest of the packed
+ * layout and re-flows just the group into a clean row.
  */
 
 import type { ChipId, InputProblem, NetId, PinId } from "lib/types/InputProblem"
