@@ -32,29 +32,68 @@ type InnerPartitionSolver =
   | SingleInnerPartitionPackingSolver
   | ParallelAlignedPassiveSolver
 
-interface InnerPartitionSolverParams {
-  partitionInputProblem: PartitionInputProblem
-  pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
-}
-
 /**
- * A partition-layout strategy: a predicate deciding whether it should handle a
- * partition, plus the solver class to build for it. Strategies are tried in
- * order; a partition matched by none falls back to the generic packer. To add a
- * new partition solver, append an entry here — no other dispatch code changes.
+ * A partition-layout strategy, modelled on LayoutPipelineSolver's PipelineStep: a
+ * solver class plus a factory for its constructor params, guarded by `appliesTo`
+ * so the solver can be chosen from partition contents. Strategies are tried in
+ * order; the last one matches any partition (the generic packer), so new
+ * partition solvers are added by inserting a strategy before it.
  */
-interface PartitionSolverStrategy {
-  name: string
+type PartitionSolverStrategy<
+  T extends new (
+    ...args: any[]
+  ) => BaseSolver = new (
+    ...args: any[]
+  ) => BaseSolver,
+> = {
+  solverName: string
+  solverClass: T
   appliesTo: (partition: PartitionInputProblem) => boolean
-  Solver: new (params: InnerPartitionSolverParams) => InnerPartitionSolver
+  getConstructorParams: (
+    solver: PackInnerPartitionsSolver,
+    partition: PartitionInputProblem,
+  ) => ConstructorParameters<T>
 }
 
-const PARTITION_SOLVER_STRATEGIES: PartitionSolverStrategy[] = [
-  {
-    name: "parallel_aligned_passives",
-    appliesTo: (partition) => findSameSidePassiveGroups(partition).length > 0,
-    Solver: ParallelAlignedPassiveSolver,
-  },
+function definePartitionSolverStrategy<
+  T extends new (
+    ...args: any[]
+  ) => BaseSolver,
+>(
+  solverName: string,
+  solverClass: T,
+  appliesTo: (partition: PartitionInputProblem) => boolean,
+  getConstructorParams: (
+    solver: PackInnerPartitionsSolver,
+    partition: PartitionInputProblem,
+  ) => ConstructorParameters<T>,
+): PartitionSolverStrategy<T> {
+  return { solverName, solverClass, appliesTo, getConstructorParams }
+}
+
+const PARTITION_SOLVER_STRATEGIES = [
+  definePartitionSolverStrategy(
+    "parallelAlignedPassiveSolver",
+    ParallelAlignedPassiveSolver,
+    (partition) => findSameSidePassiveGroups(partition).length > 0,
+    (solver, partition) => [
+      {
+        partitionInputProblem: partition,
+        pinIdToStronglyConnectedPins: solver.pinIdToStronglyConnectedPins,
+      },
+    ],
+  ),
+  definePartitionSolverStrategy(
+    "singleInnerPartitionPackingSolver",
+    SingleInnerPartitionPackingSolver,
+    () => true,
+    (solver, partition) => [
+      {
+        partitionInputProblem: partition,
+        pinIdToStronglyConnectedPins: solver.pinIdToStronglyConnectedPins,
+      },
+    ],
+  ),
 ]
 
 export class PackInnerPartitionsSolver extends BaseSolver {
@@ -83,13 +122,22 @@ export class PackInnerPartitionsSolver extends BaseSolver {
       return
     }
 
-    // If no active solver, create one for the current partition. The layout
-    // solver is chosen by partition contents via the strategy registry.
+    // If no active solver, create one for the current partition. The solver is
+    // chosen from PARTITION_SOLVER_STRATEGIES by partition contents, the same way
+    // LayoutPipelineSolver builds each phase from pipelineDef.
     if (!this.activeSolver) {
       const currentPartition = this.partitions[
         this.currentPartitionIndex
       ]! as PartitionInputProblem
-      this.activeSolver = this.createSolverForPartition(currentPartition)
+      const strategy = PARTITION_SOLVER_STRATEGIES.find((s) =>
+        s.appliesTo(currentPartition),
+      )!
+      const constructorParams = strategy.getConstructorParams(
+        this,
+        currentPartition,
+      )
+      // @ts-ignore
+      this.activeSolver = new strategy.solverClass(...constructorParams)
       this.activeSubSolver = this.activeSolver
     }
 
@@ -122,23 +170,6 @@ export class PackInnerPartitionsSolver extends BaseSolver {
       this.activeSubSolver = null
       this.currentPartitionIndex++
     }
-  }
-
-  /**
-   * Pick the layout solver for a partition: the first registered strategy whose
-   * predicate matches, otherwise the generic SingleInnerPartitionPackingSolver.
-   */
-  private createSolverForPartition(
-    partition: PartitionInputProblem,
-  ): InnerPartitionSolver {
-    const params: InnerPartitionSolverParams = {
-      partitionInputProblem: partition,
-      pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-    }
-    for (const strategy of PARTITION_SOLVER_STRATEGIES) {
-      if (strategy.appliesTo(partition)) return new strategy.Solver(params)
-    }
-    return new SingleInnerPartitionPackingSolver(params)
   }
 
   override visualize(): GraphicsObject {
