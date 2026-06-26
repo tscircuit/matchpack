@@ -1,14 +1,22 @@
 /**
- * Packs the internal layout of each partition using SingleInnerPartitionPackingSolver.
- * This stage takes the partitions from ChipPartitionsSolver and creates optimized
- * internal layouts for each partition before they are packed together.
+ * Packs the internal layout of each partition.
+ *
+ * - Decoupling-cap partitions use the specialized DecouplingCapsPackingSolver
+ *   (clean horizontal row layout).
+ * - All other partitions use the generic SingleInnerPartitionPackingSolver.
  */
 
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "../BaseSolver"
-import type { ChipPin, InputProblem, PinId } from "../../types/InputProblem"
+import type {
+  ChipPin,
+  InputProblem,
+  PartitionInputProblem,
+  PinId,
+} from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
+import { DecouplingCapsPackingSolver } from "./DecouplingCapsPackingSolver"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
@@ -18,14 +26,18 @@ export type PackedPartition = {
   layout: OutputLayout
 }
 
+type PartitionSolver =
+  | SingleInnerPartitionPackingSolver
+  | DecouplingCapsPackingSolver
+
 export class PackInnerPartitionsSolver extends BaseSolver {
   partitions: InputProblem[]
   packedPartitions: PackedPartition[] = []
-  completedSolvers: SingleInnerPartitionPackingSolver[] = []
-  activeSolver: SingleInnerPartitionPackingSolver | null = null
+  completedSolvers: PartitionSolver[] = []
+  activeSolver: PartitionSolver | null = null
   currentPartitionIndex = 0
 
-  declare activeSubSolver: SingleInnerPartitionPackingSolver | null
+  declare activeSubSolver: PartitionSolver | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -46,11 +58,19 @@ export class PackInnerPartitionsSolver extends BaseSolver {
 
     // If no active solver, create one for the current partition
     if (!this.activeSolver) {
-      const currentPartition = this.partitions[this.currentPartitionIndex]!
-      this.activeSolver = new SingleInnerPartitionPackingSolver({
-        partitionInputProblem: currentPartition,
-        pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
-      })
+      const currentPartition = this.partitions[
+        this.currentPartitionIndex
+      ]! as PartitionInputProblem
+
+      if (currentPartition.partitionType === "decoupling_caps") {
+        // Use the specialized row-layout solver for decoupling cap partitions
+        this.activeSolver = new DecouplingCapsPackingSolver(currentPartition)
+      } else {
+        this.activeSolver = new SingleInnerPartitionPackingSolver({
+          partitionInputProblem: currentPartition,
+          pinIdToStronglyConnectedPins: this.pinIdToStronglyConnectedPins,
+        })
+      }
       this.activeSubSolver = this.activeSolver
     }
 
