@@ -12,6 +12,7 @@ import type {
   PinId,
   ChipPin,
   PartitionInputProblem,
+  Chip,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
@@ -36,6 +37,16 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.layout
+    ) {
+      this.layout = this.createDecouplingCapsLayout()
+      this.activeSubSolver = null
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const pinToNetworkMap = createFilteredNetworkMapping({
@@ -140,6 +151,62 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
     }
+  }
+
+  private createDecouplingCapsLayout(): OutputLayout {
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const caps = Object.entries(this.partitionInputProblem.chipMap)
+      .sort(([chipAId], [chipBId]) =>
+        chipAId.localeCompare(chipBId, undefined, { numeric: true }),
+      )
+      .map(([chipId, chip]) => {
+        const ccwRotationDegrees = this.pickDecouplingCapRotation(chip)
+        const size = this.getRotatedChipSize(chip, ccwRotationDegrees)
+
+        return {
+          chipId,
+          ccwRotationDegrees,
+          width: size.x,
+        }
+      })
+
+    const totalWidth =
+      caps.reduce((sum, cap) => sum + cap.width, 0) +
+      Math.max(0, caps.length - 1) * gap
+    let nextLeftEdge = -totalWidth / 2
+    const chipPlacements: Record<string, Placement> = {}
+
+    for (const cap of caps) {
+      chipPlacements[cap.chipId] = {
+        x: nextLeftEdge + cap.width / 2,
+        y: 0,
+        ccwRotationDegrees: cap.ccwRotationDegrees,
+      }
+      nextLeftEdge += cap.width + gap
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  private pickDecouplingCapRotation(chip: Chip): 0 | 90 | 180 | 270 {
+    const availableRotations = chip.availableRotations ?? [0, 90, 180, 270]
+    for (const rotation of [0, 180, 90, 270] as const) {
+      if (availableRotations.includes(rotation)) return rotation
+    }
+    return availableRotations[0] ?? 0
+  }
+
+  private getRotatedChipSize(chip: Chip, rotation: 0 | 90 | 180 | 270) {
+    if (rotation === 90 || rotation === 270) {
+      return { x: chip.size.y, y: chip.size.x }
+    }
+
+    return chip.size
   }
 
   private createLayoutFromPackingResult(

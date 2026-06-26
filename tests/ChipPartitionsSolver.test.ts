@@ -188,3 +188,102 @@ test("ChipPartitionsSolver visualization contains partition components", () => {
   expect(visualization.rects?.length).toBeGreaterThan(0)
   expect(visualization.texts?.length).toBeGreaterThan(0)
 })
+
+test("ChipPartitionsSolver keeps decoupling cap nets inherited through main-chip strong connections", () => {
+  const inputProblem: InputProblem = {
+    chipMap: {
+      U1: {
+        chipId: "U1",
+        pins: ["U1.VCC", "U1.GND"],
+        size: { x: 2, y: 2 },
+      },
+      C1: {
+        chipId: "C1",
+        pins: ["C1.1", "C1.2"],
+        size: { x: 0.8, y: 0.4 },
+      },
+      C2: {
+        chipId: "C2",
+        pins: ["C2.1", "C2.2"],
+        size: { x: 0.8, y: 0.4 },
+      },
+    },
+    chipPinMap: {
+      "U1.VCC": {
+        pinId: "U1.VCC",
+        offset: { x: 1, y: 0.5 },
+        side: "x+",
+      },
+      "U1.GND": {
+        pinId: "U1.GND",
+        offset: { x: -1, y: -0.5 },
+        side: "x-",
+      },
+      "C1.1": {
+        pinId: "C1.1",
+        offset: { x: 0, y: 0.2 },
+        side: "y+",
+      },
+      "C1.2": {
+        pinId: "C1.2",
+        offset: { x: 0, y: -0.2 },
+        side: "y-",
+      },
+      "C2.1": {
+        pinId: "C2.1",
+        offset: { x: 0, y: 0.2 },
+        side: "y+",
+      },
+      "C2.2": {
+        pinId: "C2.2",
+        offset: { x: 0, y: -0.2 },
+        side: "y-",
+      },
+    },
+    netMap: {
+      VCC: { netId: "VCC", isPositiveVoltageSource: true },
+      GND: { netId: "GND", isGround: true },
+    },
+    pinStrongConnMap: {
+      "C1.1-U1.VCC": true,
+      "U1.VCC-C1.1": true,
+      "C1.2-U1.GND": true,
+      "U1.GND-C1.2": true,
+      "C2.1-U1.VCC": true,
+      "U1.VCC-C2.1": true,
+      "C2.2-U1.GND": true,
+      "U1.GND-C2.2": true,
+    },
+    netConnMap: {
+      "U1.VCC-VCC": true,
+      "U1.GND-GND": true,
+    },
+    chipGap: 0.2,
+    partitionGap: 2,
+  }
+
+  const solver = new ChipPartitionsSolver({
+    inputProblem,
+    decouplingCapGroups: [
+      {
+        decouplingCapGroupId: "decap_U1_VCC_GND",
+        mainChipId: "U1",
+        netPair: ["GND", "VCC"],
+        decouplingCapChipIds: ["C1", "C2"],
+      },
+    ],
+  })
+  solver.solve()
+
+  const decapPartition = solver.partitions.find(
+    (partition) => partition.partitionType === "decoupling_caps",
+  )
+
+  expect(decapPartition).toBeDefined()
+  expect(Object.keys(decapPartition!.chipMap).sort()).toEqual(["C1", "C2"])
+  expect(Object.keys(decapPartition!.netMap).sort()).toEqual(["GND", "VCC"])
+  expect(decapPartition!.netConnMap["C1.1-VCC"]).toBe(true)
+  expect(decapPartition!.netConnMap["C1.2-GND"]).toBe(true)
+  expect(decapPartition!.netConnMap["C2.1-VCC"]).toBe(true)
+  expect(decapPartition!.netConnMap["C2.2-GND"]).toBe(true)
+})
