@@ -8,6 +8,7 @@ import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import { AlignPowerGroundRowsSolver } from "lib/solvers/AlignPowerGroundRowsSolver/AlignPowerGroundRowsSolver"
+import { SideAwarePassiveGroupingSolver } from "lib/solvers/SideAwarePassiveGroupingSolver/SideAwarePassiveGroupingSolver"
 import {
   PackInnerPartitionsSolver,
   type PackedPartition,
@@ -54,6 +55,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
+  sideAwarePassiveGroupingSolver?: SideAwarePassiveGroupingSolver
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
 
   startTimeOfPhase: Record<string, number>
@@ -127,12 +129,24 @@ export class LayoutPipelineSolver extends BaseSolver {
       },
     ),
     definePipelineStep(
+      "sideAwarePassiveGroupingSolver",
+      SideAwarePassiveGroupingSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          inputLayout: this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+    ),
+    definePipelineStep(
       "alignPowerGroundRowsSolver",
       AlignPowerGroundRowsSolver,
       () => [
         {
           inputProblem: this.inputProblem,
-          inputLayout: this.partitionPackingSolver!.finalLayout!,
+          inputLayout:
+            this.sideAwarePassiveGroupingSolver?.outputLayout ??
+            this.partitionPackingSolver!.finalLayout!,
         },
       ],
     ),
@@ -213,6 +227,8 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
+    const sideAwarePassiveGroupingViz =
+      this.sideAwarePassiveGroupingSolver?.visualize()
     const alignPowerGroundRowsViz = this.alignPowerGroundRowsSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
@@ -225,6 +241,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
+      sideAwarePassiveGroupingViz,
       alignPowerGroundRowsViz,
     ]
       .filter(Boolean)
@@ -271,6 +288,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     // Show the most recent solver's output
     if (this.alignPowerGroundRowsSolver?.solved) {
       return this.alignPowerGroundRowsSolver.visualize()
+    }
+    if (this.sideAwarePassiveGroupingSolver?.solved) {
+      return this.sideAwarePassiveGroupingSolver.visualize()
     }
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
