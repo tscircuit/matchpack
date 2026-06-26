@@ -9,7 +9,7 @@ import inputProblem from "../assets/repro-bq24074-bottom-resistors.input.json"
 // The fixture is the *enriched* matchpack InputProblem captured from
 // @tscircuit/core's "matchpack-input-problem-charger" debug output for the
 // corresponding tsx, so it carries core's real schematic geometry and per-chip
-// rotation constraints. It isolates the bottom "resistor bank" case: with
+// rotation constraints. It isolates the bottom same-side passive group: with
 // nothing but strong pin-to-pin links to drive it, calculate-packing places the
 // resistors one at a time and does not lay them out as a clean row under U1.
 test("repro bq24074 bottom resistors layout", async () => {
