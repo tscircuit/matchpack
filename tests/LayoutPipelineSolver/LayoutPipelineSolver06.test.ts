@@ -11,10 +11,14 @@ test("LayoutPipelineSolver06 - runs pipeline with decoupling capacitors", () => 
 
   const finalLayout = solver.getOutputLayout()
   expect(finalLayout).toBeDefined()
-  
+
   // Save output snapshot or print details
   console.log("Final layout placements:")
-  for (const [chipId, placement] of Object.entries(finalLayout.chipPlacements)) {
-    console.log(`  ${chipId}: x=${placement.x.toFixed(2)}, y=${placement.y.toFixed(2)}, rotation=${placement.ccwRotationDegrees}`)
+  for (const [chipId, placement] of Object.entries(
+    finalLayout.chipPlacements,
+  )) {
+    console.log(
+      `  ${chipId}: x=${placement.x.toFixed(2)}, y=${placement.y.toFixed(2)}, rotation=${placement.ccwRotationDegrees}`,
+    )
   }
 })

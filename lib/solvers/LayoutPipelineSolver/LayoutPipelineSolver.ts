@@ -398,11 +398,12 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     // Group decoupling cap groups by main chip
     const groupsByMainChip: Record<string, any[]> = {}
-    for (const group of this.identifyDecouplingCapsSolver.outputDecouplingCapGroups) {
+    for (const group of this.identifyDecouplingCapsSolver
+      .outputDecouplingCapGroups) {
       if (!groupsByMainChip[group.mainChipId]) {
         groupsByMainChip[group.mainChipId] = []
       }
-      groupsByMainChip[group.mainChipId].push(group)
+      groupsByMainChip[group.mainChipId]!.push(group)
     }
 
     for (const [mainChipId, groups] of Object.entries(groupsByMainChip)) {
@@ -416,9 +417,7 @@ export class LayoutPipelineSolver extends BaseSolver {
 
       let currentY = mainPlacement.y + mainH / 2
       const gap =
-        this.inputProblem.decouplingCapsGap ??
-        this.inputProblem.chipGap ??
-        0.4
+        this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap ?? 0.4
 
       for (const group of groups) {
         const capsInfo = group.decouplingCapChipIds.map((capId: string) => {
