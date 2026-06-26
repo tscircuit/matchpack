@@ -173,61 +173,70 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     for (let i = 0; i < rowXOffsets.length; i++) rowXOffsets[i]! -= rowWidth / 2
     const rowHeight = Math.max(...sizes.map((s) => s.y))
 
-    // Push the row off the main chip along the outward axis and align it to the
-    // pin centroid along the edge. The outward axis differs for horizontal vs
-    // vertical edges, so resolve the base (pre-slide) centre once here.
-    let baseRowCentreX: number
-    let baseRowCentreY: number
+    // Resolve the candidate row centres in priority order. For a left/right edge
+    // prefer dropping the row just below the lowest connecting pin (its near edge
+    // level with that pin) so the traces fan downward in one direction and stay
+    // short; only fall back to the pin centroid if the lower placement has no
+    // room. A top/bottom edge has a single centre.
+    const passiveChipIdSet = new Set(passiveGroup.passiveChipIds)
+    const candidateCentres: Array<{ x: number; y: number }> = []
     if (sideIsHorizontal) {
       const outwardDistance =
         (mainChipBox.maxX - mainChipBox.minX) / 2 + gap + rowWidth / 2
-      baseRowCentreX = mainChipCenter.x + outward.x * outwardDistance
-      baseRowCentreY = mainChipPinCentroid.y
+      const rowCentreX = mainChipCenter.x + outward.x * outwardDistance
+      let lowestPinY = mainChipPinCentroid.y
+      if (mainChipPinPositions.length > 0) {
+        lowestPinY = Math.min(...mainChipPinPositions.map((p) => p.y))
+      }
+      // Near (top) edge of the row sits at the lowest connecting pin.
+      candidateCentres.push({ x: rowCentreX, y: lowestPinY - rowHeight / 2 })
+      candidateCentres.push({ x: rowCentreX, y: mainChipPinCentroid.y })
     } else {
       const outwardDistance =
         (mainChipBox.maxY - mainChipBox.minY) / 2 + gap + rowHeight / 2
-      baseRowCentreX = mainChipPinCentroid.x
-      baseRowCentreY = mainChipCenter.y + outward.y * outwardDistance
+      candidateCentres.push({
+        x: mainChipPinCentroid.x,
+        y: mainChipCenter.y + outward.y * outwardDistance,
+      })
     }
 
-    const passiveChipIdSet = new Set(passiveGroup.passiveChipIds)
-
-    // Slide the row along its own (x) axis until it keeps chipGap from every
-    // neighbouring (non-group) chip. If it can't be cleared by sliding, keep the
-    // packed positions for this group — those are already overlap-free.
+    // Try each candidate centre in order. The row slides along its own (x) axis
+    // to keep chipGap from every neighbouring (non-group) chip; the first centre
+    // that can be fully cleared wins. If none can be cleared, keep the packed
+    // positions for this group — those are already overlap-free.
     const maxSlide = mainChipBox.maxX - mainChipBox.minX + rowWidth
-    let slide = 0
-    for (let iter = 0; iter < MAX_RESOLVE_ITERATIONS; iter++) {
-      // Build the candidate row at the current slide offset.
-      const rowCentreX = baseRowCentreX + slide
-      const rowCentreY = baseRowCentreY
-      const candidate: Record<ChipId, Placement> = {}
-      for (let i = 0; i < passiveGroup.passiveChipIds.length; i++) {
-        const id = passiveGroup.passiveChipIds[i]!
-        candidate[id] = {
-          x: rowCentreX + rowXOffsets[i]!,
-          y: rowCentreY,
-          // Keep the packed (fixed) rotation; only reposition.
-          ccwRotationDegrees: placements[id]!.ccwRotationDegrees,
+    for (const centre of candidateCentres) {
+      let slide = 0
+      for (let iter = 0; iter < MAX_RESOLVE_ITERATIONS; iter++) {
+        // Build the candidate row at the current slide offset.
+        const candidate: Record<ChipId, Placement> = {}
+        for (let i = 0; i < passiveGroup.passiveChipIds.length; i++) {
+          const id = passiveGroup.passiveChipIds[i]!
+          candidate[id] = {
+            x: centre.x + slide + rowXOffsets[i]!,
+            y: centre.y,
+            // Keep the packed (fixed) rotation; only reposition.
+            ccwRotationDegrees: placements[id]!.ccwRotationDegrees,
+          }
         }
-      }
 
-      const adjustment = this.clearanceAdjustment(
-        candidate,
-        placements,
-        passiveChipIdSet,
-        gap,
-      )
-      if (adjustment === 0) {
-        for (const id of passiveGroup.passiveChipIds) {
-          placements[id] = candidate[id]!
+        const adjustment = this.clearanceAdjustment(
+          candidate,
+          placements,
+          passiveChipIdSet,
+          gap,
+        )
+        if (adjustment === 0) {
+          for (const id of passiveGroup.passiveChipIds) {
+            placements[id] = candidate[id]!
+          }
+          return
         }
-        return
+        if (adjustment === null) break // crowded both sides; try next centre
+        const next = slide + adjustment
+        if (Math.abs(next) > maxSlide) break // can't clear here; try next centre
+        slide = next
       }
-      if (adjustment === null) return // crowded from both sides -> keep packed
-      const next = slide + adjustment
-      if (Math.abs(next) > maxSlide) return
-      slide = next
     }
   }
 
