@@ -1,0 +1,154 @@
+{
+  "chipMap": {
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [90]
+    },
+    "C1": {
+      "chipId": "C1",
+      "pins": ["C1.1", "C1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 1.24
+      },
+      "availableRotations": [270]
+    },
+    "U1": {
+      "chipId": "U1",
+      "pins": ["U1.1", "U1.2", "U1.3", "U1.4", "U1.5", "U1.6", "U1.7", "U1.8"],
+      "size": {
+        "x": 0.4,
+        "y": 1.7999999999999998
+      },
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "R1.1": {
+      "pinId": "R1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R1.2": {
+      "pinId": "R1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C1.1": {
+      "pinId": "C1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C1.2": {
+      "pinId": "C1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -0.6000000000000001,
+        "y": 0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -0.6000000000000001,
+        "y": 0.10000000000000003
+      },
+      "side": "x-"
+    },
+    "U1.3": {
+      "pinId": "U1.3",
+      "offset": {
+        "x": -0.6000000000000001,
+        "y": -0.09999999999999998
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": -0.6000000000000001,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": -0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "U1.6": {
+      "pinId": "U1.6",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": -0.10000000000000003
+      },
+      "side": "x+"
+    },
+    "U1.7": {
+      "pinId": "U1.7",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0.09999999999999998
+      },
+      "side": "x+"
+    },
+    "U1.8": {
+      "pinId": "U1.8",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0.30000000000000004
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "U1.1-R1.1": true,
+    "R1.1-U1.1": true,
+    "U1.4-C1.1": true,
+    "C1.1-U1.4": true
+  },
+  "netConnMap": {
+    "R1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "C1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
