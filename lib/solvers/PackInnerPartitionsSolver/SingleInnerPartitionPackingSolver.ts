@@ -16,6 +16,7 @@ import type {
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
+import { applyDecouplingCapsLinearLayout } from "./DecouplingCapsLinearLayoutSolver"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 
 const PIN_SIZE = 0.1
@@ -36,6 +37,32 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Fast path: decoupling cap partitions get a clean linear layout
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      const chips = Object.entries(this.partitionInputProblem.chipMap).map(
+        ([chipId]) => ({
+          chipId,
+          center: { x: 0, y: 0 },
+          ccwRotationDegrees: 0,
+        }),
+      )
+      applyDecouplingCapsLinearLayout(chips, {
+        decouplingCapsGap: this.partitionInputProblem.decouplingCapsGap,
+        chipGap: this.partitionInputProblem.chipGap,
+      })
+      this.layout = {
+        chipPlacements: Object.fromEntries(
+          chips.map(({ chipId, center, ccwRotationDegrees }) => [
+            chipId,
+            { x: center.x, y: center.y, ccwRotationDegrees },
+          ]),
+        ),
+        groupPlacements: {},
+      }
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const pinToNetworkMap = createFilteredNetworkMapping({
