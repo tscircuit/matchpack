@@ -122,7 +122,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       ],
       {
         onSolved: (_solver) => {
-          // Store final packed layout as output
+          this.applyDecouplingCapGroupLayout()
         },
       },
     ),
@@ -194,6 +194,182 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   getCurrentPhase(): string {
     return this.pipelineDef[this.currentPipelineStepIndex]?.solverName ?? "none"
+  }
+
+  private applyDecouplingCapGroupLayout() {
+    const finalLayout = this.partitionPackingSolver?.finalLayout
+    const groups = this.identifyDecouplingCapsSolver?.outputDecouplingCapGroups
+    if (!finalLayout || !groups?.length) return
+
+    const laneCountByMainSide = new Map<string, number>()
+
+    for (const group of groups) {
+      const mainPlacement = finalLayout.chipPlacements[group.mainChipId]
+      const mainChip = this.inputProblem.chipMap[group.mainChipId]
+      if (!mainPlacement || !mainChip) continue
+
+      const capInfos = group.decouplingCapChipIds
+        .map((capChipId) => {
+          const capChip = this.inputProblem.chipMap[capChipId]
+          const strongMainPin = this.getStronglyConnectedMainPinId(
+            capChipId,
+            group.mainChipId,
+          )
+          const mainPin = strongMainPin
+            ? this.inputProblem.chipPinMap[strongMainPin]
+            : null
+          return capChip && mainPin ? { capChipId, capChip, mainPin } : null
+        })
+        .filter((info) => info !== null)
+
+      if (capInfos.length === 0) continue
+
+      const side = this.getDominantSide(capInfos.map((info) => info.mainPin))
+      const laneKey = `${group.mainChipId}:${side}`
+      const laneIndex = laneCountByMainSide.get(laneKey) ?? 0
+      laneCountByMainSide.set(laneKey, laneIndex + 1)
+
+      const sortedCapInfos = capInfos.sort((a, b) =>
+        side === "x-" || side === "x+"
+          ? b.mainPin.offset.y - a.mainPin.offset.y
+          : a.mainPin.offset.x - b.mainPin.offset.x,
+      )
+
+      const gap =
+        this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
+      const firstCap = sortedCapInfos[0]!.capChip
+      const step =
+        side === "x-" || side === "x+"
+          ? firstCap.size.y + gap
+          : firstCap.size.x + gap
+      const pinCenters = sortedCapInfos.map((info) =>
+        this.rotatePoint(info.mainPin.offset, mainPlacement.ccwRotationDegrees),
+      )
+      const desiredCenter =
+        side === "x-" || side === "x+"
+          ? pinCenters.reduce((sum, point) => sum + point.y, 0) /
+            pinCenters.length
+          : pinCenters.reduce((sum, point) => sum + point.x, 0) /
+            pinCenters.length
+      const start = desiredCenter + ((sortedCapInfos.length - 1) * step) / 2
+
+      sortedCapInfos.forEach((info, index) => {
+        const placement = finalLayout.chipPlacements[info.capChipId]
+        if (!placement) return
+
+        const laneOffset =
+          laneIndex *
+          ((side === "x-" || side === "x+"
+            ? info.capChip.size.x
+            : info.capChip.size.y) +
+            gap)
+
+        if (side === "x-" || side === "x+") {
+          const mainHalfWidth = mainChip.size.x / 2
+          const capHalfWidth = info.capChip.size.x / 2
+          placement.x =
+            mainPlacement.x +
+            (side === "x-"
+              ? -mainHalfWidth - capHalfWidth - gap - laneOffset
+              : mainHalfWidth + capHalfWidth + gap + laneOffset)
+          placement.y = mainPlacement.y + start - index * step
+        } else {
+          const mainHalfHeight = mainChip.size.y / 2
+          const capHalfHeight = info.capChip.size.y / 2
+          placement.x = mainPlacement.x + start - index * step
+          placement.y =
+            mainPlacement.y +
+            (side === "y-"
+              ? -mainHalfHeight - capHalfHeight - gap - laneOffset
+              : mainHalfHeight + capHalfHeight + gap + laneOffset)
+        }
+
+        placement.ccwRotationDegrees = info.capChip.availableRotations?.[0] ?? 0
+      })
+
+      this.shiftDecouplingCapColumnAwayFromOverlaps({
+        layout: finalLayout,
+        capChipIds: sortedCapInfos.map((info) => info.capChipId),
+        side,
+        shiftStep:
+          (side === "x-" || side === "x+" ? firstCap.size.x : firstCap.size.y) +
+          gap,
+      })
+    }
+  }
+
+  private shiftDecouplingCapColumnAwayFromOverlaps({
+    layout,
+    capChipIds,
+    side,
+    shiftStep,
+  }: {
+    layout: OutputLayout
+    capChipIds: string[]
+    side: ChipPin["side"]
+    shiftStep: number
+  }) {
+    const capChipIdSet = new Set(capChipIds)
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const hasExternalOverlap = this.checkForOverlaps(layout).some(
+        (overlap) =>
+          capChipIdSet.has(overlap.chip1) !== capChipIdSet.has(overlap.chip2),
+      )
+      if (!hasExternalOverlap) return
+
+      for (const capChipId of capChipIds) {
+        const placement = layout.chipPlacements[capChipId]
+        if (!placement) continue
+        if (side === "x-") placement.x -= shiftStep
+        else if (side === "x+") placement.x += shiftStep
+        else if (side === "y-") placement.y -= shiftStep
+        else placement.y += shiftStep
+      }
+    }
+  }
+
+  private getStronglyConnectedMainPinId(
+    capChipId: string,
+    mainChipId: string,
+  ): PinId | null {
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      const [a, b] = connKey.split("-") as [PinId, PinId]
+      const [aChipId] = a.split(".")
+      const [bChipId] = b.split(".")
+      if (aChipId === capChipId && bChipId === mainChipId) return b
+      if (bChipId === capChipId && aChipId === mainChipId) return a
+    }
+    return null
+  }
+
+  private getDominantSide(pins: ChipPin[]): ChipPin["side"] {
+    const counts = new Map<ChipPin["side"], number>()
+    for (const pin of pins) {
+      counts.set(pin.side, (counts.get(pin.side) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]![0]
+  }
+
+  private rotatePoint(
+    point: { x: number; y: number },
+    degrees: number,
+  ): { x: number; y: number } {
+    const normalized = ((degrees % 360) + 360) % 360
+    if (normalized === 90) return { x: -point.y, y: point.x }
+    if (normalized === 180) return { x: -point.x, y: -point.y }
+    if (normalized === 270) return { x: point.y, y: -point.x }
+
+    const angle = (normalized * Math.PI) / 180
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+    return {
+      x: point.x * cos - point.y * sin,
+      y: point.x * sin + point.y * cos,
+    }
   }
 
   override visualize(): GraphicsObject {
