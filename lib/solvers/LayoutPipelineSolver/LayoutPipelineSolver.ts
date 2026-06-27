@@ -436,6 +436,10 @@ export class LayoutPipelineSolver extends BaseSolver {
       )
     }
 
+    // Apply voltage bias to the final layout
+    const { applyVoltageBias } = require("./applyVoltageBias")
+    finalLayout = applyVoltageBias(this.inputProblem, finalLayout)
+
     // Check for overlaps in the final layout
     const overlaps = this.checkForOverlaps(finalLayout)
     if (overlaps.length > 0) {
