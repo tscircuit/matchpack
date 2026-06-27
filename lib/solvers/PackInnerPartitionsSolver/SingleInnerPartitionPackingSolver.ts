@@ -23,7 +23,7 @@ const PIN_SIZE = 0.1
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
-  declare activeSubSolver: PackSolver2 | null
+  override activeSubSolver: PackSolver2 | null = null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
@@ -36,6 +36,16 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Specialized layout for decoupling capacitors
+    if (
+      this.partitionInputProblem.partitionType === "decoupling_caps" &&
+      !this.solved
+    ) {
+      this.layout = this.createLinearDecouplingCapLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const pinToNetworkMap = createFilteredNetworkMapping({
@@ -158,6 +168,47 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           packedComponent.ccwRotationOffset ??
           0,
       }
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  /**
+   * Creates a specialized linear layout for decoupling capacitors.
+   * Arranges them in a clean horizontal row centered at (0,0).
+   */
+  private createLinearDecouplingCapLayout(): OutputLayout {
+    const chips = Object.values(this.partitionInputProblem.chipMap).sort(
+      (a, b) => a.chipId.localeCompare(b.chipId),
+    )
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Calculate total width of the row
+    let totalWidth = 0
+    for (let i = 0; i < chips.length; i++) {
+      totalWidth += chips[i]!.size.x
+      if (i < chips.length - 1) {
+        totalWidth += gap
+      }
+    }
+
+    // Place chips starting from the left, centering the row at x=0
+    let currentX = -totalWidth / 2
+    for (const chip of chips) {
+      const halfWidth = chip.size.x / 2
+      chipPlacements[chip.chipId] = {
+        x: currentX + halfWidth,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+      currentX += chip.size.x + gap
     }
 
     return {

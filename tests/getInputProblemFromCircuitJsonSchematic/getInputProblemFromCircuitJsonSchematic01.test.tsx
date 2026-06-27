@@ -4,10 +4,10 @@ import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputPro
 
 test("getInputProblemFromCircuitJsonSchematic01", () => {
   const circuitJson = getExampleCircuitJson()
-
   const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
     useReadableIds: true,
   })
+
   expect(problem).toMatchInlineSnapshot(`
     {
       "chipGap": 0.2,
