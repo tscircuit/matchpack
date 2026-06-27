@@ -217,14 +217,17 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     }
 
     for (const rect of graphics.rects || []) {
-      if (rect.label !== this.lastChip?.chipId) {
+      const baseLabel = (rect.label || "").split(" ")[0]
+      if (baseLabel !== this.lastChip?.chipId) {
         rect.fill = "rgba(0,0,0,0.5)"
       }
     }
 
     for (const rect of graphics.rects || []) {
-      const chipId = (rect as any).label as ChipId
-      const group = chipDecapGroupMap.get(chipId)
+      const baseLabel = (((rect as any).label as string) || "").split(
+        " ",
+      )[0] as ChipId
+      const group = chipDecapGroupMap.get(baseLabel)
       if (!group) continue
       rect.label = `${rect.label}\n${group.decouplingCapGroupId}`
       rect.fill = getColorFromString(group.decouplingCapGroupId, 0.8)
