@@ -17,6 +17,7 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { isGroundNet, isPositiveVoltageNet } from "../../utils/netBiasUtils"
 
 const PIN_SIZE = 0.1
 
@@ -129,13 +130,59 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     })
 
+    // Add static attractor components for power/ground nets
+    const activeNets = new Set<string>()
+    for (const netId of pinToNetworkMap.values()) {
+      activeNets.add(netId)
+    }
+
+    const attractorComponents: any[] = []
+    for (const netId of activeNets) {
+      const net = this.partitionInputProblem.netMap[netId]
+      if (isPositiveVoltageNet(netId, net)) {
+        attractorComponents.push({
+          componentId: `attractor_vcc_${netId}`,
+          pads: [
+            {
+              padId: `attractor_vcc_${netId}_pad`,
+              networkId: netId,
+              type: "rect" as const,
+              offset: { x: 0, y: 0 },
+              size: { x: PIN_SIZE, y: PIN_SIZE },
+            },
+          ],
+          availableRotationDegrees: [0] as Array<0 | 90 | 180 | 270>,
+          isStatic: true as const,
+          center: { x: 0, y: -100 },
+          ccwRotationOffset: 0,
+        })
+      } else if (isGroundNet(netId, net)) {
+        attractorComponents.push({
+          componentId: `attractor_gnd_${netId}`,
+          pads: [
+            {
+              padId: `attractor_gnd_${netId}_pad`,
+              networkId: netId,
+              type: "rect" as const,
+              offset: { x: 0, y: 0 },
+              size: { x: PIN_SIZE, y: PIN_SIZE },
+            },
+          ],
+          availableRotationDegrees: [0] as Array<0 | 90 | 180 | 270>,
+          isStatic: true as const,
+          center: { x: 0, y: 100 },
+          ccwRotationOffset: 0,
+        })
+      }
+    }
+
     let minGap = this.partitionInputProblem.chipGap
     if (this.partitionInputProblem.partitionType === "decoupling_caps") {
       minGap = this.partitionInputProblem.decouplingCapsGap ?? minGap
     }
 
     return {
-      components: packComponents,
+      components: [...packComponents, ...attractorComponents],
       minGap,
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
@@ -149,6 +196,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
 
     for (const packedComponent of packedComponents) {
       const chipId = packedComponent.componentId
+      if (chipId.startsWith("attractor_")) continue
 
       chipPlacements[chipId] = {
         x: packedComponent.center.x,
