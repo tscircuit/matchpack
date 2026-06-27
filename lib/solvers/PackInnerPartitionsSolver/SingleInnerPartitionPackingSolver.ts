@@ -145,6 +145,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   private createLayoutFromPackingResult(
     packedComponents: PackSolver2["packedComponents"],
   ): OutputLayout {
+    // For decoupling capacitor partitions, arrange in a clean horizontal row
+    // instead of using the general-purpose packer which produces messy layouts
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      return this.createDecouplingCapsLinearLayout(packedComponents)
+    }
+
     const chipPlacements: Record<string, Placement> = {}
 
     for (const packedComponent of packedComponents) {
@@ -158,6 +164,58 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
           packedComponent.ccwRotationOffset ??
           0,
       }
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
+  /**
+   * Creates a clean linear horizontal layout for decoupling capacitor partitions.
+   * Capacitors are sorted by chip ID for deterministic ordering and placed
+   * in a single horizontal row with consistent spacing.
+   */
+  private createDecouplingCapsLinearLayout(
+    packedComponents: PackSolver2["packedComponents"],
+  ): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+
+    // Sort by chip ID for deterministic layout
+    const sorted = [...packedComponents].sort((a, b) =>
+      a.componentId.localeCompare(b.componentId),
+    )
+
+    // Calculate total width and gaps for centering
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+
+    let totalWidth = 0
+    const chipWidths: number[] = []
+    for (const comp of sorted) {
+      // Find the body pad to get chip dimensions
+      const bodyPad = comp.pads.find((p) => p.padId.endsWith("_body"))
+      const width = bodyPad?.size.x ?? 1
+      chipWidths.push(width)
+      totalWidth += width
+      if (chipWidths.length > 1) totalWidth += gap
+    }
+
+    // Start from the left, centered around x=0
+    let xOffset = -totalWidth / 2
+    for (let i = 0; i < sorted.length; i++) {
+      const comp = sorted[i]
+      const chipWidth = chipWidths[i]
+
+      chipPlacements[comp.componentId] = {
+        x: xOffset + chipWidth / 2,
+        y: 0,
+        ccwRotationDegrees: 0,
+      }
+
+      xOffset += chipWidth + gap
     }
 
     return {
