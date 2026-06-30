@@ -1,0 +1,244 @@
+{
+  "chipMap": {
+    "U1": {
+      "chipId": "U1",
+      "pins": [
+        "U1.1",
+        "U1.2",
+        "U1.4",
+        "U1.5",
+        "U1.6",
+        "U1.7",
+        "U1.8",
+        "U1.9",
+        "U1.10",
+        "U1.12",
+        "U1.13",
+        "U1.14",
+        "U1.15",
+        "U1.16"
+      ],
+      "size": {
+        "x": 3.1,
+        "y": 5.1000000000000005
+      },
+      "availableRotations": [0],
+      "fixedPosition": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [270]
+    },
+    "R2": {
+      "chipId": "R2",
+      "pins": ["R2.1", "R2.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [270]
+    },
+    "R3": {
+      "chipId": "R3",
+      "pins": ["R3.1", "R3.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.778910699999999
+      },
+      "availableRotations": [270]
+    }
+  },
+  "chipPinMap": {
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": -0.7000000000000001
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": -0.9
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.85
+      },
+      "side": "x+"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.2499999999999999
+      },
+      "side": "x+"
+    },
+    "U1.6": {
+      "pinId": "U1.6",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.44999999999999996
+      },
+      "side": "x+"
+    },
+    "U1.7": {
+      "pinId": "U1.7",
+      "offset": {
+        "x": -0.44999999999999996,
+        "y": 2.55
+      },
+      "side": "y+"
+    },
+    "U1.8": {
+      "pinId": "U1.8",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": 0.7
+      },
+      "side": "x-"
+    },
+    "U1.9": {
+      "pinId": "U1.9",
+      "offset": {
+        "x": 0.44999999999999996,
+        "y": 2.55
+      },
+      "side": "y+"
+    },
+    "U1.10": {
+      "pinId": "U1.10",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": 0.85
+      },
+      "side": "x+"
+    },
+    "U1.12": {
+      "pinId": "U1.12",
+      "offset": {
+        "x": 0,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "U1.13": {
+      "pinId": "U1.13",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": 0.9
+      },
+      "side": "x-"
+    },
+    "U1.14": {
+      "pinId": "U1.14",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.6499999999999999
+      },
+      "side": "x+"
+    },
+    "U1.15": {
+      "pinId": "U1.15",
+      "offset": {
+        "x": -0.65,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "U1.16": {
+      "pinId": "U1.16",
+      "offset": {
+        "x": 0.65,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "R1.1": {
+      "pinId": "R1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R1.2": {
+      "pinId": "R1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R2.1": {
+      "pinId": "R2.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R2.2": {
+      "pinId": "R2.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R3.1": {
+      "pinId": "R3.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R3.2": {
+      "pinId": "R3.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "charger_connectivity_net0": {
+      "netId": "charger_connectivity_net0",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "R1.1-U1.5": true,
+    "U1.5-R1.1": true,
+    "R2.1-U1.6": true,
+    "U1.6-R2.1": true,
+    "R3.1-U1.14": true,
+    "U1.14-R3.1": true
+  },
+  "netConnMap": {
+    "R1.2-charger_connectivity_net0": true,
+    "R2.2-charger_connectivity_net0": true,
+    "R3.2-charger_connectivity_net0": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}

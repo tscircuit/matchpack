@@ -38,3 +38,4 @@ debug-outputs
 cosmos-export
 .vercel
 .aider*
+*.diff.png

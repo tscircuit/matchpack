@@ -1,0 +1,323 @@
+{
+  "chipMap": {
+    "SW2": {
+      "chipId": "SW2",
+      "pins": ["SW2.1", "SW2.2"],
+      "size": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "availableRotations": [0]
+    },
+    "R29": {
+      "chipId": "R29",
+      "pins": ["R29.1", "R29.2"],
+      "size": {
+        "x": 0.8191830249999994,
+        "y": 1.1
+      },
+      "availableRotations": [0]
+    },
+    "SW1": {
+      "chipId": "SW1",
+      "pins": ["SW1.1", "SW1.2"],
+      "size": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "availableRotations": [0]
+    },
+    "R9": {
+      "chipId": "R9",
+      "pins": ["R9.1", "R9.2"],
+      "size": {
+        "x": 0.8191830249999994,
+        "y": 1.1
+      },
+      "availableRotations": [0]
+    },
+    "ACT_LED": {
+      "chipId": "ACT_LED",
+      "pins": ["ACT_LED.1", "ACT_LED.2"],
+      "size": {
+        "x": 0.62,
+        "y": 1.08
+      },
+      "availableRotations": [0]
+    },
+    "R10": {
+      "chipId": "R10",
+      "pins": ["R10.1", "R10.2"],
+      "size": {
+        "x": 0.8191830249999994,
+        "y": 1.1
+      },
+      "availableRotations": [0]
+    },
+    "AUX_LED": {
+      "chipId": "AUX_LED",
+      "pins": ["AUX_LED.1", "AUX_LED.2"],
+      "size": {
+        "x": 0.62,
+        "y": 1.08
+      },
+      "availableRotations": [0]
+    },
+    "R28": {
+      "chipId": "R28",
+      "pins": ["R28.1", "R28.2"],
+      "size": {
+        "x": 0.8191830249999994,
+        "y": 1.1
+      },
+      "availableRotations": [0]
+    },
+    "TP5": {
+      "chipId": "TP5",
+      "pins": ["TP5.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP6": {
+      "chipId": "TP6",
+      "pins": ["TP6.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP7": {
+      "chipId": "TP7",
+      "pins": ["TP7.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP8": {
+      "chipId": "TP8",
+      "pins": ["TP8.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    },
+    "TP9": {
+      "chipId": "TP9",
+      "pins": ["TP9.1"],
+      "size": {
+        "x": 0.2,
+        "y": 0.325
+      },
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "SW2.1": {
+      "pinId": "SW2.1",
+      "offset": {
+        "x": -2.3268289183799712e-17,
+        "y": 0.38
+      },
+      "side": "y+"
+    },
+    "SW2.2": {
+      "pinId": "SW2.2",
+      "offset": {
+        "x": 2.3268289183799712e-17,
+        "y": -0.38
+      },
+      "side": "y-"
+    },
+    "R29.1": {
+      "pinId": "R29.1",
+      "offset": {
+        "x": 0.24986383749999988,
+        "y": 0.5499999999999999
+      },
+      "side": "y+"
+    },
+    "R29.2": {
+      "pinId": "R29.2",
+      "offset": {
+        "x": 0.24986383749999994,
+        "y": -0.55
+      },
+      "side": "y-"
+    },
+    "SW1.1": {
+      "pinId": "SW1.1",
+      "offset": {
+        "x": -2.3268289183799712e-17,
+        "y": 0.38
+      },
+      "side": "y+"
+    },
+    "SW1.2": {
+      "pinId": "SW1.2",
+      "offset": {
+        "x": 2.3268289183799712e-17,
+        "y": -0.38
+      },
+      "side": "y-"
+    },
+    "R9.1": {
+      "pinId": "R9.1",
+      "offset": {
+        "x": 0.24986383749999988,
+        "y": 0.5499999999999999
+      },
+      "side": "y+"
+    },
+    "R9.2": {
+      "pinId": "R9.2",
+      "offset": {
+        "x": 0.24986383749999994,
+        "y": -0.55
+      },
+      "side": "y-"
+    },
+    "ACT_LED.1": {
+      "pinId": "ACT_LED.1",
+      "offset": {
+        "x": -3.306546357697854e-17,
+        "y": 0.54
+      },
+      "side": "y+"
+    },
+    "ACT_LED.2": {
+      "pinId": "ACT_LED.2",
+      "offset": {
+        "x": 3.306546357697854e-17,
+        "y": -0.54
+      },
+      "side": "y-"
+    },
+    "R10.1": {
+      "pinId": "R10.1",
+      "offset": {
+        "x": 0.24986383749999988,
+        "y": 0.5499999999999999
+      },
+      "side": "y+"
+    },
+    "R10.2": {
+      "pinId": "R10.2",
+      "offset": {
+        "x": 0.24986383749999994,
+        "y": -0.55
+      },
+      "side": "y-"
+    },
+    "AUX_LED.1": {
+      "pinId": "AUX_LED.1",
+      "offset": {
+        "x": -3.306546357697854e-17,
+        "y": 0.54
+      },
+      "side": "y+"
+    },
+    "AUX_LED.2": {
+      "pinId": "AUX_LED.2",
+      "offset": {
+        "x": 3.306546357697854e-17,
+        "y": -0.54
+      },
+      "side": "y-"
+    },
+    "R28.1": {
+      "pinId": "R28.1",
+      "offset": {
+        "x": 0.24986383749999988,
+        "y": 0.5499999999999999
+      },
+      "side": "y+"
+    },
+    "R28.2": {
+      "pinId": "R28.2",
+      "offset": {
+        "x": 0.24986383749999994,
+        "y": -0.55
+      },
+      "side": "y-"
+    },
+    "TP5.1": {
+      "pinId": "TP5.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP6.1": {
+      "pinId": "TP6.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP7.1": {
+      "pinId": "TP7.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP8.1": {
+      "pinId": "TP8.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    },
+    "TP9.1": {
+      "pinId": "TP9.1",
+      "offset": {
+        "x": -1.2246467991473533e-17,
+        "y": 0.2
+      },
+      "side": "y+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net5": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net5",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    }
+  },
+  "pinStrongConnMap": {
+    "SW2.2-R29.1": true,
+    "R29.1-SW2.2": true,
+    "SW1.2-R9.1": true,
+    "R9.1-SW1.2": true,
+    "ACT_LED.2-R10.1": true,
+    "R10.1-ACT_LED.2": true,
+    "AUX_LED.2-R28.1": true,
+    "R28.1-AUX_LED.2": true
+  },
+  "netConnMap": {
+    "R29.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "R9.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "R10.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "R28.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "TP6.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net5": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
