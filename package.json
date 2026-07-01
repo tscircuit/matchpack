@@ -14,6 +14,10 @@
     "format:check": "biome format .",
     "build:site": "cosmos-export"
   },
+  "dependencies": {
+    "calculate-packing": "^0.0.75",
+    "graphics-debug": "^0.0.95"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
     "@react-hook/resize-observer": "^2.0.2",
@@ -23,9 +27,7 @@
     "@types/bun": "^1.3.14",
     "bun-match-svg": "^0.0.15",
     "bpc-graph": "^0.0.66",
-    "calculate-packing": "^0.0.75",
     "circuit-json": "^0.0.432",
-    "graphics-debug": "^0.0.95",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",
     "tscircuit": "^0.0.1891",
@@ -33,6 +35,7 @@
     "circuit-to-svg": "^0.0.351"
   },
   "peerDependencies": {
+    "@tscircuit/math-utils": "*",
     "typescript": "^5"
   }
 }
