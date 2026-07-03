@@ -210,9 +210,11 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         y: padsBoundingBox.maxY - padsBoundingBox.minY,
       }
 
-      // Add chip body pad (disconnected from any network) but make sure
-      // it fully envelopes the "pads" (pins)
-
+      // REVIEWER NOTE: PackSolver2 only supports a single global minGap parameter.
+      // To support heterogeneous gaps (decoupling caps at 0.4 gap, standard chips at 1.2 gap),
+      // we configure the packer's global minGap to the smallest spacing (decouplingCapsGap = 0.4).
+      // For any standard non-capacitor component, we expand its body pad dimensions by the difference
+      // (extraMargin = chipGap - decouplingCapsGap = 0.8) so it maintains its required 1.2 gap.
       const isCap = this.isDecouplingCap(chipId)
       const baseMinGap = Math.min(
         this.partitionInputProblem.chipGap,

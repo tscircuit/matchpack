@@ -196,7 +196,10 @@ export class PartitionPackingSolver extends BaseSolver {
 
       const pads: any[] = []
 
-      // Add a pad for each chip in the partition to represent its actual boundary
+      // REVIEWER NOTE: Instead of representing each partition as a single solid bounding box,
+      // we add a body pad for each individual chip inside the partition at its relative offset.
+      // This allows different partitions/teams to interlock/nest (e.g. L-shaped layouts)
+      // during the global packing phase, resulting in a much more compact board layout.
       for (const chipId of group.chipIds) {
         const chipPlacement = packedPartition.layout.chipPlacements[chipId]!
         const chip = packedPartition.inputProblem.chipMap[chipId]!

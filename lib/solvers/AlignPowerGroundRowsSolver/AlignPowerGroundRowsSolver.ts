@@ -109,7 +109,9 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     if (chipIds.length < 2) return
 
     const firstChipId = chipIds[0]
-    const firstChip = firstChipId ? this.inputProblem.chipMap[firstChipId] : null
+    const firstChip = firstChipId
+      ? this.inputProblem.chipMap[firstChipId]
+      : null
     const groupId = firstChip ? this.getAlignmentGroupId(firstChip) : null
 
     let gap = this.inputProblem.partitionGap
