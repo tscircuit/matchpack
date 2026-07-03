@@ -12,6 +12,7 @@ import type {
   PinId,
   ChipPin,
   PartitionInputProblem,
+  Chip,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
@@ -35,7 +36,114 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
   }
 
+  private getPinNetIds(pinId: string): string[] {
+    const netIds: string[] = []
+    for (const [connKey, connected] of Object.entries(
+      this.partitionInputProblem.netConnMap,
+    )) {
+      if (!connected) continue
+      if (!connKey.startsWith(`${pinId}-`)) continue
+      netIds.push(connKey.slice(pinId.length + 1))
+    }
+    return netIds
+  }
+
+  private isPowerGroundNet(netId: string): boolean {
+    const net = this.partitionInputProblem.netMap[netId]
+    return net?.isPositiveVoltageSource === true || net?.isGround === true
+  }
+
+  private getAlignmentGroupId(chip: Chip): string | null {
+    if (chip.fixedPosition || chip.pins.length !== 2) return null
+
+    const signalNetIds = new Set<string>()
+    let connectedPowerGroundPinCount = 0
+
+    for (const pinId of chip.pins) {
+      const pinNetIds = this.getPinNetIds(pinId)
+      if (pinNetIds.length === 0) return null
+
+      let pinHasPowerGroundNet = false
+      for (const netId of pinNetIds) {
+        if (this.isPowerGroundNet(netId)) {
+          pinHasPowerGroundNet = true
+        } else {
+          signalNetIds.add(netId)
+        }
+      }
+
+      if (pinHasPowerGroundNet) connectedPowerGroundPinCount++
+    }
+
+    if (connectedPowerGroundPinCount === 0) return null
+    if (signalNetIds.size === 0) return "power-ground"
+    if (signalNetIds.size === 1) return `signal:${[...signalNetIds][0]}`
+    return null
+  }
+
+  private isAlignmentRowPartition(): boolean {
+    const chips = Object.values(this.partitionInputProblem.chipMap)
+    if (chips.length < 2) return false
+
+    let commonGroupId: string | null = null
+    for (const chip of chips) {
+      const groupId = this.getAlignmentGroupId(chip)
+      if (!groupId) return false
+      if (commonGroupId === null) {
+        commonGroupId = groupId
+      } else if (commonGroupId !== groupId) {
+        return false
+      }
+    }
+    return true
+  }
+
+  private createAlignmentRowLayout(): OutputLayout {
+    const chipPlacements: Record<string, Placement> = {}
+    const chipIds = Object.keys(this.partitionInputProblem.chipMap)
+    const orderedChips = chipIds.map(
+      (id) => this.partitionInputProblem.chipMap[id]!,
+    )
+
+    let cursorX = 0
+    let gap = this.partitionInputProblem.chipGap
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      gap = this.partitionInputProblem.decouplingCapsGap ?? gap
+    }
+
+    for (const chip of orderedChips) {
+      const rotation = chip.availableRotations?.[0] ?? 0
+      const isRotated = rotation === 90 || rotation === 270
+      const width = isRotated ? chip.size.y : chip.size.x
+
+      const x = cursorX + width / 2
+      chipPlacements[chip.chipId] = {
+        x,
+        y: 0,
+        ccwRotationDegrees: rotation,
+      }
+
+      cursorX += width + gap
+    }
+
+    const rowWidth = cursorX - gap
+    for (const chip of orderedChips) {
+      chipPlacements[chip.chipId]!.x -= rowWidth / 2
+    }
+
+    return {
+      chipPlacements,
+      groupPlacements: {},
+    }
+  }
+
   override _step() {
+    if (this.isAlignmentRowPartition()) {
+      this.layout = this.createAlignmentRowLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const pinToNetworkMap = createFilteredNetworkMapping({
@@ -105,14 +213,24 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       // Add chip body pad (disconnected from any network) but make sure
       // it fully envelopes the "pads" (pins)
 
+      const isCap = this.isDecouplingCap(chipId)
+      const baseMinGap = Math.min(
+        this.partitionInputProblem.chipGap,
+        this.partitionInputProblem.decouplingCapsGap ?? 0.4,
+      )
+      const requiredGap = isCap
+        ? (this.partitionInputProblem.decouplingCapsGap ?? 0.4)
+        : this.partitionInputProblem.chipGap
+      const extraMargin = Math.max(0, requiredGap - baseMinGap)
+
       pads.push({
         padId: `${chipId}_body`,
         networkId: `${chipId}_body_disconnected`,
         type: "rect" as const,
         offset: { x: 0, y: 0 },
         size: {
-          x: Math.max(padsBoundingBoxSize.x, chip.size.x),
-          y: Math.max(padsBoundingBoxSize.y, chip.size.y),
+          x: Math.max(padsBoundingBoxSize.x, chip.size.x) + extraMargin,
+          y: Math.max(padsBoundingBoxSize.y, chip.size.y) + extraMargin,
         },
       })
 
@@ -129,17 +247,38 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     })
 
-    let minGap = this.partitionInputProblem.chipGap
-    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
-      minGap = this.partitionInputProblem.decouplingCapsGap ?? minGap
-    }
+    const baseMinGap = Math.min(
+      this.partitionInputProblem.chipGap,
+      this.partitionInputProblem.decouplingCapsGap ?? 0.4,
+    )
 
     return {
       components: packComponents,
-      minGap,
+      minGap: baseMinGap,
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_closest_sum_squared_distance",
     }
+  }
+
+  private isDecouplingCap(chipId: string): boolean {
+    const chip = this.partitionInputProblem.chipMap[chipId]
+    if (!chip || chip.pins.length !== 2) return false
+
+    let hasGround = false
+    let hasNonGround = false
+
+    for (const pinId of chip.pins) {
+      const nets = this.getPinNetIds(pinId)
+      for (const netId of nets) {
+        if (this.isPowerGroundNet(netId)) {
+          hasGround = true
+        } else {
+          hasNonGround = true
+        }
+      }
+    }
+
+    return hasGround && hasNonGround
   }
 
   private createLayoutFromPackingResult(

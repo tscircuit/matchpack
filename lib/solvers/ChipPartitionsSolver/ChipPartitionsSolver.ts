@@ -10,6 +10,7 @@ import type {
   PinId,
   NetId,
   PartitionInputProblem,
+  Chip,
 } from "lib/types/InputProblem"
 import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
@@ -39,9 +40,58 @@ export class ChipPartitionsSolver extends BaseSolver {
     this.solved = true
   }
 
+  private getPinNetIds(pinId: string, inputProblem: InputProblem): string[] {
+    const netIds: string[] = []
+    for (const [connKey, connected] of Object.entries(
+      inputProblem.netConnMap,
+    )) {
+      if (!connected) continue
+      if (!connKey.startsWith(`${pinId}-`)) continue
+      netIds.push(connKey.slice(pinId.length + 1))
+    }
+    return netIds
+  }
+
+  private isPowerGroundNet(netId: string, inputProblem: InputProblem): boolean {
+    const net = inputProblem.netMap[netId]
+    return net?.isPositiveVoltageSource === true || net?.isGround === true
+  }
+
+  private getAlignmentGroupId(
+    chip: Chip,
+    inputProblem: InputProblem,
+  ): string | null {
+    if (chip.fixedPosition || chip.pins.length !== 2) return null
+
+    const signalNetIds = new Set<string>()
+    let connectedPowerGroundPinCount = 0
+
+    for (const pinId of chip.pins) {
+      const pinNetIds = this.getPinNetIds(pinId, inputProblem)
+      if (pinNetIds.length === 0) return null
+
+      let pinHasPowerGroundNet = false
+      for (const netId of pinNetIds) {
+        if (this.isPowerGroundNet(netId, inputProblem)) {
+          pinHasPowerGroundNet = true
+        } else {
+          signalNetIds.add(netId)
+        }
+      }
+
+      if (pinHasPowerGroundNet) connectedPowerGroundPinCount++
+    }
+
+    if (connectedPowerGroundPinCount === 0) return null
+    if (signalNetIds.size === 0) return "power-ground"
+    if (signalNetIds.size === 1) return `signal:${[...signalNetIds][0]}`
+    return null
+  }
+
   /**
    * Creates partitions by:
    * - Separating each decoupling capacitor group into its own partition (caps only, excluding the main chip)
+   * - Grouping remaining passive aligned components (e.g. sharing power/ground or same net) into their own partitions
    * - Partitioning remaining chips by connected components through strong pin connections
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
@@ -70,8 +120,37 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
-    // 2) Build adjacency graph for NON-decap chips based on strong pin connections
-    const nonDecapChipIds = chipIds.filter((id) => !decapChipIdSet.has(id))
+    // Find and group aligned passive components
+    const alignmentGroupMap = new Map<string, ChipId[]>()
+    for (const chipId of chipIds) {
+      if (decapChipIdSet.has(chipId)) continue
+
+      const chip = inputProblem.chipMap[chipId]
+      if (!chip) continue
+
+      const alignGroupId = this.getAlignmentGroupId(chip, inputProblem)
+      if (alignGroupId) {
+        const groupChips = alignmentGroupMap.get(alignGroupId) ?? []
+        groupChips.push(chipId)
+        alignmentGroupMap.set(alignGroupId, groupChips)
+      }
+    }
+
+    const alignedGroupPartitions: ChipId[][] = []
+    const alignedChipIdSet = new Set<ChipId>()
+    for (const [groupId, groupChips] of alignmentGroupMap.entries()) {
+      if (groupChips.length >= 2) {
+        alignedGroupPartitions.push(groupChips)
+        for (const chipId of groupChips) {
+          alignedChipIdSet.add(chipId)
+        }
+      }
+    }
+
+    // 2) Build adjacency graph for remaining NON-decap/NON-aligned chips based on strong pin connections
+    const nonDecapChipIds = chipIds.filter(
+      (id) => !decapChipIdSet.has(id) && !alignedChipIdSet.has(id),
+    )
     const adjacencyMap = new Map<ChipId, Set<ChipId>>()
 
     // Initialize adjacency map for non-decap chips
@@ -79,7 +158,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       adjacencyMap.set(chipId, new Set())
     }
 
-    // Add edges based on strong pin connections, but exclude any edges touching decap chips
+    // Add edges based on strong pin connections, but exclude any edges touching decap/aligned chips
     for (const [connKey, isConnected] of Object.entries(
       inputProblem.pinStrongConnMap,
     )) {
@@ -91,20 +170,22 @@ export class ChipPartitionsSolver extends BaseSolver {
       const owner1 = this.findPinOwner(pin1Id!, inputProblem)
       const owner2 = this.findPinOwner(pin2Id!, inputProblem)
 
-      // Only connect non-decap chips
+      // Only connect remaining chips
       if (
         owner1 &&
         owner2 &&
         owner1 !== owner2 &&
         !decapChipIdSet.has(owner1) &&
-        !decapChipIdSet.has(owner2)
+        !decapChipIdSet.has(owner2) &&
+        !alignedChipIdSet.has(owner1) &&
+        !alignedChipIdSet.has(owner2)
       ) {
         adjacencyMap.get(owner1)!.add(owner2)
         adjacencyMap.get(owner2)!.add(owner1)
       }
     }
 
-    // 3) Find connected components among non-decap chips using DFS
+    // 3) Find connected components among remaining chips using DFS
     const visited = new Set<ChipId>()
     const nonDecapPartitions: ChipId[][] = []
 
@@ -123,6 +204,16 @@ export class ChipPartitionsSolver extends BaseSolver {
           partitionType: "decoupling_caps",
         }),
       ),
+      ...alignedGroupPartitions.map((partition) => {
+        const firstChip = inputProblem.chipMap[partition[0]!]
+        const alignGroupId = firstChip
+          ? this.getAlignmentGroupId(firstChip, inputProblem)
+          : null
+        const isPowerGround = alignGroupId === "power-ground"
+        return this.createInputProblemFromPartition(partition, inputProblem, {
+          partitionType: isPowerGround ? "decoupling_caps" : "default",
+        })
+      }),
       ...nonDecapPartitions.map((partition) =>
         this.createInputProblemFromPartition(partition, inputProblem),
       ),

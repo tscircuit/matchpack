@@ -47,20 +47,15 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     this.queuedChips = Object.values(inputProblem.chipMap)
   }
 
-  /** Determine if chip is a 2-pin component with restricted rotation */
+  /** Determine if chip is a 2-pin decoupling capacitor candidate */
   private isTwoPinRestrictedRotation(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
-
-    // Must be restricted to 0/180 or a single fixed orientation
-    if (!chip.availableRotations) return false
-    const allowed = new Set<0 | 180>([0, 180])
-    return (
-      chip.availableRotations.length > 0 &&
-      chip.availableRotations.every((r) => allowed.has(r as 0 | 180))
-    )
+    // NOTE: We no longer restrict availableRotations to [0, 180]. Decoupling capacitors
+    // can be oriented vertically (e.g. at 90 or 270 degrees) next to vertical chip rails.
+    return true
   }
 
-  /** Check that the two pins are on opposite Y sides (y+ and y-) */
+  /** Check that the two pins are on opposite Y sides (y+ and y-) or X sides (x+ and x-) */
   private pinsOnOppositeYSides(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
     const [p1, p2] = chip.pins
@@ -68,7 +63,10 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const cp2 = this.inputProblem.chipPinMap[p2!]
     if (!cp1 || !cp2) return false
     const sides = new Set([cp1.side, cp2.side])
-    return sides.has("y+") && sides.has("y-")
+    return (
+      (sides.has("y+") && sides.has("y-")) ||
+      (sides.has("x+") && sides.has("x-"))
+    )
   }
 
   /** Get chips strongly connected (direct pin-to-pin) to this pin */
@@ -187,14 +185,11 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const netPair = this.getNormalizedNetPair(currentChip)
     if (!netPair) return
 
-    // Ensure the net pair corresponds to a true decoupling capacitor:
-    // one net must be ground and the other a positive voltage source
     const [n1, n2] = netPair
     const net1 = this.inputProblem.netMap[n1]
     const net2 = this.inputProblem.netMap[n2]
     const isDecouplingNetPair =
-      (net1?.isGround && net2?.isPositiveVoltageSource) ||
-      (net2?.isGround && net1?.isPositiveVoltageSource)
+      (net1?.isGround && !net2?.isGround) || (net2?.isGround && !net1?.isGround)
     if (!isDecouplingNetPair) return
 
     this.addToGroup(mainChipId, netPair, currentChip.chipId)
