@@ -106,7 +106,10 @@ export class ChipPartitionsSolver extends BaseSolver {
           const isTwoPinCapacitor =
             chipId.toLowerCase().startsWith("c") && chip.pins.length === 2
 
-          if (!isTwoPinCapacitor || group.decouplingCapChipIds.includes(chipId)) {
+          if (
+            !isTwoPinCapacitor ||
+            group.decouplingCapChipIds.includes(chipId)
+          ) {
             continue
           }
 
@@ -163,8 +166,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       const alignGroupId = this.getAlignmentGroupId(chip, inputProblem)
       if (alignGroupId) {
         const isDecap =
-          chipId.toLowerCase().startsWith("c") ||
-          decapCapChipIds.has(chipId)
+          chipId.toLowerCase().startsWith("c") || decapCapChipIds.has(chipId)
         if (!isDecap) continue
 
         const groupChips = alignmentGroupMap.get(alignGroupId) ?? []
