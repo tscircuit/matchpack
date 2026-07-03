@@ -2,101 +2,66 @@
   "chipMap": {
     "C1": {
       "chipId": "C1",
-      "pins": [
-        "C1.1",
-        "C1.2"
-      ],
+      "pins": ["C1.1", "C1.2"],
       "size": {
         "x": 1.1,
         "y": 1.24
       },
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "C2": {
       "chipId": "C2",
-      "pins": [
-        "C2.1",
-        "C2.2"
-      ],
+      "pins": ["C2.1", "C2.2"],
       "size": {
         "x": 1.1,
         "y": 1.24
       },
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "R1": {
       "chipId": "R1",
-      "pins": [
-        "R1.1",
-        "R1.2"
-      ],
+      "pins": ["R1.1", "R1.2"],
       "size": {
         "x": 1.1,
         "y": 0.778910699999999
       },
-      "availableRotations": [
-        90
-      ]
+      "availableRotations": [90]
     },
     "R2": {
       "chipId": "R2",
-      "pins": [
-        "R2.1",
-        "R2.2"
-      ],
+      "pins": ["R2.1", "R2.2"],
       "size": {
         "x": 1.1,
         "y": 0.778910699999999
       },
-      "availableRotations": [
-        90
-      ]
+      "availableRotations": [90]
     },
     "R3": {
       "chipId": "R3",
-      "pins": [
-        "R3.1",
-        "R3.2"
-      ],
+      "pins": ["R3.1", "R3.2"],
       "size": {
         "x": 1.1,
         "y": 0.778910699999999
       },
-      "availableRotations": [
-        90
-      ]
+      "availableRotations": [90]
     },
     "R4": {
       "chipId": "R4",
-      "pins": [
-        "R4.1",
-        "R4.2"
-      ],
+      "pins": ["R4.1", "R4.2"],
       "size": {
         "x": 1.1,
         "y": 0.778910699999999
       },
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "LED1": {
       "chipId": "LED1",
-      "pins": [
-        "LED1.1",
-        "LED1.2"
-      ],
+      "pins": ["LED1.1", "LED1.2"],
       "size": {
         "x": 1.13,
         "y": 0.915
       },
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     }
   },
   "chipPinMap": {
