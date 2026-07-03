@@ -115,7 +115,8 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     const groupId = firstChip ? this.getAlignmentGroupId(firstChip) : null
 
     let gap = this.inputProblem.partitionGap
-    if (groupId === "power-ground") {
+    const isDecap = firstChipId?.toLowerCase().startsWith("c")
+    if (groupId === "power-ground" && isDecap) {
       gap = this.inputProblem.decouplingCapsGap ?? 0.4
     }
 

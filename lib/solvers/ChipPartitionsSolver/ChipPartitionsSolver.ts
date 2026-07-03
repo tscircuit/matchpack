@@ -97,6 +97,15 @@ export class ChipPartitionsSolver extends BaseSolver {
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
 
+    const decapCapChipIds = new Set<ChipId>()
+    if (this.decouplingCapGroups) {
+      for (const group of this.decouplingCapGroups) {
+        for (const capId of group.decouplingCapChipIds) {
+          decapCapChipIds.add(capId)
+        }
+      }
+    }
+
     // 1) Build decoupling-cap-only partitions (exclude the main chip for each group)
     const decapChipIdSet = new Set<ChipId>()
     const decapGroupPartitions: ChipId[][] = []
@@ -130,6 +139,11 @@ export class ChipPartitionsSolver extends BaseSolver {
 
       const alignGroupId = this.getAlignmentGroupId(chip, inputProblem)
       if (alignGroupId) {
+        const isDecap =
+          chipId.toLowerCase().startsWith("c") ||
+          decapCapChipIds.has(chipId)
+        if (!isDecap) continue
+
         const groupChips = alignmentGroupMap.get(alignGroupId) ?? []
         groupChips.push(chipId)
         alignmentGroupMap.set(alignGroupId, groupChips)
@@ -209,7 +223,9 @@ export class ChipPartitionsSolver extends BaseSolver {
         const alignGroupId = firstChip
           ? this.getAlignmentGroupId(firstChip, inputProblem)
           : null
-        const isPowerGround = alignGroupId === "power-ground"
+        const isPowerGround =
+          alignGroupId === "power-ground" &&
+          partition[0]!.toLowerCase().startsWith("c")
         return this.createInputProblemFromPartition(partition, inputProblem, {
           partitionType: isPowerGround ? "decoupling_caps" : "default",
         })
