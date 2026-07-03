@@ -193,38 +193,19 @@ export class PartitionPackingSolver extends BaseSolver {
       const partitionHeight = group.bounds.maxY - group.bounds.minY
       const centerX = (group.bounds.minX + group.bounds.maxX) / 2
       const centerY = (group.bounds.minY + group.bounds.maxY) / 2
-
-      const pads: any[] = []
-
-      // REVIEWER NOTE: Instead of representing each partition as a single solid bounding box,
-      // we add a body pad for each individual chip inside the partition at its relative offset.
-      // This allows different partitions/teams to interlock/nest (e.g. L-shaped layouts)
-      // during the global packing phase, resulting in a much more compact board layout.
-      for (const chipId of group.chipIds) {
-        const chipPlacement = packedPartition.layout.chipPlacements[chipId]!
-        const chip = packedPartition.inputProblem.chipMap[chipId]!
-
-        let chipWidth = chip.size.x
-        let chipHeight = chip.size.y
-        const rotation = chipPlacement.ccwRotationDegrees ?? 0
-        if (rotation === 90 || rotation === 270) {
-          ;[chipWidth, chipHeight] = [chipHeight, chipWidth]
-        }
-
-        pads.push({
-          padId: `partition_${group.partitionIndex}_chip_${chipId}`,
+      // Start with the partition body pad
+      const pads = [
+        {
+          padId: `partition_${group.partitionIndex}_body`,
           networkId: `partition_${group.partitionIndex}_disconnected`,
           type: "rect" as const,
-          offset: {
-            x: chipPlacement.x - centerX,
-            y: chipPlacement.y - centerY,
-          },
+          offset: { x: 0, y: 0 },
           size: {
-            x: Math.max(chipWidth, 0.1),
-            y: Math.max(chipHeight, 0.1),
+            x: Math.max(partitionWidth, 0.1),
+            y: Math.max(partitionHeight, 0.1),
           },
-        })
-      }
+        },
+      ]
 
       // Add all pins from this partition as pads
       const addedNetworks = new Set<string>()
