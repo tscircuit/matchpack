@@ -219,14 +219,19 @@ export class ChipPartitionsSolver extends BaseSolver {
       ),
       ...alignedGroupPartitions.map((partition) => {
         const firstChip = inputProblem.chipMap[partition[0]!]
-        const alignGroupId = firstChip
-          ? this.getAlignmentGroupId(firstChip, inputProblem)
-          : null
+        let alignGroupId = null
+        if (firstChip) {
+          alignGroupId = this.getAlignmentGroupId(firstChip, inputProblem)
+        }
         const isPowerGround =
           alignGroupId === "power-ground" &&
           partition[0]!.toLowerCase().startsWith("c")
+        let partitionType: "decoupling_caps" | "default" = "default"
+        if (isPowerGround) {
+          partitionType = "decoupling_caps"
+        }
         return this.createInputProblemFromPartition(partition, inputProblem, {
-          partitionType: isPowerGround ? "decoupling_caps" : "default",
+          partitionType,
         })
       }),
       ...nonDecapPartitions.map((partition) =>

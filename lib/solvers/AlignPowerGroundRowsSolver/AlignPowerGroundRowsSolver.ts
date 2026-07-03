@@ -109,10 +109,14 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     if (chipIds.length < 2) return
 
     const firstChipId = chipIds[0]
-    const firstChip = firstChipId
-      ? this.inputProblem.chipMap[firstChipId]
-      : null
-    const groupId = firstChip ? this.getAlignmentGroupId(firstChip) : null
+    let firstChip = null
+    if (firstChipId) {
+      firstChip = this.inputProblem.chipMap[firstChipId]
+    }
+    let groupId = null
+    if (firstChip) {
+      groupId = this.getAlignmentGroupId(firstChip)
+    }
 
     let gap = this.inputProblem.partitionGap
     const isDecap = firstChipId?.toLowerCase().startsWith("c")
@@ -193,8 +197,12 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
 
         const rotation = placement.ccwRotationDegrees ?? 0
         const isRotated = rotation === 90 || rotation === 270
-        const width = isRotated ? chip.size.y : chip.size.x
-        const height = isRotated ? chip.size.x : chip.size.y
+        let width = chip.size.x
+        let height = chip.size.y
+        if (isRotated) {
+          width = chip.size.y
+          height = chip.size.x
+        }
 
         minX = Math.min(minX, placement.x - width / 2)
         maxX = Math.max(maxX, placement.x + width / 2)

@@ -114,7 +114,10 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     for (const chip of orderedChips) {
       const rotation = chip.availableRotations?.[0] ?? 0
       const isRotated = rotation === 90 || rotation === 270
-      const width = isRotated ? chip.size.y : chip.size.x
+      let width = chip.size.x
+      if (isRotated) {
+        width = chip.size.y
+      }
 
       const x = cursorX + width / 2
       chipPlacements[chip.chipId] = {
@@ -219,9 +222,10 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
         this.partitionInputProblem.chipGap,
         this.partitionInputProblem.decouplingCapsGap ?? 0.4,
       )
-      const requiredGap = isCap
-        ? (this.partitionInputProblem.decouplingCapsGap ?? 0.4)
-        : this.partitionInputProblem.chipGap
+      let requiredGap = this.partitionInputProblem.chipGap
+      if (isCap) {
+        requiredGap = this.partitionInputProblem.decouplingCapsGap ?? 0.4
+      }
       const extraMargin = Math.max(0, requiredGap - baseMinGap)
 
       pads.push({
