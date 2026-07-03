@@ -104,8 +104,14 @@ export class PartitionPackingSolver extends BaseSolver {
         packedPartition.inputProblem.netConnMap,
       )) {
         if (!connected) continue
-        const [pinId, netId] = connKey.split("-")
-        if (pinId && netId) pinToNetworkMap.set(pinId, netId)
+        const dashIdx = connKey.indexOf("-")
+        if (dashIdx === -1) continue
+        const pinId = connKey.slice(0, dashIdx)
+        const netId = connKey.slice(dashIdx + 1)
+
+        if (pinId && netId) {
+          pinToNetworkMap.set(pinId, netId)
+        }
       }
       for (const [connKey, connected] of Object.entries(
         packedPartition.inputProblem.pinStrongConnMap,

@@ -100,32 +100,6 @@ export class ChipPartitionsSolver extends BaseSolver {
     const decapCapChipIds = new Set<ChipId>()
     if (this.decouplingCapGroups) {
       for (const group of this.decouplingCapGroups) {
-        const [netA, netB] = group.netPair
-        for (const chipId of chipIds) {
-          const chip = inputProblem.chipMap[chipId]!
-          const isTwoPinCapacitor =
-            chipId.toLowerCase().startsWith("c") && chip.pins.length === 2
-
-          if (
-            !isTwoPinCapacitor ||
-            group.decouplingCapChipIds.includes(chipId)
-          ) {
-            continue
-          }
-
-          // Check if this capacitor connects to both power and ground nets of the group
-          const connectsToNetA = chip.pins.some((pinId) =>
-            this.getPinNetIds(pinId, inputProblem).includes(netA),
-          )
-          const connectsToNetB = chip.pins.some((pinId) =>
-            this.getPinNetIds(pinId, inputProblem).includes(netB),
-          )
-
-          if (connectsToNetA && connectsToNetB) {
-            group.decouplingCapChipIds.push(chipId)
-          }
-        }
-
         for (const capId of group.decouplingCapChipIds) {
           decapCapChipIds.add(capId)
         }
