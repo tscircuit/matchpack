@@ -156,6 +156,96 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     }
   }
 
+  private resolveVerticalOverlaps(
+    chipPlacements: Record<string, Placement>,
+  ): void {
+    const chipIds = Object.keys(this.inputProblem.chipMap)
+    if (chipIds.length === 0) return
+
+    const alignmentGroups = this.getAlignmentGroups() || []
+
+    const chipToGroupMap = new Map<string, string[]>()
+    for (const group of alignmentGroups) {
+      for (const id of group.chipIds) {
+        chipToGroupMap.set(id, group.chipIds)
+      }
+    }
+
+    const distinctGroups: string[][] = []
+    const visitedChips = new Set<string>()
+
+    for (const chipId of chipIds) {
+      if (visitedChips.has(chipId)) continue
+      const group = chipToGroupMap.get(chipId) || [chipId]
+      distinctGroups.push(group)
+      for (const id of group) {
+        visitedChips.add(id)
+      }
+    }
+
+    const groupProperties = distinctGroups.map((groupChips) => {
+      let minX = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
+      let minY = Infinity
+      let maxChipHeight = 0
+
+      for (const chipId of groupChips) {
+        const placement = chipPlacements[chipId]!
+        const chip = this.inputProblem.chipMap[chipId]!
+
+        let chipWidth = chip.size.x
+        let chipHeight = chip.size.y
+        const rotation = placement.ccwRotationDegrees ?? 0
+        if (rotation === 90 || rotation === 270) {
+          ;[chipWidth, chipHeight] = [chipHeight, chipWidth]
+        }
+
+        minX = Math.min(minX, placement.x - chipWidth / 2)
+        maxX = Math.max(maxX, placement.x + chipWidth / 2)
+        maxChipHeight = Math.max(maxChipHeight, chipHeight)
+      }
+
+      const currentY = chipPlacements[groupChips[0]!]!.y
+
+      return {
+        chipIds: groupChips,
+        minX,
+        maxX,
+        height: maxChipHeight,
+        y: currentY,
+      }
+    })
+
+    groupProperties.sort((a, b) => b.y - a.y)
+
+    for (let i = 0; i < groupProperties.length; i++) {
+      const groupA = groupProperties[i]!
+
+      for (let j = 0; j < i; j++) {
+        const groupB = groupProperties[j]!
+
+        const horizontalOverlap =
+          groupA.maxX > groupB.minX && groupA.minX < groupB.maxX
+        if (!horizontalOverlap) continue
+
+        const requiredGap = this.inputProblem.partitionGap
+
+        const minY_B = groupB.y - groupB.height / 2
+        const maxY_A = groupA.y + groupA.height / 2
+
+        const currentVerticalGap = minY_B - maxY_A
+        if (currentVerticalGap < requiredGap) {
+          const overlapAmt = requiredGap - currentVerticalGap
+          groupA.y -= overlapAmt
+          for (const id of groupA.chipIds) {
+            chipPlacements[id]!.y -= overlapAmt
+          }
+        }
+      }
+    }
+  }
+
   private createAlignedLayout(): OutputLayout | null {
     const groups = this.getAlignmentGroups()
     if (!groups) return null
@@ -167,6 +257,8 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     for (const group of groups) {
       this.alignGroup(chipPlacements, group.chipIds)
     }
+
+    this.resolveVerticalOverlaps(chipPlacements)
 
     return {
       chipPlacements,
