@@ -194,19 +194,34 @@ export class PartitionPackingSolver extends BaseSolver {
       const centerX = (group.bounds.minX + group.bounds.maxX) / 2
       const centerY = (group.bounds.minY + group.bounds.maxY) / 2
 
-      // Start with the partition body pad
-      const pads = [
-        {
-          padId: `partition_${group.partitionIndex}_body`,
+      const pads: any[] = []
+
+      // Add a pad for each chip in the partition to represent its actual boundary
+      for (const chipId of group.chipIds) {
+        const chipPlacement = packedPartition.layout.chipPlacements[chipId]!
+        const chip = packedPartition.inputProblem.chipMap[chipId]!
+
+        let chipWidth = chip.size.x
+        let chipHeight = chip.size.y
+        const rotation = chipPlacement.ccwRotationDegrees ?? 0
+        if (rotation === 90 || rotation === 270) {
+          ;[chipWidth, chipHeight] = [chipHeight, chipWidth]
+        }
+
+        pads.push({
+          padId: `partition_${group.partitionIndex}_chip_${chipId}`,
           networkId: `partition_${group.partitionIndex}_disconnected`,
           type: "rect" as const,
-          offset: { x: 0, y: 0 },
-          size: {
-            x: Math.max(partitionWidth, 0.1),
-            y: Math.max(partitionHeight, 0.1),
+          offset: {
+            x: chipPlacement.x - centerX,
+            y: chipPlacement.y - centerY,
           },
-        },
-      ]
+          size: {
+            x: Math.max(chipWidth, 0.1),
+            y: Math.max(chipHeight, 0.1),
+          },
+        })
+      }
 
       // Add all pins from this partition as pads
       const addedNetworks = new Set<string>()

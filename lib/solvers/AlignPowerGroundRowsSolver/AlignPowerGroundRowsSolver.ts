@@ -108,6 +108,15 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
   ): void {
     if (chipIds.length < 2) return
 
+    const firstChipId = chipIds[0]
+    const firstChip = firstChipId ? this.inputProblem.chipMap[firstChipId] : null
+    const groupId = firstChip ? this.getAlignmentGroupId(firstChip) : null
+
+    let gap = this.inputProblem.partitionGap
+    if (groupId === "power-ground") {
+      gap = this.inputProblem.decouplingCapsGap ?? 0.4
+    }
+
     let cursorX = 0
     const rowY =
       chipIds.reduce(
@@ -135,10 +144,10 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
         ccwRotationDegrees: originalPlacement.ccwRotationDegrees,
       }
 
-      cursorX += width + this.inputProblem.partitionGap
+      cursorX += width + gap
     }
 
-    const rowWidth = cursorX - this.inputProblem.partitionGap
+    const rowWidth = cursorX - gap
     for (const chipId of chipIds) {
       chipPlacements[chipId]!.x += rowCenterX - rowWidth / 2
     }
