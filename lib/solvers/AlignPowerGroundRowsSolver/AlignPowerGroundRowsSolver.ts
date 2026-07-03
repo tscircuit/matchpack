@@ -164,46 +164,41 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
 
     const alignmentGroups = this.getAlignmentGroups() || []
 
-    const chipToGroupMap = new Map<string, string[]>()
+    // 1) Group chips: Aligned rows form their own groups; standalone chips form single-chip groups.
+    const distinctGroups: string[][] = []
+    const visited = new Set<string>()
+
     for (const group of alignmentGroups) {
+      distinctGroups.push([...group.chipIds])
       for (const id of group.chipIds) {
-        chipToGroupMap.set(id, group.chipIds)
+        visited.add(id)
       }
     }
-
-    const distinctGroups: string[][] = []
-    const visitedChips = new Set<string>()
 
     for (const chipId of chipIds) {
-      if (visitedChips.has(chipId)) continue
-      const group = chipToGroupMap.get(chipId) || [chipId]
-      distinctGroups.push(group)
-      for (const id of group) {
-        visitedChips.add(id)
+      if (!visited.has(chipId)) {
+        distinctGroups.push([chipId])
       }
     }
 
+    // 2) Compute horizontal ranges, max height, and current Y center for each group
     const groupProperties = distinctGroups.map((groupChips) => {
       let minX = Infinity
       let maxX = -Infinity
-      let maxY = -Infinity
-      let minY = Infinity
       let maxChipHeight = 0
 
       for (const chipId of groupChips) {
         const placement = chipPlacements[chipId]!
         const chip = this.inputProblem.chipMap[chipId]!
 
-        let chipWidth = chip.size.x
-        let chipHeight = chip.size.y
         const rotation = placement.ccwRotationDegrees ?? 0
-        if (rotation === 90 || rotation === 270) {
-          ;[chipWidth, chipHeight] = [chipHeight, chipWidth]
-        }
+        const isRotated = rotation === 90 || rotation === 270
+        const width = isRotated ? chip.size.y : chip.size.x
+        const height = isRotated ? chip.size.x : chip.size.y
 
-        minX = Math.min(minX, placement.x - chipWidth / 2)
-        maxX = Math.max(maxX, placement.x + chipWidth / 2)
-        maxChipHeight = Math.max(maxChipHeight, chipHeight)
+        minX = Math.min(minX, placement.x - width / 2)
+        maxX = Math.max(maxX, placement.x + width / 2)
+        maxChipHeight = Math.max(maxChipHeight, height)
       }
 
       const currentY = chipPlacements[groupChips[0]!]!.y
@@ -217,29 +212,32 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
       }
     })
 
+    // 3) Sort groups from top to bottom (highest Y first)
     groupProperties.sort((a, b) => b.y - a.y)
 
+    // 4) Resolve vertical row overlaps top-to-bottom
     for (let i = 0; i < groupProperties.length; i++) {
       const groupA = groupProperties[i]!
 
       for (let j = 0; j < i; j++) {
         const groupB = groupProperties[j]!
 
-        const horizontalOverlap =
+        const hasHorizontalOverlap =
           groupA.maxX > groupB.minX && groupA.minX < groupB.maxX
-        if (!horizontalOverlap) continue
+        if (!hasHorizontalOverlap) {
+          continue
+        }
 
         const requiredGap = this.inputProblem.partitionGap
+        const bottomOfB = groupB.y - groupB.height / 2
+        const topOfA = groupA.y + groupA.height / 2
 
-        const minY_B = groupB.y - groupB.height / 2
-        const maxY_A = groupA.y + groupA.height / 2
-
-        const currentVerticalGap = minY_B - maxY_A
-        if (currentVerticalGap < requiredGap) {
-          const overlapAmt = requiredGap - currentVerticalGap
-          groupA.y -= overlapAmt
+        const currentGap = bottomOfB - topOfA
+        if (currentGap < requiredGap) {
+          const shiftAmt = requiredGap - currentGap
+          groupA.y -= shiftAmt
           for (const id of groupA.chipIds) {
-            chipPlacements[id]!.y -= overlapAmt
+            chipPlacements[id]!.y -= shiftAmt
           }
         }
       }
