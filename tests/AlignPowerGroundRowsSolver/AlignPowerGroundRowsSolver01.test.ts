@@ -59,9 +59,9 @@ const getSignalGroupedInputProblem = (): InputProblem => {
 const getSignalGroupedInputLayout = (): OutputLayout => ({
   chipPlacements: {
     R1: { x: -1, y: 0, ccwRotationDegrees: 270 },
-    R2: { x: 0, y: -1, ccwRotationDegrees: 270 },
-    S1: { x: 1, y: -2, ccwRotationDegrees: 0 },
-    S2: { x: 0, y: -3, ccwRotationDegrees: 0 },
+    R2: { x: 0, y: -2, ccwRotationDegrees: 270 },
+    S1: { x: 1, y: -3, ccwRotationDegrees: 0 },
+    S2: { x: 0, y: -5, ccwRotationDegrees: 0 },
   },
   groupPlacements: {},
 })

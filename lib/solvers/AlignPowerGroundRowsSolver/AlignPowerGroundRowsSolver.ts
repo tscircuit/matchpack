@@ -126,7 +126,10 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
       const isRotated =
         originalPlacement.ccwRotationDegrees === 90 ||
         originalPlacement.ccwRotationDegrees === 270
-      const width = isRotated ? chip.size.y : chip.size.x
+      let width = chip.size.x
+      if (isRotated) {
+        width = chip.size.y
+      }
       const x = cursorX + width / 2
 
       chipPlacements[chipId] = {
@@ -144,6 +147,57 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     }
   }
 
+  /**
+   * Row alignment is a final polish pass over an already-packed layout. It can
+   * improve readability, but it must not create a new physical collision between
+   * chip rectangles, so the aligned candidate is checked before it is accepted.
+   */
+  private hasChipOverlap(chipPlacements: Record<string, Placement>): boolean {
+    const chipIds = Object.keys(this.inputProblem.chipMap)
+
+    for (let i = 0; i < chipIds.length; i++) {
+      const chipIdA = chipIds[i]!
+      const chipA = this.inputProblem.chipMap[chipIdA]!
+      const placementA = chipPlacements[chipIdA]
+      if (!placementA) continue
+
+      const isRotatedA =
+        placementA.ccwRotationDegrees === 90 ||
+        placementA.ccwRotationDegrees === 270
+      let widthA = chipA.size.x
+      let heightA = chipA.size.y
+      if (isRotatedA) {
+        widthA = chipA.size.y
+        heightA = chipA.size.x
+      }
+
+      for (let j = i + 1; j < chipIds.length; j++) {
+        const chipIdB = chipIds[j]!
+        const chipB = this.inputProblem.chipMap[chipIdB]!
+        const placementB = chipPlacements[chipIdB]
+        if (!placementB) continue
+
+        const isRotatedB =
+          placementB.ccwRotationDegrees === 90 ||
+          placementB.ccwRotationDegrees === 270
+        let widthB = chipB.size.x
+        let heightB = chipB.size.y
+        if (isRotatedB) {
+          widthB = chipB.size.y
+          heightB = chipB.size.x
+        }
+
+        const overlapsX =
+          Math.abs(placementA.x - placementB.x) < (widthA + widthB) / 2
+        const overlapsY =
+          Math.abs(placementA.y - placementB.y) < (heightA + heightB) / 2
+        if (overlapsX && overlapsY) return true
+      }
+    }
+
+    return false
+  }
+
   private createAlignedLayout(): OutputLayout | null {
     const groups = this.getAlignmentGroups()
     if (!groups) return null
@@ -155,6 +209,8 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     for (const group of groups) {
       this.alignGroup(chipPlacements, group.chipIds)
     }
+
+    if (this.hasChipOverlap(chipPlacements)) return null
 
     return {
       chipPlacements,
