@@ -3,19 +3,34 @@
  * Divides the layout problem into manageable sections for more efficient processing.
  */
 
-import { BaseSolver } from "../BaseSolver"
-import type {
-  InputProblem,
-  ChipId,
-  PinId,
-  NetId,
-  PartitionInputProblem,
-} from "lib/types/InputProblem"
 import type { GraphicsObject } from "graphics-debug"
 import { stackGraphicsHorizontally } from "graphics-debug"
-import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
+import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
+import type {
+  Chip,
+  ChipId,
+  InputProblem,
+  NetId,
+  PartitionInputProblem,
+  PinId,
+} from "lib/types/InputProblem"
+import { BaseSolver } from "../BaseSolver"
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+
+const LARGE_CHIP_PIN_COUNT = 4
+const SMALL_SUPPORT_COMPONENT_MAX_PIN_COUNT = 3
+const SMALL_SUPPORT_COMPONENT_PREFIXES = new Set([
+  "R",
+  "C",
+  "L",
+  "D",
+  "LED",
+  "FB",
+  "F",
+  "SJ",
+  "JP",
+])
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -99,8 +114,13 @@ export class ChipPartitionsSolver extends BaseSolver {
         !decapChipIdSet.has(owner1) &&
         !decapChipIdSet.has(owner2)
       ) {
-        adjacencyMap.get(owner1)!.add(owner2)
-        adjacencyMap.get(owner2)!.add(owner1)
+        const chip1 = inputProblem.chipMap[owner1]!
+        const chip2 = inputProblem.chipMap[owner2]!
+
+        if (this.shouldConnectChipsInPartition(chip1, chip2)) {
+          adjacencyMap.get(owner1)!.add(owner2)
+          adjacencyMap.get(owner2)!.add(owner1)
+        }
       }
     }
 
@@ -148,6 +168,33 @@ export class ChipPartitionsSolver extends BaseSolver {
     }
 
     return null
+  }
+
+  private shouldConnectChipsInPartition(chip1: Chip, chip2: Chip): boolean {
+    const chip1IsLarge = chip1.pins.length >= LARGE_CHIP_PIN_COUNT
+    const chip2IsLarge = chip2.pins.length >= LARGE_CHIP_PIN_COUNT
+    const chip1IsSmallSupport = this.isSmallSupportComponent(chip1)
+    const chip2IsSmallSupport = this.isSmallSupportComponent(chip2)
+
+    return !(
+      (chip1IsLarge && chip2IsSmallSupport) ||
+      (chip2IsLarge && chip1IsSmallSupport)
+    )
+  }
+
+  private isSmallSupportComponent(chip: Chip): boolean {
+    if (chip.pins.length > SMALL_SUPPORT_COMPONENT_MAX_PIN_COUNT) {
+      return false
+    }
+
+    const prefix = this.getRefdesPrefix(chip.chipId)
+    return prefix !== null && SMALL_SUPPORT_COMPONENT_PREFIXES.has(prefix)
+  }
+
+  private getRefdesPrefix(chipId: ChipId): string | null {
+    const name = chipId.split(/[/.]/).pop() ?? chipId
+    const match = name.toUpperCase().match(/^[A-Z]+/)
+    return match?.[0] ?? null
   }
 
   /**
