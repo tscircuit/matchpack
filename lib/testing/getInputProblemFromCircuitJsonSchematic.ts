@@ -85,6 +85,7 @@ export const getInputProblemFromCircuitJsonSchematic = (
         x: schematic_component.size?.width || 10,
         y: schematic_component.size?.height || 10,
       },
+      isCapacitor: source_component.ftype === "simple_capacitor",
     }
 
     // Create chipPinMap entries for each pin

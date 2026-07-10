@@ -74,7 +74,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C14": {
       "chipId": "C14",
@@ -83,7 +84,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C8": {
       "chipId": "C8",
@@ -92,7 +94,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C13": {
       "chipId": "C13",
@@ -101,7 +104,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C15": {
       "chipId": "C15",
@@ -110,7 +114,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C19": {
       "chipId": "C19",
@@ -119,7 +124,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C18": {
       "chipId": "C18",
@@ -128,7 +134,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C7": {
       "chipId": "C7",
@@ -137,7 +144,8 @@
         "x": 0.96,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C9": {
       "chipId": "C9",
@@ -146,7 +154,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C10": {
       "chipId": "C10",
@@ -155,7 +164,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C11": {
       "chipId": "C11",
@@ -164,7 +174,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     }
   },
   "chipPinMap": {

@@ -74,6 +74,7 @@ export const problem: InputProblem = {
     C12: {
       chipId: "C12",
       pins: ["C12.1", "C12.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -83,6 +84,7 @@ export const problem: InputProblem = {
     C14: {
       chipId: "C14",
       pins: ["C14.1", "C14.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -92,6 +94,7 @@ export const problem: InputProblem = {
     C8: {
       chipId: "C8",
       pins: ["C8.1", "C8.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -101,6 +104,7 @@ export const problem: InputProblem = {
     C13: {
       chipId: "C13",
       pins: ["C13.1", "C13.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -110,6 +114,7 @@ export const problem: InputProblem = {
     C15: {
       chipId: "C15",
       pins: ["C15.1", "C15.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -119,6 +124,7 @@ export const problem: InputProblem = {
     C19: {
       chipId: "C19",
       pins: ["C19.1", "C19.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -128,6 +134,7 @@ export const problem: InputProblem = {
     C18: {
       chipId: "C18",
       pins: ["C18.1", "C18.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -137,6 +144,7 @@ export const problem: InputProblem = {
     C7: {
       chipId: "C7",
       pins: ["C7.1", "C7.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -146,6 +154,7 @@ export const problem: InputProblem = {
     C9: {
       chipId: "C9",
       pins: ["C9.1", "C9.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -155,6 +164,7 @@ export const problem: InputProblem = {
     C10: {
       chipId: "C10",
       pins: ["C10.1", "C10.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,
@@ -164,6 +174,7 @@ export const problem: InputProblem = {
     C11: {
       chipId: "C11",
       pins: ["C11.1", "C11.2"],
+      isCapacitor: true,
       size: {
         x: 0.53,
         y: 1.06,

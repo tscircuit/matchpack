@@ -17,6 +17,10 @@ import type {
 import type { OutputLayout } from "../../types/OutputLayout"
 import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPackingSolver"
 import { ParallelAlignedPassiveSolver } from "./ParallelAlignedPassiveSolver"
+import {
+  DecouplingCapRowSolver,
+  canLayoutDecouplingCapRow,
+} from "./DecouplingCapRowSolver"
 import { findSameSidePassiveGroups } from "./findSameSidePassiveGroups"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
@@ -31,6 +35,7 @@ export type PackedPartition = {
 type InnerPartitionSolver =
   | SingleInnerPartitionPackingSolver
   | ParallelAlignedPassiveSolver
+  | DecouplingCapRowSolver
 
 /**
  * A partition-layout strategy, modelled on LayoutPipelineSolver's PipelineStep: a
@@ -63,6 +68,18 @@ function definePartitionSolverStrategy<
 }
 
 const PARTITION_SOLVER_STRATEGIES = [
+  definePartitionSolverStrategy(
+    "decouplingCapRowSolver",
+    DecouplingCapRowSolver,
+    canLayoutDecouplingCapRow,
+    (instance) => [
+      {
+        partitionInputProblem: instance.partitions[
+          instance.currentPartitionIndex
+        ]! as PartitionInputProblem,
+      },
+    ],
+  ),
   definePartitionSolverStrategy(
     "parallelAlignedPassiveSolver",
     ParallelAlignedPassiveSolver,
