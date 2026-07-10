@@ -2,7 +2,8 @@
  * Identifies decoupling capacitor groups based on specific criteria:
  * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
  * 2. One pin indirectly connected to net with "y+" restriction, one to "y-" restriction
- * 3. At least one pin directly connected to another chip
+ * 3. It decouples a main chip, reached either by a direct pin-to-pin connection or by
+ *    the positive rail it shares with that chip's power pins
  */
 
 import type { GraphicsObject } from "graphics-debug"
@@ -18,6 +19,9 @@ import { getColorFromString } from "lib/utils/getColorFromString"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
+/** A decoupling cap is a passive; a chip with this many pins can never be one's main chip. */
+const PASSIVE_PIN_COUNT = 2
+
 export interface DecouplingCapGroup {
   decouplingCapGroupId: string
   mainChipId: ChipId
@@ -29,7 +33,9 @@ export interface DecouplingCapGroup {
  * Identify decoupling capacitor groups based on specific criteria:
  * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
  * 2. One pin indirectly connected to net with isGround and one to isPositiveVoltageSource
- * 3. At least one pin directly connected to a chip (the main chip, typically a microcontroller)
+ * 3. It decouples a main chip (typically a microcontroller) — one reached by a direct
+ *    pin-to-pin connection, or failing that the chip whose power pins share the cap's
+ *    positive rail. See findMainChipIdForCap.
  */
 export class IdentifyDecouplingCapsSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -49,7 +55,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   /** Determine if chip is a 2-pin component with restricted rotation */
   private isTwoPinRestrictedRotation(chip: Chip): boolean {
-    if (chip.pins.length !== 2) return false
+    if (chip.pins.length !== PASSIVE_PIN_COUNT) return false
 
     // Must be restricted to 0/180 or a single fixed orientation
     if (!chip.availableRotations) return false
@@ -62,7 +68,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   /** Check that the two pins are on opposite Y sides (y+ and y-) */
   private pinsOnOppositeYSides(chip: Chip): boolean {
-    if (chip.pins.length !== 2) return false
+    if (chip.pins.length !== PASSIVE_PIN_COUNT) return false
     const [p1, p2] = chip.pins
     const cp1 = this.inputProblem.chipPinMap[p1!]
     const cp2 = this.inputProblem.chipPinMap[p2!]
@@ -91,26 +97,107 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return neighbors
   }
 
-  /** Find the main chip id for a decoupling capacitor candidate */
-  private findMainChipIdForCap(capChip: Chip): ChipId | null {
+  /**
+   * Find the chip a decoupling capacitor belongs to.
+   *
+   * What makes a cap belong to a chip is that it bridges that chip's power rail
+   * and ground. A direct pin-to-pin connection is only one way the netlist can say
+   * so — `U3.DVDD1: ["C18.1", "net.V1_1"]` names the pin, while a bulk cap on the
+   * same rail (`C9.pin1: "net.V1_1"`) names only the net. Both decouple U3, so the
+   * rail is consulted when there is no pin-to-pin edge to follow. Otherwise a cap's
+   * grouping would depend on how its connection happened to be written.
+   */
+  private findMainChipIdForCap(
+    capChip: Chip,
+    netPair: [NetId, NetId],
+  ): ChipId | null {
+    return (
+      this.findStronglyConnectedMainChipId(capChip) ??
+      this.findRailSharingMainChipId(capChip, netPair)
+    )
+  }
+
+  /** The chip sharing the most direct pin-to-pin connections with the cap. */
+  private findStronglyConnectedMainChipId(capChip: Chip): ChipId | null {
     // Aggregate strong neighbors from both pins
-    const strongNeighbors = new Map<ChipId, number>()
+    const strongConnectionCounts = new Map<ChipId, number>()
     for (const pinId of capChip.pins) {
-      const neighbors = this.getStronglyConnectedNeighborChips(pinId)
-      for (const n of neighbors) {
-        if (n === capChip.chipId) continue
-        strongNeighbors.set(n, (strongNeighbors.get(n) || 0) + 1)
+      const neighborChipIds = this.getStronglyConnectedNeighborChips(pinId)
+      for (const neighborChipId of neighborChipIds) {
+        if (neighborChipId === capChip.chipId) continue
+        const strongConnectionCount =
+          strongConnectionCounts.get(neighborChipId) || 0
+        strongConnectionCounts.set(neighborChipId, strongConnectionCount + 1)
       }
     }
-    if (strongNeighbors.size === 0) return null
 
     // Choose the neighbor with the most connections (tie-breaker: lexicographic)
-    let best: { id: ChipId; score: number } | null = null
-    for (const [id, score] of strongNeighbors.entries()) {
-      if (!best || score > best.score || (score === best.score && id < best.id))
-        best = { id, score }
+    let mainChipId: ChipId | null = null
+    let mainChipConnectionCount = 0
+    for (const [chipId, strongConnectionCount] of strongConnectionCounts) {
+      if (strongConnectionCount < mainChipConnectionCount) continue
+      if (
+        mainChipId !== null &&
+        strongConnectionCount === mainChipConnectionCount &&
+        chipId > mainChipId
+      ) {
+        continue
+      }
+
+      mainChipId = chipId
+      mainChipConnectionCount = strongConnectionCount
     }
-    return best ? best.id : null
+    return mainChipId
+  }
+
+  /** How many of a chip's pins sit on a net */
+  private countChipPinsOnNet(chip: Chip, netId: NetId): number {
+    let pinsOnNet = 0
+    for (const pinId of chip.pins) {
+      if (this.getNetIdsForPin(pinId).has(netId)) pinsOnNet++
+    }
+    return pinsOnNet
+  }
+
+  /**
+   * The chip whose power pins sit on the cap's positive rail.
+   *
+   * Ground is not consulted because nearly every chip touches it. Passives on the
+   * rail are skipped as well: a cap does not decouple another cap, so only a chip
+   * can anchor a group. If two chips share a rail (say two MCUs on V3_3), the one
+   * drawing the most power pins from it is the one being decoupled.
+   */
+  private findRailSharingMainChipId(
+    capChip: Chip,
+    netPair: [NetId, NetId],
+  ): ChipId | null {
+    const powerNetId = netPair.find(
+      (netId) => this.inputProblem.netMap[netId]?.isPositiveVoltageSource,
+    )
+    if (!powerNetId) return null
+
+    // Choose the chip with the most power pins (tie-breaker: lexicographic)
+    let mainChipId: ChipId | null = null
+    let mainChipPowerPinCount = 0
+    for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
+      if (chipId === capChip.chipId) continue
+      if (chip.pins.length <= PASSIVE_PIN_COUNT) continue
+
+      const powerPinCount = this.countChipPinsOnNet(chip, powerNetId)
+      if (powerPinCount === 0) continue
+      if (powerPinCount < mainChipPowerPinCount) continue
+      if (
+        mainChipId !== null &&
+        powerPinCount === mainChipPowerPinCount &&
+        chipId > mainChipId
+      ) {
+        continue
+      }
+
+      mainChipId = chipId
+      mainChipPowerPinCount = powerPinCount
+    }
+    return mainChipId
   }
 
   /** Get all net IDs connected to a pin */
@@ -128,7 +215,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   /** Get a normalized, sorted pair of net IDs connected across the two pins of a capacitor chip */
   private getNormalizedNetPair(capChip: Chip): [NetId, NetId] | null {
-    if (capChip.pins.length !== 2) return null
+    if (capChip.pins.length !== PASSIVE_PIN_COUNT) return null
     const nets = new Set<NetId>()
     for (const pinId of capChip.pins) {
       const pinNets = this.getNetIdsForPin(pinId)
@@ -179,10 +266,6 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
     if (!isDecouplingCap) return
 
-    // Require at least one strong connection to another chip (main chip)
-    const mainChipId = this.findMainChipIdForCap(currentChip)
-    if (!mainChipId) return
-
     // Require a well-defined pair of nets across the two pins
     const netPair = this.getNormalizedNetPair(currentChip)
     if (!netPair) return
@@ -196,6 +279,11 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       (net1?.isGround && net2?.isPositiveVoltageSource) ||
       (net2?.isGround && net1?.isPositiveVoltageSource)
     if (!isDecouplingNetPair) return
+
+    // Require a chip for the cap to decouple, found by pin-to-pin connection or,
+    // for a cap wired only to the rail, by the rail itself
+    const mainChipId = this.findMainChipIdForCap(currentChip, netPair)
+    if (!mainChipId) return
 
     this.addToGroup(mainChipId, netPair, currentChip.chipId)
   }
