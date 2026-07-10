@@ -42,14 +42,12 @@ import type {
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 
-const PASSIVE_PIN_COUNT = 2
-
 /** Axis a 2-pin chip's pins run along, once its fixed rotation is applied. */
 const getPinAxis = (
   chip: Chip,
   problem: PartitionInputProblem,
 ): "x" | "y" | null => {
-  if (chip.pins.length !== PASSIVE_PIN_COUNT) return null
+  if (chip.pins.length !== 2) return null
 
   const [pinA, pinB] = chip.pins.map((pinId) => problem.chipPinMap[pinId])
   if (!pinA || !pinB) return null

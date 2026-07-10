@@ -11,7 +11,13 @@ export type Chip = {
   chipId: ChipId
   pins: PinId[]
   size: Point
-  isDecouplingCap?: boolean
+  /**
+   * Whether this chip is a capacitor (circuit-json ftype "simple_capacitor").
+   * A capacitor's *component type*, not its geometry: two pins bridging a power
+   * and a ground net also describes a TVS diode or a voltmeter, so decoupling-cap
+   * detection relies on this flag rather than pin count. See IdentifyDecouplingCapsSolver.
+   */
+  isCapacitor?: boolean
   availableRotations?: Array<0 | 90 | 180 | 270>
   fixedPosition?: Point
 }

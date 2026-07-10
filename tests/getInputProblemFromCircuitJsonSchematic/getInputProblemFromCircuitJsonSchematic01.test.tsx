@@ -14,6 +14,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
       "chipMap": {
         "C1": {
           "chipId": "C1",
+          "isCapacitor": true,
           "pins": [
             "C1.1",
             "C1.2",
@@ -25,6 +26,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "D1": {
           "chipId": "D1",
+          "isCapacitor": false,
           "pins": [
             "D1.1",
             "D1.2",
@@ -36,6 +38,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "I2C": {
           "chipId": "I2C",
+          "isCapacitor": false,
           "pins": [
             "I2C.1",
             "I2C.2",
@@ -48,6 +51,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "INT_JP": {
           "chipId": "INT_JP",
+          "isCapacitor": false,
           "pins": [
             "INT_JP.1",
             "INT_JP.2",
@@ -59,6 +63,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "J1": {
           "chipId": "J1",
+          "isCapacitor": false,
           "pins": [
             "J1.1",
             "J1.2",
@@ -72,6 +77,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "J2": {
           "chipId": "J2",
+          "isCapacitor": false,
           "pins": [
             "J2.1",
             "J2.2",
@@ -85,6 +91,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "J3": {
           "chipId": "J3",
+          "isCapacitor": false,
           "pins": [
             "J3.1",
             "J3.2",
@@ -100,6 +107,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "LED": {
           "chipId": "LED",
+          "isCapacitor": false,
           "pins": [
             "LED.1",
             "LED.2",
@@ -111,6 +119,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "Q1": {
           "chipId": "Q1",
+          "isCapacitor": false,
           "pins": [
             "Q1.1",
             "Q1.2",
@@ -123,6 +132,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "R2": {
           "chipId": "R2",
+          "isCapacitor": false,
           "pins": [
             "R2.1",
             "R2.2",
@@ -134,6 +144,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "R3": {
           "chipId": "R3",
+          "isCapacitor": false,
           "pins": [
             "R3.1",
             "R3.2",
@@ -145,6 +156,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "R4": {
           "chipId": "R4",
+          "isCapacitor": false,
           "pins": [
             "R4.1",
             "R4.2",
@@ -156,6 +168,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "R5": {
           "chipId": "R5",
+          "isCapacitor": false,
           "pins": [
             "R5.1",
             "R5.2",
@@ -167,6 +180,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "R7": {
           "chipId": "R7",
+          "isCapacitor": false,
           "pins": [
             "R7.1",
             "R7.2",
@@ -178,6 +192,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         },
         "U1": {
           "chipId": "U1",
+          "isCapacitor": false,
           "pins": [
             "U1.1",
             "U1.2",

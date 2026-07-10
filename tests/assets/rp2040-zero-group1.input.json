@@ -7,7 +7,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C1": {
       "chipId": "C1",
@@ -16,7 +17,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C2": {
       "chipId": "C2",
@@ -25,7 +27,8 @@
         "x": 1.08,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "C5": {
       "chipId": "C5",
@@ -34,7 +37,8 @@
         "x": 0.84,
         "y": 1.1
       },
-      "availableRotations": [0]
+      "availableRotations": [0],
+      "isCapacitor": true
     },
     "U1": {
       "chipId": "U1",

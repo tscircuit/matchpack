@@ -1,8 +1,10 @@
 /**
  * Identifies decoupling capacitor groups based on specific criteria:
- * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
- * 2. One pin indirectly connected to net with "y+" restriction, one to "y-" restriction
- * 3. It decouples a main chip, reached either by a direct pin-to-pin connection or by
+ * 1. The component is a capacitor (chip.isCapacitor) — a diode or voltmeter can share
+ *    a cap's geometry, so the component type is what qualifies it, not the pin count
+ * 2. It has exactly 2 pins and restricted rotation (0/180 only or no rotation)
+ * 3. One pin indirectly connected to a ground net, one to a positive voltage source
+ * 4. It decouples a main chip, reached either by a direct pin-to-pin connection or by
  *    the positive rail it shares with that chip's power pins
  */
 
@@ -19,9 +21,6 @@ import { getColorFromString } from "lib/utils/getColorFromString"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
-/** A decoupling cap is a passive; a chip with this many pins can never be one's main chip. */
-const PASSIVE_PIN_COUNT = 2
-
 export interface DecouplingCapGroup {
   decouplingCapGroupId: string
   mainChipId: ChipId
@@ -31,9 +30,12 @@ export interface DecouplingCapGroup {
 
 /**
  * Identify decoupling capacitor groups based on specific criteria:
- * 1. Component has exactly 2 pins and restricted rotation (0/180 only or no rotation)
- * 2. One pin indirectly connected to net with isGround and one to isPositiveVoltageSource
- * 3. It decouples a main chip (typically a microcontroller) — one reached by a direct
+ * 1. The component is a capacitor (chip.isCapacitor). Geometry alone is ambiguous —
+ *    a 2-pin part bridging power and ground could be a TVS diode or a voltmeter — so
+ *    the component type is what gates this, not the pin count.
+ * 2. It has exactly 2 pins with restricted rotation (0/180 only or no rotation)
+ * 3. One pin indirectly connected to a net with isGround and one to isPositiveVoltageSource
+ * 4. It decouples a main chip (typically a microcontroller) — one reached by a direct
  *    pin-to-pin connection, or failing that the chip whose power pins share the cap's
  *    positive rail. See findMainChipIdForCap.
  */
@@ -55,7 +57,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   /** Determine if chip is a 2-pin component with restricted rotation */
   private isTwoPinRestrictedRotation(chip: Chip): boolean {
-    if (chip.pins.length !== PASSIVE_PIN_COUNT) return false
+    if (chip.pins.length !== 2) return false
 
     // Must be restricted to 0/180 or a single fixed orientation
     if (!chip.availableRotations) return false
@@ -68,7 +70,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   /** Check that the two pins are on opposite Y sides (y+ and y-) */
   private pinsOnOppositeYSides(chip: Chip): boolean {
-    if (chip.pins.length !== PASSIVE_PIN_COUNT) return false
+    if (chip.pins.length !== 2) return false
     const [p1, p2] = chip.pins
     const cp1 = this.inputProblem.chipPinMap[p1!]
     const cp2 = this.inputProblem.chipPinMap[p2!]
@@ -162,10 +164,10 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   /**
    * The chip whose power pins sit on the cap's positive rail.
    *
-   * Ground is not consulted because nearly every chip touches it. Passives on the
-   * rail are skipped as well: a cap does not decouple another cap, so only a chip
-   * can anchor a group. If two chips share a rail (say two MCUs on V3_3), the one
-   * drawing the most power pins from it is the one being decoupled.
+   * Ground is not consulted because nearly every chip touches it. 2-pin parts on the
+   * rail are skipped too: the thing being decoupled is a multi-pin chip, not another
+   * cap (or diode) sharing the rail. If two chips share a rail (say two MCUs on V3_3),
+   * the one drawing the most power pins from it is the one being decoupled.
    */
   private findRailSharingMainChipId(
     capChip: Chip,
@@ -181,7 +183,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     let mainChipPowerPinCount = 0
     for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
       if (chipId === capChip.chipId) continue
-      if (chip.pins.length <= PASSIVE_PIN_COUNT) continue
+      if (chip.pins.length <= 2) continue
 
       const powerPinCount = this.countChipPinsOnNet(chip, powerNetId)
       if (powerPinCount === 0) continue
@@ -215,7 +217,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
 
   /** Get a normalized, sorted pair of net IDs connected across the two pins of a capacitor chip */
   private getNormalizedNetPair(capChip: Chip): [NetId, NetId] | null {
-    if (capChip.pins.length !== PASSIVE_PIN_COUNT) return null
+    if (capChip.pins.length !== 2) return null
     const nets = new Set<NetId>()
     for (const pinId of capChip.pins) {
       const pinNets = this.getNetIdsForPin(pinId)
@@ -258,6 +260,10 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       this.solved = true
       return
     }
+
+    // Only a capacitor can be a decoupling cap. This is what separates it from a
+    // diode, voltmeter, or any other 2-pin part bridging power and ground.
+    if (!currentChip.isCapacitor) return
 
     // Apply identification criteria
     const isDecouplingCap =
