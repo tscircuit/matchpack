@@ -4,8 +4,9 @@
  *    a cap's geometry, so the component type is what qualifies it, not the pin count
  * 2. It has exactly 2 pins and restricted rotation (0/180 only or no rotation)
  * 3. One pin indirectly connected to a ground net, one to a positive voltage source
- * 4. It decouples a main chip, reached either by a direct pin-to-pin connection or by
- *    the positive rail it shares with that chip's power pins
+ * 4. It decouples a main chip: one it is directly (pin-to-pin) wired to, or — for a
+ *    cap wired only to the rail — the chip whose directly-wired caps already decouple
+ *    that same rail (see findRailSharingMainChipId)
  */
 
 import type { GraphicsObject } from "graphics-debug"
@@ -35,9 +36,9 @@ export interface DecouplingCapGroup {
  *    the component type is what gates this, not the pin count.
  * 2. It has exactly 2 pins with restricted rotation (0/180 only or no rotation)
  * 3. One pin indirectly connected to a net with isGround and one to isPositiveVoltageSource
- * 4. It decouples a main chip (typically a microcontroller) — one reached by a direct
- *    pin-to-pin connection, or failing that the chip whose power pins share the cap's
- *    positive rail. See findMainChipIdForCap.
+ * 4. It decouples a main chip (typically a microcontroller) — one it is directly
+ *    (pin-to-pin) wired to, or — for a cap wired only to the rail — the chip whose
+ *    directly-wired caps already decouple that rail. See findRailSharingMainChipId.
  */
 export class IdentifyDecouplingCapsSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -100,14 +101,12 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   }
 
   /**
-   * Find the chip a decoupling capacitor belongs to.
+   * Find the chip a decoupling capacitor decouples.
    *
-   * What makes a cap belong to a chip is that it bridges that chip's power rail
-   * and ground. A direct pin-to-pin connection is only one way the netlist can say
-   * so — `U3.DVDD1: ["C18.1", "net.V1_1"]` names the pin, while a bulk cap on the
-   * same rail (`C9.pin1: "net.V1_1"`) names only the net. Both decouple U3, so the
-   * rail is consulted when there is no pin-to-pin edge to follow. Otherwise a cap's
-   * grouping would depend on how its connection happened to be written.
+   * A cap directly wired (pin-to-pin) to a chip decouples that chip. A cap wired
+   * only to the rail's nets — e.g. a bulk cap `C9.pin1: "net.V1_1"` — has no such
+   * edge, so it decouples whichever chip the rail's *directly-wired* caps already
+   * decouple. See findRailSharingMainChipId.
    */
   private findMainChipIdForCap(
     capChip: Chip,
@@ -152,54 +151,36 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     return mainChipId
   }
 
-  /** How many of a chip's pins sit on a net */
-  private countChipPinsOnNet(chip: Chip, netId: NetId): number {
-    let pinsOnNet = 0
-    for (const pinId of chip.pins) {
-      if (this.getNetIdsForPin(pinId).has(netId)) pinsOnNet++
-    }
-    return pinsOnNet
-  }
-
   /**
-   * The chip whose power pins sit on the cap's positive rail.
+   * The chip a rail-only cap (no pin-to-pin edge) decouples: the same chip that a
+   * directly-wired sibling cap on the same rail decouples.
    *
-   * Ground is not consulted because nearly every chip touches it. 2-pin parts on the
-   * rail are skipped too: the thing being decoupled is a multi-pin chip, not another
-   * cap (or diode) sharing the rail. If two chips share a rail (say two MCUs on V3_3),
-   * the one drawing the most power pins from it is the one being decoupled.
+   * C9 is wired only to V1_1/GND, but C18/C7 sit on that same rail and are wired
+   * straight to U3.DVDD, so C9 decouples U3 too. Without such a sibling — a lone cap
+   * on, say, a pin header's power rail — no chip is being decoupled there, so the cap
+   * is left ungrouped rather than attached to whatever multi-pin part touches the net.
    */
   private findRailSharingMainChipId(
     capChip: Chip,
     netPair: [NetId, NetId],
   ): ChipId | null {
-    const powerNetId = netPair.find(
-      (netId) => this.inputProblem.netMap[netId]?.isPositiveVoltageSource,
-    )
-    if (!powerNetId) return null
+    for (const sibling of Object.values(this.inputProblem.chipMap)) {
+      if (sibling.chipId === capChip.chipId) continue
+      if (!sibling.isCapacitor) continue
 
-    // Choose the chip with the most power pins (tie-breaker: lexicographic)
-    let mainChipId: ChipId | null = null
-    let mainChipPowerPinCount = 0
-    for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
-      if (chipId === capChip.chipId) continue
-      if (chip.pins.length <= 2) continue
-
-      const powerPinCount = this.countChipPinsOnNet(chip, powerNetId)
-      if (powerPinCount === 0) continue
-      if (powerPinCount < mainChipPowerPinCount) continue
+      const siblingPair = this.getNormalizedNetPair(sibling)
       if (
-        mainChipId !== null &&
-        powerPinCount === mainChipPowerPinCount &&
-        chipId > mainChipId
+        !siblingPair ||
+        siblingPair[0] !== netPair[0] ||
+        siblingPair[1] !== netPair[1]
       ) {
         continue
       }
 
-      mainChipId = chipId
-      mainChipPowerPinCount = powerPinCount
+      const mainChipId = this.findStronglyConnectedMainChipId(sibling)
+      if (mainChipId) return mainChipId
     }
-    return mainChipId
+    return null
   }
 
   /** Get all net IDs connected to a pin */
@@ -287,7 +268,8 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     if (!isDecouplingNetPair) return
 
     // Require a chip for the cap to decouple, found by pin-to-pin connection or,
-    // for a cap wired only to the rail, by the rail itself
+    // for a cap wired only to the rail, the chip whose directly-wired caps already
+    // decouple that rail
     const mainChipId = this.findMainChipIdForCap(currentChip, netPair)
     if (!mainChipId) return
 
