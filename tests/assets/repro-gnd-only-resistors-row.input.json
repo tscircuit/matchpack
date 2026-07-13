@@ -2,63 +2,43 @@
   "chipMap": {
     "R1": {
       "chipId": "R1",
-      "pins": [
-        "R1.1",
-        "R1.2"
-      ],
+      "pins": ["R1.1", "R1.2"],
       "size": {
         "x": 0.6,
         "y": 0.845
       },
       "isCapacitor": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "R2": {
       "chipId": "R2",
-      "pins": [
-        "R2.1",
-        "R2.2"
-      ],
+      "pins": ["R2.1", "R2.2"],
       "size": {
         "x": 0.6,
         "y": 0.845
       },
       "isCapacitor": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "R3": {
       "chipId": "R3",
-      "pins": [
-        "R3.1",
-        "R3.2"
-      ],
+      "pins": ["R3.1", "R3.2"],
       "size": {
         "x": 0.6,
         "y": 0.845
       },
       "isCapacitor": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "R4": {
       "chipId": "R4",
-      "pins": [
-        "R4.1",
-        "R4.2"
-      ],
+      "pins": ["R4.1", "R4.2"],
       "size": {
         "x": 0.6,
         "y": 0.845
       },
       "isCapacitor": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     }
   },
   "chipPinMap": {
