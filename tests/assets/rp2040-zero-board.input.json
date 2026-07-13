@@ -1,0 +1,1259 @@
+{
+  "chipMap": {
+    "group_0": {
+      "chipId": "group_0",
+      "pins": [
+        "group_0.1",
+        "group_0.2",
+        "group_0.1",
+        "group_0.2",
+        "group_0.1",
+        "group_0.2",
+        "group_0.1",
+        "group_0.2",
+        "group_0.1",
+        "group_0.2",
+        "group_0.3",
+        "group_0.4",
+        "group_0.5"
+      ],
+      "size": {
+        "x": 4.295,
+        "y": 3.3400000000000007
+      }
+    },
+    "group_1": {
+      "chipId": "group_1",
+      "pins": ["group_1.1", "group_1.2", "group_1.3", "group_1.4"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 0.6000000000000001
+      }
+    },
+    "group_2": {
+      "chipId": "group_2",
+      "pins": [
+        "group_2.1",
+        "group_2.2",
+        "group_2.1",
+        "group_2.2",
+        "group_2.3",
+        "group_2.4",
+        "group_2.5",
+        "group_2.6",
+        "group_2.7",
+        "group_2.8"
+      ],
+      "size": {
+        "x": 3.7375000000000003,
+        "y": 1
+      }
+    },
+    "group_3": {
+      "chipId": "group_3",
+      "pins": [
+        "group_3.1",
+        "group_3.2",
+        "group_3.1",
+        "group_3.2",
+        "group_3.1",
+        "group_3.2",
+        "group_3.1",
+        "group_3.2",
+        "group_3.3",
+        "group_3.4"
+      ],
+      "size": {
+        "x": 5.390000000000001,
+        "y": 2.01
+      }
+    },
+    "group_4": {
+      "chipId": "group_4",
+      "pins": [
+        "group_4.1",
+        "group_4.2",
+        "group_4.3",
+        "group_4.4",
+        "group_4.5",
+        "group_4.6",
+        "group_4.7",
+        "group_4.8",
+        "group_4.9",
+        "group_4.10",
+        "group_4.11",
+        "group_4.12",
+        "group_4.13",
+        "group_4.14",
+        "group_4.15",
+        "group_4.16",
+        "group_4.17",
+        "group_4.18",
+        "group_4.19",
+        "group_4.20",
+        "group_4.21",
+        "group_4.22",
+        "group_4.23",
+        "group_4.24",
+        "group_4.25",
+        "group_4.26",
+        "group_4.27",
+        "group_4.28",
+        "group_4.29",
+        "group_4.30",
+        "group_4.31",
+        "group_4.32",
+        "group_4.33",
+        "group_4.34",
+        "group_4.35",
+        "group_4.36",
+        "group_4.37",
+        "group_4.38",
+        "group_4.39",
+        "group_4.40",
+        "group_4.41",
+        "group_4.42",
+        "group_4.43",
+        "group_4.44",
+        "group_4.45",
+        "group_4.46",
+        "group_4.47",
+        "group_4.48",
+        "group_4.49",
+        "group_4.50",
+        "group_4.51",
+        "group_4.52",
+        "group_4.53",
+        "group_4.54",
+        "group_4.55",
+        "group_4.56",
+        "group_4.57",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2",
+        "group_4.1",
+        "group_4.2"
+      ],
+      "size": {
+        "x": 15.809999999999999,
+        "y": 8.400000000000004
+      }
+    },
+    "P1": {
+      "chipId": "P1",
+      "pins": [
+        "P1.1",
+        "P1.2",
+        "P1.3",
+        "P1.4",
+        "P1.5",
+        "P1.6",
+        "P1.7",
+        "P1.8",
+        "P1.9",
+        "P1.10",
+        "P1.11",
+        "P1.12",
+        "P1.13",
+        "P1.14",
+        "P1.15",
+        "P1.16",
+        "P1.17",
+        "P1.18",
+        "P1.19",
+        "P1.20",
+        "P1.21",
+        "P1.22",
+        "P1.23"
+      ],
+      "size": {
+        "x": 1,
+        "y": 5.600000000000002
+      },
+      "isCapacitor": false,
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "group_0.1": {
+      "pinId": "group_0.1",
+      "offset": {
+        "x": -1.9874999999999998,
+        "y": 0.2
+      },
+      "side": "x-"
+    },
+    "group_0.2": {
+      "pinId": "group_0.2",
+      "offset": {
+        "x": -1.9874999999999998,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "group_0.3": {
+      "pinId": "group_0.3",
+      "offset": {
+        "x": -1.9874999999999998,
+        "y": -0.2
+      },
+      "side": "x-"
+    },
+    "group_0.4": {
+      "pinId": "group_0.4",
+      "offset": {
+        "x": 0.012500000000000178,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "group_0.5": {
+      "pinId": "group_0.5",
+      "offset": {
+        "x": 0.012500000000000178,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "group_1.1": {
+      "pinId": "group_1.1",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "group_1.2": {
+      "pinId": "group_1.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "group_1.3": {
+      "pinId": "group_1.3",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "group_1.4": {
+      "pinId": "group_1.4",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "group_2.1": {
+      "pinId": "group_2.1",
+      "offset": {
+        "x": -1,
+        "y": 0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "group_2.2": {
+      "pinId": "group_2.2",
+      "offset": {
+        "x": -1,
+        "y": 0.10000000000000003
+      },
+      "side": "x-"
+    },
+    "group_2.3": {
+      "pinId": "group_2.3",
+      "offset": {
+        "x": -1,
+        "y": -0.09999999999999998
+      },
+      "side": "x-"
+    },
+    "group_2.4": {
+      "pinId": "group_2.4",
+      "offset": {
+        "x": -1,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "group_2.5": {
+      "pinId": "group_2.5",
+      "offset": {
+        "x": 1,
+        "y": -0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "group_2.6": {
+      "pinId": "group_2.6",
+      "offset": {
+        "x": 1,
+        "y": -0.10000000000000003
+      },
+      "side": "x+"
+    },
+    "group_2.7": {
+      "pinId": "group_2.7",
+      "offset": {
+        "x": 1,
+        "y": 0.09999999999999998
+      },
+      "side": "x+"
+    },
+    "group_2.8": {
+      "pinId": "group_2.8",
+      "offset": {
+        "x": 1,
+        "y": 0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "group_3.1": {
+      "pinId": "group_3.1",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "group_3.2": {
+      "pinId": "group_3.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "group_3.3": {
+      "pinId": "group_3.3",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "group_3.4": {
+      "pinId": "group_3.4",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "group_4.1": {
+      "pinId": "group_4.1",
+      "offset": {
+        "x": -2.025,
+        "y": -1.6000000000000008
+      },
+      "side": "y+"
+    },
+    "group_4.2": {
+      "pinId": "group_4.2",
+      "offset": {
+        "x": -2.025,
+        "y": -2.2000000000000006
+      },
+      "side": "y-"
+    },
+    "group_4.3": {
+      "pinId": "group_4.3",
+      "offset": {
+        "x": -0.7925,
+        "y": -2.000000000000001
+      },
+      "side": "x-"
+    },
+    "group_4.4": {
+      "pinId": "group_4.4",
+      "offset": {
+        "x": -0.7925,
+        "y": -2.200000000000001
+      },
+      "side": "x-"
+    },
+    "group_4.5": {
+      "pinId": "group_4.5",
+      "offset": {
+        "x": -0.7925,
+        "y": -2.4000000000000012
+      },
+      "side": "x-"
+    },
+    "group_4.6": {
+      "pinId": "group_4.6",
+      "offset": {
+        "x": -0.7925,
+        "y": -2.6000000000000014
+      },
+      "side": "x-"
+    },
+    "group_4.7": {
+      "pinId": "group_4.7",
+      "offset": {
+        "x": -0.7925,
+        "y": -2.8000000000000016
+      },
+      "side": "x-"
+    },
+    "group_4.8": {
+      "pinId": "group_4.8",
+      "offset": {
+        "x": -0.7925,
+        "y": -3.0000000000000018
+      },
+      "side": "x-"
+    },
+    "group_4.9": {
+      "pinId": "group_4.9",
+      "offset": {
+        "x": -0.7925,
+        "y": -3.200000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.10": {
+      "pinId": "group_4.10",
+      "offset": {
+        "x": -0.7925,
+        "y": 1.0000000000000013
+      },
+      "side": "x-"
+    },
+    "group_4.11": {
+      "pinId": "group_4.11",
+      "offset": {
+        "x": -0.7925,
+        "y": -3.400000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.12": {
+      "pinId": "group_4.12",
+      "offset": {
+        "x": -0.7925,
+        "y": -3.6000000000000023
+      },
+      "side": "x-"
+    },
+    "group_4.13": {
+      "pinId": "group_4.13",
+      "offset": {
+        "x": -0.7925,
+        "y": -3.8000000000000025
+      },
+      "side": "x-"
+    },
+    "group_4.14": {
+      "pinId": "group_4.14",
+      "offset": {
+        "x": -0.7925,
+        "y": -4.000000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.15": {
+      "pinId": "group_4.15",
+      "offset": {
+        "x": 3.0075,
+        "y": -0.5000000000000009
+      },
+      "side": "x+"
+    },
+    "group_4.16": {
+      "pinId": "group_4.16",
+      "offset": {
+        "x": 3.0075,
+        "y": -0.7000000000000011
+      },
+      "side": "x+"
+    },
+    "group_4.17": {
+      "pinId": "group_4.17",
+      "offset": {
+        "x": 3.0075,
+        "y": -0.9000000000000012
+      },
+      "side": "x+"
+    },
+    "group_4.18": {
+      "pinId": "group_4.18",
+      "offset": {
+        "x": 3.0075,
+        "y": -1.1000000000000014
+      },
+      "side": "x+"
+    },
+    "group_4.19": {
+      "pinId": "group_4.19",
+      "offset": {
+        "x": 3.0075,
+        "y": -1.3000000000000014
+      },
+      "side": "x+"
+    },
+    "group_4.20": {
+      "pinId": "group_4.20",
+      "offset": {
+        "x": 3.0075,
+        "y": -1.9000000000000015
+      },
+      "side": "x+"
+    },
+    "group_4.21": {
+      "pinId": "group_4.21",
+      "offset": {
+        "x": 3.0075,
+        "y": -2.1000000000000014
+      },
+      "side": "x+"
+    },
+    "group_4.22": {
+      "pinId": "group_4.22",
+      "offset": {
+        "x": -0.7925,
+        "y": 0.8000000000000012
+      },
+      "side": "x-"
+    },
+    "group_4.23": {
+      "pinId": "group_4.23",
+      "offset": {
+        "x": -0.7925,
+        "y": 2.8000000000000016
+      },
+      "side": "x-"
+    },
+    "group_4.24": {
+      "pinId": "group_4.24",
+      "offset": {
+        "x": 3.0075,
+        "y": -2.7000000000000015
+      },
+      "side": "x+"
+    },
+    "group_4.25": {
+      "pinId": "group_4.25",
+      "offset": {
+        "x": 3.0075,
+        "y": -2.9000000000000012
+      },
+      "side": "x+"
+    },
+    "group_4.26": {
+      "pinId": "group_4.26",
+      "offset": {
+        "x": 3.0075,
+        "y": -3.1000000000000014
+      },
+      "side": "x+"
+    },
+    "group_4.27": {
+      "pinId": "group_4.27",
+      "offset": {
+        "x": 3.0075,
+        "y": 0.0999999999999992
+      },
+      "side": "x+"
+    },
+    "group_4.28": {
+      "pinId": "group_4.28",
+      "offset": {
+        "x": 3.0075,
+        "y": 0.2999999999999994
+      },
+      "side": "x+"
+    },
+    "group_4.29": {
+      "pinId": "group_4.29",
+      "offset": {
+        "x": 3.0075,
+        "y": 0.49999999999999956
+      },
+      "side": "x+"
+    },
+    "group_4.30": {
+      "pinId": "group_4.30",
+      "offset": {
+        "x": 3.0075,
+        "y": 0.6999999999999997
+      },
+      "side": "x+"
+    },
+    "group_4.31": {
+      "pinId": "group_4.31",
+      "offset": {
+        "x": 3.0075,
+        "y": 0.8999999999999995
+      },
+      "side": "x+"
+    },
+    "group_4.32": {
+      "pinId": "group_4.32",
+      "offset": {
+        "x": 3.0075,
+        "y": 1.0999999999999996
+      },
+      "side": "x+"
+    },
+    "group_4.33": {
+      "pinId": "group_4.33",
+      "offset": {
+        "x": -0.7925,
+        "y": 0.600000000000001
+      },
+      "side": "x-"
+    },
+    "group_4.34": {
+      "pinId": "group_4.34",
+      "offset": {
+        "x": 3.0075,
+        "y": 1.2999999999999998
+      },
+      "side": "x+"
+    },
+    "group_4.35": {
+      "pinId": "group_4.35",
+      "offset": {
+        "x": 3.0075,
+        "y": 1.5
+      },
+      "side": "x+"
+    },
+    "group_4.36": {
+      "pinId": "group_4.36",
+      "offset": {
+        "x": 3.0075,
+        "y": 1.7000000000000002
+      },
+      "side": "x+"
+    },
+    "group_4.37": {
+      "pinId": "group_4.37",
+      "offset": {
+        "x": 3.0075,
+        "y": 1.9000000000000004
+      },
+      "side": "x+"
+    },
+    "group_4.38": {
+      "pinId": "group_4.38",
+      "offset": {
+        "x": 3.0075,
+        "y": 2.500000000000001
+      },
+      "side": "x+"
+    },
+    "group_4.39": {
+      "pinId": "group_4.39",
+      "offset": {
+        "x": 3.0075,
+        "y": 2.700000000000001
+      },
+      "side": "x+"
+    },
+    "group_4.40": {
+      "pinId": "group_4.40",
+      "offset": {
+        "x": 3.0075,
+        "y": 2.9000000000000012
+      },
+      "side": "x+"
+    },
+    "group_4.41": {
+      "pinId": "group_4.41",
+      "offset": {
+        "x": 3.0075,
+        "y": 3.1000000000000014
+      },
+      "side": "x+"
+    },
+    "group_4.42": {
+      "pinId": "group_4.42",
+      "offset": {
+        "x": -0.7925,
+        "y": 0.4000000000000008
+      },
+      "side": "x-"
+    },
+    "group_4.43": {
+      "pinId": "group_4.43",
+      "offset": {
+        "x": -0.7925,
+        "y": -1.6000000000000005
+      },
+      "side": "x-"
+    },
+    "group_4.44": {
+      "pinId": "group_4.44",
+      "offset": {
+        "x": -0.7925,
+        "y": 2.0000000000000018
+      },
+      "side": "x-"
+    },
+    "group_4.45": {
+      "pinId": "group_4.45",
+      "offset": {
+        "x": -0.7925,
+        "y": 1.8000000000000016
+      },
+      "side": "x-"
+    },
+    "group_4.46": {
+      "pinId": "group_4.46",
+      "offset": {
+        "x": -0.7925,
+        "y": -1.4000000000000004
+      },
+      "side": "x-"
+    },
+    "group_4.47": {
+      "pinId": "group_4.47",
+      "offset": {
+        "x": -0.7925,
+        "y": -1.2000000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.48": {
+      "pinId": "group_4.48",
+      "offset": {
+        "x": -0.7925,
+        "y": -1
+      },
+      "side": "x-"
+    },
+    "group_4.49": {
+      "pinId": "group_4.49",
+      "offset": {
+        "x": -0.7925,
+        "y": 0.20000000000000062
+      },
+      "side": "x-"
+    },
+    "group_4.50": {
+      "pinId": "group_4.50",
+      "offset": {
+        "x": -0.7925,
+        "y": 2.600000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.51": {
+      "pinId": "group_4.51",
+      "offset": {
+        "x": -0.7925,
+        "y": 3.0000000000000018
+      },
+      "side": "x-"
+    },
+    "group_4.52": {
+      "pinId": "group_4.52",
+      "offset": {
+        "x": -0.7925,
+        "y": 3.200000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.53": {
+      "pinId": "group_4.53",
+      "offset": {
+        "x": -0.7925,
+        "y": 3.4000000000000017
+      },
+      "side": "x-"
+    },
+    "group_4.54": {
+      "pinId": "group_4.54",
+      "offset": {
+        "x": -0.7925,
+        "y": 3.600000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.55": {
+      "pinId": "group_4.55",
+      "offset": {
+        "x": -0.7925,
+        "y": 3.8000000000000016
+      },
+      "side": "x-"
+    },
+    "group_4.56": {
+      "pinId": "group_4.56",
+      "offset": {
+        "x": -0.7925,
+        "y": 4.000000000000002
+      },
+      "side": "x-"
+    },
+    "group_4.57": {
+      "pinId": "group_4.57",
+      "offset": {
+        "x": -0.7925,
+        "y": -0.39999999999999947
+      },
+      "side": "x-"
+    },
+    "P1.1": {
+      "pinId": "P1.1",
+      "offset": {
+        "x": -0.9,
+        "y": 2.2000000000000006
+      },
+      "side": "x-"
+    },
+    "P1.2": {
+      "pinId": "P1.2",
+      "offset": {
+        "x": -0.9,
+        "y": 2.0000000000000004
+      },
+      "side": "x-"
+    },
+    "P1.3": {
+      "pinId": "P1.3",
+      "offset": {
+        "x": -0.9,
+        "y": 1.8000000000000007
+      },
+      "side": "x-"
+    },
+    "P1.4": {
+      "pinId": "P1.4",
+      "offset": {
+        "x": -0.9,
+        "y": 1.6000000000000005
+      },
+      "side": "x-"
+    },
+    "P1.5": {
+      "pinId": "P1.5",
+      "offset": {
+        "x": -0.9,
+        "y": 1.4000000000000006
+      },
+      "side": "x-"
+    },
+    "P1.6": {
+      "pinId": "P1.6",
+      "offset": {
+        "x": -0.9,
+        "y": 1.2000000000000006
+      },
+      "side": "x-"
+    },
+    "P1.7": {
+      "pinId": "P1.7",
+      "offset": {
+        "x": -0.9,
+        "y": 1.0000000000000007
+      },
+      "side": "x-"
+    },
+    "P1.8": {
+      "pinId": "P1.8",
+      "offset": {
+        "x": -0.9,
+        "y": 0.8000000000000007
+      },
+      "side": "x-"
+    },
+    "P1.9": {
+      "pinId": "P1.9",
+      "offset": {
+        "x": -0.9,
+        "y": 0.6000000000000008
+      },
+      "side": "x-"
+    },
+    "P1.10": {
+      "pinId": "P1.10",
+      "offset": {
+        "x": -0.9,
+        "y": 0.4000000000000008
+      },
+      "side": "x-"
+    },
+    "P1.11": {
+      "pinId": "P1.11",
+      "offset": {
+        "x": -0.9,
+        "y": 0.20000000000000084
+      },
+      "side": "x-"
+    },
+    "P1.12": {
+      "pinId": "P1.12",
+      "offset": {
+        "x": -0.9,
+        "y": 8.881784197001252e-16
+      },
+      "side": "x-"
+    },
+    "P1.13": {
+      "pinId": "P1.13",
+      "offset": {
+        "x": -0.9,
+        "y": -0.1999999999999993
+      },
+      "side": "x-"
+    },
+    "P1.14": {
+      "pinId": "P1.14",
+      "offset": {
+        "x": -0.9,
+        "y": -0.39999999999999947
+      },
+      "side": "x-"
+    },
+    "P1.15": {
+      "pinId": "P1.15",
+      "offset": {
+        "x": -0.9,
+        "y": -0.5999999999999996
+      },
+      "side": "x-"
+    },
+    "P1.16": {
+      "pinId": "P1.16",
+      "offset": {
+        "x": -0.9,
+        "y": -0.7999999999999998
+      },
+      "side": "x-"
+    },
+    "P1.17": {
+      "pinId": "P1.17",
+      "offset": {
+        "x": -0.9,
+        "y": -1
+      },
+      "side": "x-"
+    },
+    "P1.18": {
+      "pinId": "P1.18",
+      "offset": {
+        "x": -0.9,
+        "y": -1.2000000000000002
+      },
+      "side": "x-"
+    },
+    "P1.19": {
+      "pinId": "P1.19",
+      "offset": {
+        "x": -0.9,
+        "y": -1.4000000000000004
+      },
+      "side": "x-"
+    },
+    "P1.20": {
+      "pinId": "P1.20",
+      "offset": {
+        "x": -0.9,
+        "y": -1.6000000000000005
+      },
+      "side": "x-"
+    },
+    "P1.21": {
+      "pinId": "P1.21",
+      "offset": {
+        "x": -0.9,
+        "y": -1.8000000000000003
+      },
+      "side": "x-"
+    },
+    "P1.22": {
+      "pinId": "P1.22",
+      "offset": {
+        "x": -0.9,
+        "y": -2.0000000000000004
+      },
+      "side": "x-"
+    },
+    "P1.23": {
+      "pinId": "P1.23",
+      "offset": {
+        "x": -0.9,
+        "y": -2.2000000000000006
+      },
+      "side": "x-"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net25": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net25",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net24": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net24",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net26": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net26",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net27": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net27",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net28": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net28",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net32": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net32",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net31": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net31",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net30": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net30",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net33": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net33",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net34": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net34",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net43": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net43",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net45": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net45",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net46": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net46",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net44": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net44",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net3": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net4": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net4",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net5": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net5",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net6": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net6",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net7": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net7",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net8": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net8",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net9": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net9",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net10": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net10",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net11": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net11",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net12": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net12",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net13": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net13",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net14": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net14",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net15": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net15",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net16": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net16",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net17": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net17",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net18": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net18",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net19": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net19",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net20": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net20",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net21": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net21",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net22": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net22",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net23": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_5_connectivity_net23",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "group_0.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net0": true,
+    "group_0.3-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net0": true,
+    "group_0.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_0.5-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_4.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_4.10-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_4.22-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_4.33-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_4.42-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_4.49-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "P1.3-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net41": true,
+    "group_0.2-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_1.2-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_2.2-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_2.4-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_3.2-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_3.4-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_4.2-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_4.57-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "P1.2-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net1": true,
+    "group_1.3-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net25": true,
+    "group_1.4-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net24": true,
+    "group_2.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net26": true,
+    "group_2.2-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net27": true,
+    "group_2.3-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net28": true,
+    "group_2.5-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net32": true,
+    "group_2.6-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net31": true,
+    "group_2.7-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net30": true,
+    "group_3.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net33": true,
+    "group_3.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net34": true,
+    "group_4.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net43": true,
+    "group_4.23-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net43": true,
+    "group_4.50-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net43": true,
+    "group_4.46-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net45": true,
+    "group_4.47-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net46": true,
+    "group_4.48-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net44": true,
+    "P1.1-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net3": true,
+    "P1.4-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net4": true,
+    "P1.5-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net5": true,
+    "P1.6-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net6": true,
+    "P1.7-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net7": true,
+    "P1.8-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net8": true,
+    "P1.9-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net9": true,
+    "P1.10-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net10": true,
+    "P1.11-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net11": true,
+    "P1.12-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net12": true,
+    "P1.13-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net13": true,
+    "P1.14-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net14": true,
+    "P1.15-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net15": true,
+    "P1.16-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net16": true,
+    "P1.17-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net17": true,
+    "P1.18-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net18": true,
+    "P1.19-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net19": true,
+    "P1.20-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net20": true,
+    "P1.21-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net21": true,
+    "P1.22-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net22": true,
+    "P1.23-unnamedsubcircuitsubcircuit_source_group_5_connectivity_net23": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}

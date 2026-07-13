@@ -1,0 +1,151 @@
+{
+  "chipMap": {
+    "VBUS20_ECOK_IN_OUT": {
+      "chipId": "VBUS20_ECOK_IN_OUT",
+      "pins": ["VBUS20_ECOK_IN_OUT.1", "VBUS20_ECOK_IN_OUT.2"],
+      "size": {
+        "x": 1.08,
+        "y": 2.923910699999999
+      },
+      "isCapacitor": false,
+      "availableRotations": [270]
+    },
+    "VBUS5_ECOK_IN_OUT": {
+      "chipId": "VBUS5_ECOK_IN_OUT",
+      "pins": ["VBUS5_ECOK_IN_OUT.1", "VBUS5_ECOK_IN_OUT.2"],
+      "size": {
+        "x": 1.08,
+        "y": 2.803910699999999
+      },
+      "isCapacitor": false,
+      "availableRotations": [270]
+    },
+    "VBUS3_ECOK_IN_OUT": {
+      "chipId": "VBUS3_ECOK_IN_OUT",
+      "pins": ["VBUS3_ECOK_IN_OUT.1", "VBUS3_ECOK_IN_OUT.2"],
+      "size": {
+        "x": 1.08,
+        "y": 2.803910699999999
+      },
+      "isCapacitor": false,
+      "availableRotations": [270]
+    },
+    "VBUS1_ECOK_IN_OUT": {
+      "chipId": "VBUS1_ECOK_IN_OUT",
+      "pins": ["VBUS1_ECOK_IN_OUT.1", "VBUS1_ECOK_IN_OUT.2"],
+      "size": {
+        "x": 1.08,
+        "y": 2.803910699999999
+      },
+      "isCapacitor": false,
+      "availableRotations": [270]
+    }
+  },
+  "chipPinMap": {
+    "VBUS20_ECOK_IN_OUT.1": {
+      "pinId": "VBUS20_ECOK_IN_OUT.1",
+      "offset": {
+        "x": -0.54,
+        "y": -0.0050000000000000044
+      },
+      "side": "x-"
+    },
+    "VBUS20_ECOK_IN_OUT.2": {
+      "pinId": "VBUS20_ECOK_IN_OUT.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0.0049999999999999975
+      },
+      "side": "x+"
+    },
+    "VBUS5_ECOK_IN_OUT.1": {
+      "pinId": "VBUS5_ECOK_IN_OUT.1",
+      "offset": {
+        "x": -0.54,
+        "y": -0.0050000000000000044
+      },
+      "side": "x-"
+    },
+    "VBUS5_ECOK_IN_OUT.2": {
+      "pinId": "VBUS5_ECOK_IN_OUT.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0.0049999999999999975
+      },
+      "side": "x+"
+    },
+    "VBUS3_ECOK_IN_OUT.1": {
+      "pinId": "VBUS3_ECOK_IN_OUT.1",
+      "offset": {
+        "x": -0.54,
+        "y": -0.0050000000000000044
+      },
+      "side": "x-"
+    },
+    "VBUS3_ECOK_IN_OUT.2": {
+      "pinId": "VBUS3_ECOK_IN_OUT.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0.0049999999999999975
+      },
+      "side": "x+"
+    },
+    "VBUS1_ECOK_IN_OUT.1": {
+      "pinId": "VBUS1_ECOK_IN_OUT.1",
+      "offset": {
+        "x": -0.54,
+        "y": -0.0050000000000000044
+      },
+      "side": "x-"
+    },
+    "VBUS1_ECOK_IN_OUT.2": {
+      "pinId": "VBUS1_ECOK_IN_OUT.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0.0049999999999999975
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "VBUS20_ECOK_IN_OUT.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "VBUS20_ECOK_IN_OUT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "VBUS5_ECOK_IN_OUT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "VBUS3_ECOK_IN_OUT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "VBUS1_ECOK_IN_OUT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "VBUS5_ECOK_IN_OUT.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "VBUS3_ECOK_IN_OUT.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": true,
+    "VBUS1_ECOK_IN_OUT.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
