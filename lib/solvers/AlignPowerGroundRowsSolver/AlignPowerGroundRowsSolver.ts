@@ -46,6 +46,19 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     return netIds
   }
 
+  private pinHasStrongConnection(pinId: string): boolean {
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      if (connKey.startsWith(`${pinId}-`) || connKey.endsWith(`-${pinId}`)) {
+        return true
+      }
+    }
+
+    return false
+  }
+
   private getAlignmentGroupId(chip: Chip): string | null {
     if (chip.fixedPosition || chip.pins.length !== 2) return null
 
@@ -54,7 +67,14 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
 
     for (const pinId of chip.pins) {
       const pinNetIds = this.getPinNetIds(pinId)
-      if (pinNetIds.length === 0) return null
+      if (pinNetIds.length === 0) {
+        // A pin whose only connection is a direct pin-to-pin link anchors the
+        // chip to that partner, and pulling the chip into a rail row would
+        // separate them. An unconnected pin constrains nothing: one rail pin
+        // is enough for the chip to belong to a row.
+        if (this.pinHasStrongConnection(pinId)) return null
+        continue
+      }
 
       let pinHasPowerGroundNet = false
       for (const netId of pinNetIds) {
