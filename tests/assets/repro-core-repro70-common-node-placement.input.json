@@ -1,0 +1,104 @@
+{
+  "chipMap": {
+    "C1": {
+      "chipId": "C1",
+      "pins": ["C1.1", "C1.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "availableRotations": [270]
+    },
+    "C3": {
+      "chipId": "C3",
+      "pins": ["C3.1", "C3.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "availableRotations": [270]
+    },
+    "FB1": {
+      "chipId": "FB1",
+      "pins": ["FB1.1", "FB1.2"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 1.2000000000000002
+      },
+      "isCapacitor": false,
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "C1.1": {
+      "pinId": "C1.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C1.2": {
+      "pinId": "C1.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C3.1": {
+      "pinId": "C3.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C3.2": {
+      "pinId": "C3.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "FB1.1": {
+      "pinId": "FB1.1",
+      "offset": {
+        "x": -1,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "FB1.2": {
+      "pinId": "FB1.2",
+      "offset": {
+        "x": 1,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "FB1.2-C1.1": true,
+    "C1.1-FB1.2": true,
+    "C1.1-C3.1": true,
+    "C3.1-C1.1": true
+  },
+  "netConnMap": {
+    "C1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "C3.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
