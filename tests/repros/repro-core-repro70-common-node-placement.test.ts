@@ -1,25 +1,43 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import inputProblem from "../assets/repro-core-repro70-common-node-placement.input.json"
 
 // Captured from @tscircuit/core's "matchpack-input-problem-*" debug output for
 // repro70-schematicbox-rotation-autolayout. C1.1 is the common pin for the two
-// strong connections FB1.2-C1.1 and C1.1-C3.1. Both neighbors are currently
-// placed on the same side of C1, making the FB1-C1 connection unnecessarily
-// long.
-test("core repro70 places the common node outside its connected neighbors", async () => {
+// strong connections FB1.2-C1.1 and C1.1-C3.1. C1/C3 are parallel passives on
+// that common node, with their other pins on GND, so they should form a rail row
+// anchored to FB1.pin2.
+test("core repro70 aligns parallel passives on a shared strong node", async () => {
   const solver = new LayoutPipelineSolver(inputProblem as any)
   solver.solve()
 
   expect(solver.solved).toBe(true)
   expect(solver.failed).toBe(false)
+  expect(
+    solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
+  ).toBe("ParallelAlignedPassiveSolver")
 
-  const { C1, C3, FB1 } = solver.getOutputLayout().chipPlacements
-  const c1ToFb1 = { x: FB1!.x - C1!.x, y: FB1!.y - C1!.y }
-  const c1ToC3 = { x: C3!.x - C1!.x, y: C3!.y - C1!.y }
-  const directionDotProduct = c1ToFb1.x * c1ToC3.x + c1ToFb1.y * c1ToC3.y
+  const placements = solver.getOutputLayout().chipPlacements
+  const { C1, C3, FB1 } = placements
+  expect(C1!.y).toBeCloseTo(C3!.y)
+  expect(C1!.x).not.toBeCloseTo(C3!.x)
+  expect(Math.min(C1!.x, C3!.x)).toBeGreaterThan(FB1!.x)
 
-  expect(directionDotProduct).toBeGreaterThan(0)
+  const getPinPosition = (chipId: "C1" | "C3" | "FB1", pinId: string) => {
+    const placement = placements[chipId]!
+    const offset = rotatePinOffset(
+      (inputProblem as any).chipPinMap[pinId].offset,
+      placement.ccwRotationDegrees,
+    )
+    return { x: placement.x + offset.x, y: placement.y + offset.y }
+  }
+
+  const fbOutput = getPinPosition("FB1", "FB1.2")
+  const c1Common = getPinPosition("C1", "C1.1")
+  const c3Common = getPinPosition("C3", "C3.1")
+  expect(c1Common.y).toBeCloseTo(fbOutput.y)
+  expect(c3Common.y).toBeCloseTo(fbOutput.y)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path, {
     svgWidth: 600,
