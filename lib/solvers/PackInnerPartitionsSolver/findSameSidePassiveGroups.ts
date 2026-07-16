@@ -1,9 +1,12 @@
 /**
- * Detects "same-side passive groups": three or more 2-pin passives that each
- * connect *directly* (one strong pin-to-pin link) to the same side of the same
- * chip and share a common net on their other pin (e.g. the BQ24074's R1/R2/R3 on
- * U1's bottom edge with their other pin on GND, or on U1's right edge via
- * EN2/EN1/TMR).
+ * Detects "same-side passive groups" in either of two forms:
+ *
+ * - three or more 2-pin passives connected to distinct pins on one side of the
+ *   same chip; or
+ * - two or more parallel 2-pin passives whose near pins share one strong
+ *   connectivity node and whose far pins share one net. The strong node must
+ *   contain exactly one additional anchor pin (for example FB1.pin2 feeding
+ *   C1/C3, whose other pins both connect to GND).
  *
  * This mirrors how IdentifyDecouplingCapsSolver groups decoupling caps around a
  * "main chip"; here passives are grouped by (main chip, side, shared net).
@@ -21,6 +24,7 @@ import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 const PASSIVE_PIN_COUNT = 2
 const MAIN_CHIP_MIN_PINS = 4
 const MIN_PASSIVE_GROUP_SIZE = 3
+const MIN_COMMON_NODE_PASSIVE_GROUP_SIZE = 2
 
 export interface SameSidePassiveGroup {
   mainChipId: ChipId
@@ -97,6 +101,7 @@ export const findSameSidePassiveGroups = (
 ): SameSidePassiveGroup[] => {
   const pinToChip = buildPinToChip(problem)
   const pairs = getStrongPinPairs(problem)
+  const stronglyConnectedPinIds = new Set(pairs.flat())
 
   // Strong connections per chip: which pin connects out, and to which chip.
   const strongByChip = new Map<
@@ -113,6 +118,65 @@ export const findSameSidePassiveGroups = (
     strongByChip.get(chipB)!.push({ selfPin: b, otherPin: a, otherChip: chipA })
   }
 
+  const commonNodeGroups: SameSidePassiveGroup[] = []
+  for (const strongs of strongByChip.values()) {
+    const strongsByPin = new Map<PinId, typeof strongs>()
+    for (const strong of strongs) {
+      const fanout = strongsByPin.get(strong.selfPin) ?? []
+      fanout.push(strong)
+      strongsByPin.set(strong.selfPin, fanout)
+    }
+    for (const [commonPinId, fanout] of strongsByPin) {
+      if (fanout.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE) continue
+
+      const commonNodePins = [commonPinId, ...fanout.map((s) => s.otherPin)]
+      const candidatesByNet = new Map<NetId, ChipId[]>()
+      for (const connectedPinId of commonNodePins) {
+        const chipId = pinToChip[connectedPinId]
+        const chip = problem.chipMap[chipId!]
+        if (!chipId || chip?.fixedPosition || chip?.pins.length !== 2) continue
+
+        const otherPinId = chip.pins.find((pinId) => pinId !== connectedPinId)
+        if (!otherPinId || stronglyConnectedPinIds.has(otherPinId)) continue
+
+        const netId = getNetForPin(problem, otherPinId)
+        if (!netId) continue
+        candidatesByNet.set(netId, [
+          ...(candidatesByNet.get(netId) ?? []),
+          chipId,
+        ])
+      }
+
+      for (const passiveChipIds of candidatesByNet.values()) {
+        if (passiveChipIds.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE) continue
+        const anchorPins = commonNodePins.filter(
+          (pinId) => !passiveChipIds.includes(pinToChip[pinId]!),
+        )
+        if (anchorPins.length !== 1) continue
+
+        const mainChipPinId = anchorPins[0]!
+        const mainChipId = pinToChip[mainChipPinId]
+        if (!mainChipId) continue
+        const mainChip = problem.chipMap[mainChipId]
+        const mainChipPin = problem.chipPinMap[mainChipPinId]
+        if (!mainChip || !mainChipPin) continue
+
+        commonNodeGroups.push({
+          mainChipId,
+          side: getMainChipPinSide(
+            mainChipPin.offset,
+            mainChip.availableRotations?.[0] ?? 0,
+          ),
+          passiveChipIds,
+          mainChipPinIds: passiveChipIds.map(() => mainChipPinId),
+        })
+      }
+    }
+  }
+  const commonNodePassiveChipIds = new Set(
+    commonNodeGroups.flatMap((group) => group.passiveChipIds),
+  )
+
   interface Candidate {
     passiveChipId: ChipId
     mainChipId: ChipId
@@ -124,6 +188,7 @@ export const findSameSidePassiveGroups = (
   const candidates: Candidate[] = []
 
   for (const [passiveChipId, passiveChip] of Object.entries(problem.chipMap)) {
+    if (commonNodePassiveChipIds.has(passiveChipId)) continue
     if (passiveChip.pins.length !== PASSIVE_PIN_COUNT) continue
 
     // Exactly one direct connection, which must be to the main chip.
@@ -173,7 +238,7 @@ export const findSameSidePassiveGroups = (
     candidatesByGroup.set(key, list)
   }
 
-  const groups: SameSidePassiveGroup[] = []
+  const groups: SameSidePassiveGroup[] = [...commonNodeGroups]
   for (const list of candidatesByGroup.values()) {
     if (list.length < MIN_PASSIVE_GROUP_SIZE) continue
     list.sort((a, b) => a.edgeCoord - b.edgeCoord)
