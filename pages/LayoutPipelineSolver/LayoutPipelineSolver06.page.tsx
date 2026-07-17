@@ -1,6 +1,11 @@
 import type { PackInput } from "calculate-packing"
-import { LayoutPipelineDebugger } from "lib/components/LayoutPipelineDebugger"
 import type { InputProblem } from "lib/index"
+import { lazy, Suspense } from "react"
+
+const LayoutPipelineDebugger = lazy(async () => {
+  const mod = await import("lib/components/LayoutPipelineDebugger")
+  return { default: mod.LayoutPipelineDebugger }
+})
 
 export const problem: InputProblem = {
   chipMap: {
@@ -888,5 +893,9 @@ export const problem: InputProblem = {
 }
 
 export default function LayoutPipelineSolver06Page() {
-  return <LayoutPipelineDebugger problem={problem} />
+  return (
+    <Suspense fallback={null}>
+      <LayoutPipelineDebugger problem={problem} />
+    </Suspense>
+  )
 }
