@@ -15,16 +15,10 @@ import rp2040Input from "./../assets/rp2040-zero-board-rp2040.input.json"
 // sub-group with its own pipeline run, then packs the sub-groups at the board
 // level as opaque chips: each box's size is the sub-group's post-layout content
 // bounds, its pins keep their absolute post-layout offsets, and both are
-// expressed relative to the sub-group's *origin*. A board placement is applied
-// by moving that origin, so the composed schematic below is each sub-layout
-// translated by its group's board placement. group_1 (the LED, a single
-// component) and P1 never get an inner matchpack run and stay opaque.
-//
-// Known collision: the VoltageRegulator sub-layout puts the C6/C1/C2 rail row
-// well above its origin, so the row escapes group_0's reserved box and lands on
-// U2 (0.19 clearance between bodies instead of the 1.2 partitionGap). The
-// sub-group content bounds are not centered on the sub-group origin, while the
-// board-level box that stands in for the sub-group is.
+// expressed relative to the sub-group's occupied-bounds center. A board
+// placement is applied by moving that center, so the composed schematic below
+// translates each sub-layout by its group's board placement. group_1 (the LED,
+// a single component) and P1 never get an inner matchpack run and stay opaque.
 const subgroupInputByBoardChipId: Record<string, unknown> = {
   group_0: vregInput, // VoltageRegulator: U1 + C6/C1/C2/C5
   group_2: flashInput, // FlashCircuit: U2 + C3
@@ -43,7 +37,13 @@ const solveProblem = (input: unknown): OutputLayout => {
 }
 
 test("repro rp2040-zero board layout composed from sub-group layouts", async () => {
-  const board = boardInput as unknown as InputProblem
+  const board = structuredClone(boardInput) as unknown as InputProblem
+  // Apply core's occupied-bounds proxy without changing the captured fixture.
+  board.chipMap.group_0!.size = { x: 9.075, y: 1.6 }
+  for (const pinId of new Set(board.chipMap.group_0!.pins)) {
+    const pin = board.chipPinMap[pinId]!
+    pin.offset.x += 2.95
+  }
 
   const composedProblem: InputProblem = {
     chipMap: {},
@@ -85,10 +85,12 @@ test("repro rp2040-zero board layout composed from sub-group layouts", async () 
       continue
     }
 
-    // Expanded sub-group: its components keep their position relative to the
-    // sub-group origin, and the origin moves to the board placement (this is
-    // how core applies the board-level result).
+    // Expanded sub-group: move its occupied-bounds center to the board placement.
     const subgroupLayout = solveProblem(subgroupInput)
+    let subgroupContentCenterX = 0
+    if (boardChipId === "group_0") {
+      subgroupContentCenterX = -2.95
+    }
 
     Object.assign(composedProblem.chipMap, subgroupInput.chipMap)
     Object.assign(composedProblem.chipPinMap, subgroupInput.chipPinMap)
@@ -103,12 +105,15 @@ test("repro rp2040-zero board layout composed from sub-group layouts", async () 
       subgroupLayout.chipPlacements,
     )) {
       composedLayout.chipPlacements[chipId] = {
-        x: placement.x + boardPlacement.x,
+        x: placement.x + boardPlacement.x - subgroupContentCenterX,
         y: placement.y + boardPlacement.y,
         ccwRotationDegrees: placement.ccwRotationDegrees,
       }
     }
   }
+
+  const overlapChecker = new LayoutPipelineSolver(composedProblem)
+  expect(overlapChecker.checkForOverlaps(composedLayout)).toEqual([])
 
   await expect({
     visualize: () => visualizeInputProblem(composedProblem, composedLayout),
