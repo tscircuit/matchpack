@@ -22,10 +22,12 @@ import { getColorFromString } from "lib/utils/getColorFromString"
 import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import type { Side } from "lib/types/Side"
 
 export interface DecouplingCapGroup {
   decouplingCapGroupId: string
   mainChipId: ChipId
+  mainChipSide: Side | null
   netPair: [NetId, NetId]
   decouplingCapChipIds: ChipId[]
 }
@@ -247,6 +249,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       group = {
         decouplingCapGroupId: `decap_group_${mainChipId}__${n1}__${n2}`,
         mainChipId,
+        mainChipSide: this.getMainChipSide(mainChipId, netPair),
         netPair: [n1, n2],
         decouplingCapChipIds: [],
       }
@@ -256,6 +259,36 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     if (!group.decouplingCapChipIds.includes(capChipId)) {
       group.decouplingCapChipIds.push(capChipId)
     }
+  }
+
+  /** Find the main-chip side shared by the largest number of rail pins. */
+  private getMainChipSide(
+    mainChipId: ChipId,
+    netPair: [NetId, NetId],
+  ): Side | null {
+    const mainChip = this.inputProblem.chipMap[mainChipId]
+    if (!mainChip) return null
+
+    const sideCounts = new Map<Side, number>()
+    let mainChipSide: Side | null = null
+    let largestSideCount = 0
+
+    for (const pinId of mainChip.pins) {
+      const pin = this.inputProblem.chipPinMap[pinId]
+      if (!pin) continue
+
+      const pinNetIds = this.getNetIdsForPin(pinId)
+      if (!netPair.some((netId) => pinNetIds.has(netId))) continue
+
+      const sideCount = (sideCounts.get(pin.side) ?? 0) + 1
+      sideCounts.set(pin.side, sideCount)
+      if (sideCount > largestSideCount) {
+        largestSideCount = sideCount
+        mainChipSide = pin.side
+      }
+    }
+
+    return mainChipSide
   }
 
   lastChip: Chip | null = null

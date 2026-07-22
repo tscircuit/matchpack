@@ -102,24 +102,20 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
 
     for (const chipId of chipIds) {
       const chip = this.inputProblem.chipMap[chipId]
-      if (!chip) return null
-      if (!this.inputLayout.chipPlacements[chipId]) return null
+      if (!chip) continue
+      if (!this.inputLayout.chipPlacements[chipId]) continue
 
       const groupId = this.getAlignmentGroupId(chip)
-      if (!groupId) return null
+      if (!groupId) continue
 
       const groupChipIds = groupMap.get(groupId) ?? []
       groupChipIds.push(chipId)
       groupMap.set(groupId, groupChipIds)
     }
 
-    return [...groupMap.values()].map((groupChipIds) => ({
-      chipIds: groupChipIds.sort(
-        (chipIdA, chipIdB) =>
-          this.inputLayout.chipPlacements[chipIdA]!.x -
-          this.inputLayout.chipPlacements[chipIdB]!.x,
-      ),
-    }))
+    return [...groupMap.values()]
+      .filter((groupChipIds) => groupChipIds.length > 1)
+      .map((groupChipIds) => ({ chipIds: groupChipIds }))
   }
 
   private alignGroup(
@@ -127,6 +123,14 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     chipIds: ChipId[],
   ): void {
     if (chipIds.length < 2) return
+
+    let gap = this.inputProblem.partitionGap
+    const allCapacitors = chipIds.every(
+      (chipId) => this.inputProblem.chipMap[chipId]?.isCapacitor,
+    )
+    if (allCapacitors) {
+      gap = this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
+    }
 
     let cursorX = 0
     const rowY =
@@ -158,10 +162,10 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
         ccwRotationDegrees: originalPlacement.ccwRotationDegrees,
       }
 
-      cursorX += width + this.inputProblem.partitionGap
+      cursorX += width + gap
     }
 
-    const rowWidth = cursorX - this.inputProblem.partitionGap
+    const rowWidth = cursorX - gap
     for (const chipId of chipIds) {
       chipPlacements[chipId]!.x += rowCenterX - rowWidth / 2
     }

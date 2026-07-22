@@ -148,6 +148,15 @@ export class DecouplingCapRowSolver extends BaseSolver {
 
     const chipPlacements: Record<ChipId, Placement> = {}
     let cursor = -rowLength / 2
+    let rowDirection = 1
+    const mainChipSide = problem.decouplingMainChipSide
+    const placeFirstChipAtPositiveEnd =
+      (rowAxis === "x" && mainChipSide === "x-") ||
+      (rowAxis === "y" && mainChipSide === "y-")
+    if (placeFirstChipAtPositiveEnd) {
+      cursor = rowLength / 2
+      rowDirection = -1
+    }
 
     chips.forEach((chip, index) => {
       const extent = extents[index]!
@@ -157,11 +166,11 @@ export class DecouplingCapRowSolver extends BaseSolver {
         y: 0,
         ccwRotationDegrees: this.getRotation(chip),
       }
-      placement[rowAxis] = cursor + extent / 2
+      placement[rowAxis] = cursor + (rowDirection * extent) / 2
       placement[pinAxis] = this.getRailOffset(chip, pinAxis)
       chipPlacements[chip.chipId] = placement
 
-      cursor += extent + gap
+      cursor += rowDirection * (extent + gap)
     })
 
     this.layout = { chipPlacements, groupPlacements: {} }
