@@ -18,6 +18,8 @@ test("ADXL345 schematic auto-layout", async () => {
     }),
   )
   expect(rightmostCapEdge).toBeLessThan(u1Left)
+  expect(placements.C1!.x).toBeLessThan(placements.C2!.x)
+  expect(placements.C2!.x).toBeLessThan(placements.C3!.x)
   expect(
     solver.checkForOverlaps({
       chipPlacements: placements,
