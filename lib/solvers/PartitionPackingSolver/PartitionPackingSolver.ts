@@ -3,12 +3,17 @@
  * Combines all the individually processed partitions into the final schematic layout.
  */
 
-import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
-import { BaseSolver } from "../BaseSolver"
+import type { GraphicsObject } from "graphics-debug"
+import type {
+  InputProblem,
+  NetId,
+  PartitionInputProblem,
+  PinId,
+} from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
-import type { PartitionInputProblem } from "../../types/InputProblem"
+import { rotatePinOffset } from "../../utils/rotatePinOffset"
+import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
@@ -211,9 +216,8 @@ export class PartitionPackingSolver extends BaseSolver {
 
       // Add all pins from this partition as pads
       const addedNetworks = new Set<string>()
-      const representativePinIds = this.getDecouplingRepresentativePinIds(
-        packedPartition.inputProblem,
-      )
+      const representativePinIds =
+        this.getDecouplingRepresentativePinIds(packedPartition)
 
       // Calculate pin positions for all chips in the partition
       for (const chipId of group.chipIds) {
@@ -277,9 +281,9 @@ export class PartitionPackingSolver extends BaseSolver {
 
   /** Pick the cap pin nearest the main chip for each shared rail. */
   private getDecouplingRepresentativePinIds(
-    partition: InputProblem,
+    packedPartition: PackedPartition,
   ): Set<PinId> | null {
-    const decapPartition = partition as PartitionInputProblem
+    const decapPartition = packedPartition.inputProblem as PartitionInputProblem
     if (
       decapPartition.partitionType !== "decoupling_caps" ||
       !decapPartition.decouplingMainChipId
@@ -314,9 +318,7 @@ export class PartitionPackingSolver extends BaseSolver {
 
     const selectedByNet = new Map<NetId, { pinId: PinId; position: number }>()
     for (const chip of Object.values(decapPartition.chipMap)) {
-      const placement = this.packedPartitions.find(
-        (packed) => packed.inputProblem === partition,
-      )?.layout.chipPlacements[chip.chipId]
+      const placement = packedPartition.layout.chipPlacements[chip.chipId]
       if (!placement) continue
 
       for (const pinId of chip.pins) {
@@ -328,25 +330,22 @@ export class PartitionPackingSolver extends BaseSolver {
         )
         if (!netId) continue
 
-        let offset = pin.offset
-        if (placement.ccwRotationDegrees === 90) {
-          offset = { x: -pin.offset.y, y: pin.offset.x }
-        } else if (placement.ccwRotationDegrees === 180) {
-          offset = { x: -pin.offset.x, y: -pin.offset.y }
-        } else if (placement.ccwRotationDegrees === 270) {
-          offset = { x: pin.offset.y, y: -pin.offset.x }
+        const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+        let position = placement.x + offset.x
+        if (preferredSide.startsWith("y")) {
+          position = placement.y + offset.y
         }
 
-        const axis = preferredSide.startsWith("x") ? "x" : "y"
-        const position = placement[axis] + offset[axis]
         const current = selectedByNet.get(netId)
         const selectMaximum = preferredSide === "x-" || preferredSide === "y-"
-        if (
-          !current ||
-          (selectMaximum
-            ? position > current.position
-            : position < current.position)
-        ) {
+        let shouldSelect = !current
+        if (current && selectMaximum) {
+          shouldSelect = position > current.position
+        }
+        if (current && !selectMaximum) {
+          shouldSelect = position < current.position
+        }
+        if (shouldSelect) {
           selectedByNet.set(netId, { pinId, position })
         }
       }
