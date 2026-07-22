@@ -210,10 +210,6 @@ export class PartitionPackingSolver extends BaseSolver {
 
       // Add all pins from this partition as pads
       const addedNetworks = new Set<string>()
-      let packConnectionPinIdSet: Set<PinId> | null = null
-      if (packedPartition.packConnectionPinIds) {
-        packConnectionPinIdSet = new Set(packedPartition.packConnectionPinIds)
-      }
 
       // Calculate pin positions for all chips in the partition
       for (const chipId of group.chipIds) {
@@ -221,10 +217,6 @@ export class PartitionPackingSolver extends BaseSolver {
         const chip = packedPartition.inputProblem.chipMap[chipId]!
 
         for (const pinId of chip.pins) {
-          if (packConnectionPinIdSet && !packConnectionPinIdSet.has(pinId)) {
-            continue
-          }
-
           const chipPin = packedPartition.inputProblem.chipPinMap[pinId]
           if (!chipPin) continue
 

@@ -133,6 +133,8 @@ export class LayoutPipelineSolver extends BaseSolver {
         {
           inputProblem: this.inputProblem,
           inputLayout: this.partitionPackingSolver!.finalLayout!,
+          decouplingCapGroups:
+            this.identifyDecouplingCapsSolver?.outputDecouplingCapGroups,
         },
       ],
     ),

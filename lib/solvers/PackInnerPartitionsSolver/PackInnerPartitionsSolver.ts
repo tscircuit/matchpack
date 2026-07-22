@@ -29,7 +29,6 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 export type PackedPartition = {
   inputProblem: InputProblem
   layout: OutputLayout
-  packConnectionPinIds?: PinId[]
 }
 
 /** Every inner-partition layout solver exposes a `.layout` result. */
@@ -165,15 +164,10 @@ export class PackInnerPartitionsSolver extends BaseSolver {
       this.completedSolvers.push(this.activeSolver)
 
       if (this.activeSolver.layout) {
-        const packedPartition: PackedPartition = {
+        this.packedPartitions.push({
           inputProblem: this.partitions[this.currentPartitionIndex]!,
           layout: this.activeSolver.layout,
-        }
-        if (this.activeSolver instanceof DecouplingCapRowSolver) {
-          packedPartition.packConnectionPinIds =
-            this.activeSolver.packConnectionPinIds
-        }
-        this.packedPartitions.push(packedPartition)
+        })
       } else {
         this.failed = true
         this.error = `Partition ${this.currentPartitionIndex} completed but has no layout`
