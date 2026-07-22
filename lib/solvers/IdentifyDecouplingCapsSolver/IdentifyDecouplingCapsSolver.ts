@@ -2,7 +2,7 @@
  * Identifies decoupling capacitor groups based on specific criteria:
  * 1. The component is a capacitor (chip.isCapacitor) — a diode or voltmeter can share
  *    a cap's geometry, so the component type is what qualifies it, not the pin count
- * 2. It has exactly 2 pins and restricted rotation (0/180 only or no rotation)
+ * 2. It has exactly 2 pins and a restricted or single fixed rotation
  * 3. One pin indirectly connected to a ground net, one to a positive voltage source
  * 4. It decouples a main chip: one it is directly (pin-to-pin) wired to, or — for a
  *    cap wired only to the rail — the chip whose directly-wired caps already decouple
@@ -19,6 +19,7 @@ import type {
   Chip,
 } from "lib/types/InputProblem"
 import { getColorFromString } from "lib/utils/getColorFromString"
+import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 
@@ -34,7 +35,7 @@ export interface DecouplingCapGroup {
  * 1. The component is a capacitor (chip.isCapacitor). Geometry alone is ambiguous —
  *    a 2-pin part bridging power and ground could be a TVS diode or a voltmeter — so
  *    the component type is what gates this, not the pin count.
- * 2. It has exactly 2 pins with restricted rotation (0/180 only or no rotation)
+ * 2. It has exactly 2 pins with a restricted or single fixed rotation
  * 3. One pin indirectly connected to a net with isGround and one to isPositiveVoltageSource
  * 4. It decouples a main chip (typically a microcontroller) — one it is directly
  *    (pin-to-pin) wired to, or — for a cap wired only to the rail — the chip whose
@@ -60,24 +61,32 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   private isTwoPinRestrictedRotation(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
 
-    // Must be restricted to 0/180 or a single fixed orientation
+    // Must be restricted to 0/180 or a single fixed orientation.
     if (!chip.availableRotations) return false
     const allowed = new Set<0 | 180>([0, 180])
     return (
       chip.availableRotations.length > 0 &&
-      chip.availableRotations.every((r) => allowed.has(r as 0 | 180))
+      (chip.availableRotations.length === 1 ||
+        chip.availableRotations.every((r) => allowed.has(r as 0 | 180)))
     )
   }
 
-  /** Check that the two pins are on opposite Y sides (y+ and y-) */
-  private pinsOnOppositeYSides(chip: Chip): boolean {
+  /** Check that the two pins run vertically after the fixed rotation. */
+  private pinsOnOppositeYSidesAfterRotation(chip: Chip): boolean {
     if (chip.pins.length !== 2) return false
     const [p1, p2] = chip.pins
     const cp1 = this.inputProblem.chipPinMap[p1!]
     const cp2 = this.inputProblem.chipPinMap[p2!]
     if (!cp1 || !cp2) return false
-    const sides = new Set([cp1.side, cp2.side])
-    return sides.has("y+") && sides.has("y-")
+
+    const rotation = chip.availableRotations?.[0] ?? 0
+    const offset1 = rotatePinOffset(cp1.offset, rotation)
+    const offset2 = rotatePinOffset(cp2.offset, rotation)
+    const verticalSeparation = Math.abs(offset1.y - offset2.y)
+    return (
+      verticalSeparation > 0 &&
+      verticalSeparation >= Math.abs(offset1.x - offset2.x)
+    )
   }
 
   /** Get chips strongly connected (direct pin-to-pin) to this pin */
@@ -114,8 +123,24 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   ): ChipId | null {
     return (
       this.findStronglyConnectedMainChipId(capChip) ??
-      this.findRailSharingMainChipId(capChip, netPair)
+      this.findRailSharingMainChipId(capChip, netPair) ??
+      this.findUniqueMainChipSharingNetPair(netPair)
     )
+  }
+
+  /** Use a rail-only fallback only when one non-capacitor chip shares both rails. */
+  private findUniqueMainChipSharingNetPair(
+    netPair: [NetId, NetId],
+  ): ChipId | null {
+    const candidates = Object.values(this.inputProblem.chipMap).filter(
+      (chip) =>
+        !chip.isCapacitor &&
+        netPair.every((netId) =>
+          chip.pins.some((pinId) => this.getNetIdsForPin(pinId).has(netId)),
+        ),
+    )
+
+    return candidates.length === 1 ? candidates[0]!.chipId : null
   }
 
   /** The chip sharing the most direct pin-to-pin connections with the cap. */
@@ -249,7 +274,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     // Apply identification criteria
     const isDecouplingCap =
       this.isTwoPinRestrictedRotation(currentChip) &&
-      this.pinsOnOppositeYSides(currentChip)
+      this.pinsOnOppositeYSidesAfterRotation(currentChip)
 
     if (!isDecouplingCap) return
 
