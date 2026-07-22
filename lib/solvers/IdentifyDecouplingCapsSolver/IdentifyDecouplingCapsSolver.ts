@@ -123,8 +123,24 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   ): ChipId | null {
     return (
       this.findStronglyConnectedMainChipId(capChip) ??
-      this.findRailSharingMainChipId(capChip, netPair)
+      this.findRailSharingMainChipId(capChip, netPair) ??
+      this.findUniqueMainChipSharingNetPair(netPair)
     )
+  }
+
+  /** Use a rail-only fallback only when one non-capacitor chip shares both rails. */
+  private findUniqueMainChipSharingNetPair(
+    netPair: [NetId, NetId],
+  ): ChipId | null {
+    const candidates = Object.values(this.inputProblem.chipMap).filter(
+      (chip) =>
+        !chip.isCapacitor &&
+        netPair.every((netId) =>
+          chip.pins.some((pinId) => this.getNetIdsForPin(pinId).has(netId)),
+        ),
+    )
+
+    return candidates.length === 1 ? candidates[0]!.chipId : null
   }
 
   /** The chip sharing the most direct pin-to-pin connections with the cap. */
