@@ -6,6 +6,7 @@
  */
 
 import type { ChipPin, InputProblem, PinId } from "../types/InputProblem"
+import { isGroundNet, isPositiveVoltageNet } from "./netBiasUtils"
 
 export interface NetworkFilteringResult {
   /** Map from pinId to networkId, with filtered networks marked as disconnected */
@@ -68,27 +69,22 @@ export function createFilteredNetworkMapping(params: {
   }
 
   // Process net connections
-  if (hasStrongConnections) {
-    // If any strong connections exist anywhere in the problem, filter out all weak (pin-to-net) connections
-    for (const [connKey, connected] of Object.entries(
-      inputProblem.netConnMap,
-    )) {
-      if (!connected) continue
-      const [pinId, netId] = connKey.split("-")
-      if (pinId && netId) {
-        // Do not assign a network for weak connections when strong connections are present.
-        // Mark this pin as filtered so callers can inspect what was ignored.
+  for (const [connKey, connected] of Object.entries(inputProblem.netConnMap)) {
+    if (!connected) continue
+    const [pinId, netId] = connKey.split("-")
+    if (pinId && netId) {
+      const net = inputProblem.netMap[netId]
+      const isPowerOrGround =
+        isGroundNet(netId, net) || isPositiveVoltageNet(netId, net)
+
+      if (isPowerOrGround) {
+        // Always preserve power and ground nets
+        pinToNetworkMap.set(pinId, netId)
+      } else if (hasStrongConnections) {
+        // Filter out other weak (pin-to-net) connections when strong connections exist
         filteredPins.add(pinId)
-      }
-    }
-  } else {
-    // No strong connections exist; include weak connections with basic opposite-side filtering
-    for (const [connKey, connected] of Object.entries(
-      inputProblem.netConnMap,
-    )) {
-      if (!connected) continue
-      const [pinId, netId] = connKey.split("-")
-      if (pinId && netId) {
+      } else {
+        // No strong connections exist; include weak connections with basic opposite-side filtering
         const pin = inputProblem.chipPinMap[pinId]
         if (!pin) continue
 
