@@ -1,0 +1,86 @@
+{
+  "chipMap": {
+    "X1": {
+      "chipId": "X1",
+      "pins": ["X1.1", "X1.2"],
+      "size": { "x": 1.94, "y": 1.24 },
+      "isCapacitor": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "C1": {
+      "chipId": "C1",
+      "pins": ["C1.1", "C1.2"],
+      "size": { "x": 0.6, "y": 0.84 },
+      "isCapacitor": true,
+      "availableRotations": [270]
+    },
+    "C2": {
+      "chipId": "C2",
+      "pins": ["C2.1", "C2.2"],
+      "size": { "x": 0.6, "y": 0.84 },
+      "isCapacitor": true,
+      "availableRotations": [270]
+    }
+  },
+  "chipPinMap": {
+    "X1.1": {
+      "pinId": "X1.1",
+      "offset": { "x": -0.55, "y": 0 },
+      "side": "x-"
+    },
+    "X1.2": {
+      "pinId": "X1.2",
+      "offset": { "x": 0.55, "y": 0 },
+      "side": "x+"
+    },
+    "C1.1": {
+      "pinId": "C1.1",
+      "offset": { "x": -0.3, "y": 0 },
+      "side": "x-"
+    },
+    "C1.2": {
+      "pinId": "C1.2",
+      "offset": { "x": 0.3, "y": 0 },
+      "side": "x+"
+    },
+    "C2.1": {
+      "pinId": "C2.1",
+      "offset": { "x": -0.3, "y": 0 },
+      "side": "x-"
+    },
+    "C2.2": {
+      "pinId": "C2.2",
+      "offset": { "x": 0.3, "y": 0 },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "X1.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "C1.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "X1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "C2.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "C1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "C2.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}

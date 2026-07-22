@@ -1,0 +1,44 @@
+<svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><g><polyline data-points="-0.55,0 -0.5499999999999998,-1.825" data-type="line" data-label="" points="132.41379310344826,154.02298850574715 132.4137931034483,489.65517241379314" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1px"/></g><g><polyline data-points="0.55,0 1.49,-1.8249999999999995" data-type="line" data-label="" points="334.71264367816093,154.02298850574715 507.58620689655174,489.6551724137931" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1px"/></g><g><polyline data-points="-0.5499999999999998,-2.425 1.49,-2.4249999999999994" data-type="line" data-label="" points="132.4137931034483,600 507.58620689655174,600" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1px"/></g><g><rect data-type="rect" data-label="X1" data-x="0" data-y="0" x="55.17241379310343" y="40" width="356.7816091954023" height="228.0459770114943" fill="rgba(59, 130, 246, 0.12)" stroke="none" stroke-width="0.0054375"/></g><g><rect data-type="rect" data-label="C1" data-x="-0.5499999999999998" data-y="-2.125" x="55.17241379310347" y="489.6551724137932" width="154.48275862068968" height="110.34482758620686" fill="rgba(59, 130, 246, 0.18)" stroke="none" stroke-width="0.0054375"/></g><g><rect data-type="rect" data-label="C2" data-x="1.49" data-y="-2.1249999999999996" x="430.344827586207" y="489.655172413793" width="154.4827586206896" height="110.34482758620692" fill="rgba(59, 130, 246, 0.18)" stroke="none" stroke-width="0.0054375"/></g><text data-type="text" data-label="X1" data-x="0" data-y="0" x="233.5632183908046" y="154.02298850574715" fill="black" font-size="50.17011494252874" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">X1</text><text data-type="text" data-label="C1" data-x="-0.5499999999999998" data-y="-2.125" x="132.4137931034483" y="544.8275862068966" fill="black" font-size="24.27586206896552" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">C1</text><text data-type="text" data-label="C2" data-x="1.49" data-y="-2.1249999999999996" x="507.58620689655174" y="544.8275862068965" fill="black" font-size="24.27586206896552" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">C2</text><g><circle data-type="point" data-label="X1.1 (unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0)" data-x="-0.55" data-y="0" cx="132.41379310344826" cy="154.02298850574715" r="3" fill="black"/></g><g><circle data-type="point" data-label="X1.2 (unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1)" data-x="0.55" data-y="0" cx="334.71264367816093" cy="154.02298850574715" r="3" fill="black"/></g><g><circle data-type="point" data-label="C1.1 (unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0)" data-x="-0.5499999999999998" data-y="-1.825" cx="132.4137931034483" cy="489.65517241379314" r="3" fill="black"/></g><g><circle data-type="point" data-label="C1.2 (unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2)" data-x="-0.5499999999999998" data-y="-2.425" cx="132.4137931034483" cy="600" r="3" fill="black"/></g><g><circle data-type="point" data-label="C2.1 (unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1)" data-x="1.49" data-y="-1.8249999999999995" cx="507.58620689655174" cy="489.6551724137931" r="3" fill="black"/></g><g><circle data-type="point" data-label="C2.2 (unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2)" data-x="1.49" data-y="-2.4249999999999994" cx="507.58620689655174" cy="600" r="3" fill="black"/></g><g id="crosshair" style="display: none"><line id="crosshair-h" y1="0" y2="640" stroke="#666" stroke-width="0.5"/><line id="crosshair-v" x1="0" x2="640" stroke="#666" stroke-width="0.5"/><text id="coordinates" font-family="monospace" font-size="12" fill="#666"></text></g><script><![CDATA[
+              document.currentScript.parentElement.addEventListener('mousemove', (e) => {
+                const svg = e.currentTarget;
+                const rect = svg.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const crosshair = svg.getElementById('crosshair');
+                const h = svg.getElementById('crosshair-h');
+                const v = svg.getElementById('crosshair-v');
+                const coords = svg.getElementById('coordinates');
+                
+                crosshair.style.display = 'block';
+                h.setAttribute('x1', '0');
+                h.setAttribute('x2', '640');
+                h.setAttribute('y1', y);
+                h.setAttribute('y2', y);
+                v.setAttribute('x1', x);
+                v.setAttribute('x2', x);
+                v.setAttribute('y1', '0');
+                v.setAttribute('y2', '640');
+
+                // Calculate real coordinates using inverse transformation
+                const matrix = {"a":183.9080459770115,"c":0,"e":233.5632183908046,"b":0,"d":-183.9080459770115,"f":154.02298850574715};
+                // Manually invert and apply the affine transform
+                // Since we only use translate and scale, we can directly compute:
+                // x' = (x - tx) / sx
+                // y' = (y - ty) / sy
+                const sx = matrix.a;
+                const sy = matrix.d;
+                const tx = matrix.e; 
+                const ty = matrix.f;
+                const realPoint = {
+                  x: (x - tx) / sx,
+                  y: (y - ty) / sy // Flip y back since we used negative scale
+                }
+                
+                coords.textContent = `(${realPoint.x.toFixed(2)}, ${realPoint.y.toFixed(2)})`;
+                coords.setAttribute('x', (x + 5).toString());
+                coords.setAttribute('y', (y - 5).toString());
+              });
+              document.currentScript.parentElement.addEventListener('mouseleave', () => {
+                document.currentScript.parentElement.getElementById('crosshair').style.display = 'none';
+              });
+            ]]></script></svg>
