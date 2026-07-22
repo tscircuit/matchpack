@@ -121,6 +121,11 @@ export class ChipPartitionsSolver extends BaseSolver {
       ...decapGroupPartitions.map((partition) =>
         this.createInputProblemFromPartition(partition, inputProblem, {
           partitionType: "decoupling_caps",
+          decouplingMainChipId: this.decouplingCapGroups?.find((group) =>
+            group.decouplingCapChipIds.some((capId) =>
+              partition.includes(capId),
+            ),
+          )?.mainChipId,
         }),
       ),
       ...nonDecapPartitions.map((partition) =>
@@ -188,6 +193,7 @@ export class ChipPartitionsSolver extends BaseSolver {
     originalProblem: InputProblem,
     opts?: {
       partitionType?: "default" | "decoupling_caps"
+      decouplingMainChipId?: ChipId
     },
   ): PartitionInputProblem {
     const chipIds = partition
@@ -257,6 +263,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       netConnMap,
       isPartition: true,
       partitionType: opts?.partitionType,
+      decouplingMainChipId: opts?.decouplingMainChipId,
     }
   }
 

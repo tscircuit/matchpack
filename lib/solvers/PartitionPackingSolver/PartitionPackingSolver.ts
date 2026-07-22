@@ -8,6 +8,7 @@ import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
+import type { PartitionInputProblem } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
@@ -210,6 +211,9 @@ export class PartitionPackingSolver extends BaseSolver {
 
       // Add all pins from this partition as pads
       const addedNetworks = new Set<string>()
+      const representativePinIds = this.getDecouplingRepresentativePinIds(
+        packedPartition.inputProblem,
+      )
 
       // Calculate pin positions for all chips in the partition
       for (const chipId of group.chipIds) {
@@ -217,6 +221,8 @@ export class PartitionPackingSolver extends BaseSolver {
         const chip = packedPartition.inputProblem.chipMap[chipId]!
 
         for (const pinId of chip.pins) {
+          if (representativePinIds && !representativePinIds.has(pinId)) continue
+
           const chipPin = packedPartition.inputProblem.chipPinMap[pinId]
           if (!chipPin) continue
 
@@ -267,6 +273,86 @@ export class PartitionPackingSolver extends BaseSolver {
       packOrderStrategy: "largest_to_smallest",
       packPlacementStrategy: "minimum_sum_squared_distance_to_network",
     }
+  }
+
+  /** Pick the cap pin nearest the main chip for each shared rail. */
+  private getDecouplingRepresentativePinIds(
+    partition: InputProblem,
+  ): Set<PinId> | null {
+    const decapPartition = partition as PartitionInputProblem
+    if (
+      decapPartition.partitionType !== "decoupling_caps" ||
+      !decapPartition.decouplingMainChipId
+    ) {
+      return null
+    }
+
+    const mainChip =
+      this.inputProblem.chipMap[decapPartition.decouplingMainChipId]
+    if (!mainChip) return null
+
+    const railNetIds = new Set(Object.keys(decapPartition.netMap))
+    const sideCounts = new Map<string, number>()
+    for (const pinId of mainChip.pins) {
+      const pin = this.inputProblem.chipPinMap[pinId]
+      if (!pin) continue
+      const touchesRail = Object.entries(this.inputProblem.netConnMap).some(
+        ([key, connected]) =>
+          connected &&
+          key.startsWith(`${pinId}-`) &&
+          railNetIds.has(key.slice(pinId.length + 1)),
+      )
+      if (touchesRail) {
+        sideCounts.set(pin.side, (sideCounts.get(pin.side) ?? 0) + 1)
+      }
+    }
+
+    const preferredSide = [...sideCounts.entries()].sort(
+      (a, b) => b[1] - a[1],
+    )[0]?.[0]
+    if (!preferredSide) return null
+
+    const selectedByNet = new Map<NetId, { pinId: PinId; position: number }>()
+    for (const chip of Object.values(decapPartition.chipMap)) {
+      const placement = this.packedPartitions.find(
+        (packed) => packed.inputProblem === partition,
+      )?.layout.chipPlacements[chip.chipId]
+      if (!placement) continue
+
+      for (const pinId of chip.pins) {
+        const pin = decapPartition.chipPinMap[pinId]
+        if (!pin) continue
+        const netId = Object.keys(decapPartition.netMap).find(
+          (candidateNetId) =>
+            decapPartition.netConnMap[`${pinId}-${candidateNetId}`],
+        )
+        if (!netId) continue
+
+        let offset = pin.offset
+        if (placement.ccwRotationDegrees === 90) {
+          offset = { x: -pin.offset.y, y: pin.offset.x }
+        } else if (placement.ccwRotationDegrees === 180) {
+          offset = { x: -pin.offset.x, y: -pin.offset.y }
+        } else if (placement.ccwRotationDegrees === 270) {
+          offset = { x: pin.offset.y, y: -pin.offset.x }
+        }
+
+        const axis = preferredSide.startsWith("x") ? "x" : "y"
+        const position = placement[axis] + offset[axis]
+        const current = selectedByNet.get(netId)
+        const selectMaximum = preferredSide === "x-" || preferredSide === "y-"
+        if (
+          !current ||
+          (selectMaximum
+            ? position > current.position
+            : position < current.position)
+        ) {
+          selectedByNet.set(netId, { pinId, position })
+        }
+      }
+    }
+
+    return new Set([...selectedByNet.values()].map(({ pinId }) => pinId))
   }
 
   private applyPackingResult(
