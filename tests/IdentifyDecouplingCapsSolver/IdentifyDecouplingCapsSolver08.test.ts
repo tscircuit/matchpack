@@ -10,6 +10,7 @@ test("groups fixed-rotation rail-only ADXL345 decoupling capacitors", () => {
   expect(solver.outputDecouplingCapGroups).toEqual([
     expect.objectContaining({
       mainChipId: "U1",
+      mainChipSide: "x-",
       decouplingCapChipIds: ["C1", "C2", "C3"],
     }),
   ])
