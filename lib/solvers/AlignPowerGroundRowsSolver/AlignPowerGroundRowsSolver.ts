@@ -3,8 +3,6 @@ import { BaseSolver } from "lib/solvers/BaseSolver"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import type { Chip, ChipId, InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
-import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
-import { getRotatedSize } from "lib/utils/rotatePinOffset"
 
 type AlignmentGroup = {
   chipIds: ChipId[]
@@ -13,73 +11,20 @@ type AlignmentGroup = {
 export class AlignPowerGroundRowsSolver extends BaseSolver {
   inputProblem: InputProblem
   inputLayout: OutputLayout
-  decouplingCapGroups: DecouplingCapGroup[]
   outputLayout: OutputLayout | null = null
 
   constructor(params: {
     inputProblem: InputProblem
     inputLayout: OutputLayout
-    decouplingCapGroups?: DecouplingCapGroup[]
   }) {
     super()
     this.inputProblem = params.inputProblem
     this.inputLayout = params.inputLayout
-    this.decouplingCapGroups = params.decouplingCapGroups ?? []
   }
 
   override _step() {
-    const alignedLayout = this.createAlignedLayout() ?? this.inputLayout
-    this.outputLayout = this.orderDecouplingCapRows(alignedLayout)
+    this.outputLayout = this.createAlignedLayout() ?? this.inputLayout
     this.solved = true
-  }
-
-  /** Restore source order inside packed decoupling rows without moving the row. */
-  private orderDecouplingCapRows(inputLayout: OutputLayout): OutputLayout {
-    const chipPlacements = { ...inputLayout.chipPlacements }
-    const gap = this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
-
-    for (const group of this.decouplingCapGroups) {
-      const chipIds = group.decouplingCapChipIds.filter(
-        (chipId) => chipPlacements[chipId] && this.inputProblem.chipMap[chipId],
-      )
-      if (chipIds.length < 2) continue
-
-      const xCoordinates = chipIds.map((chipId) => chipPlacements[chipId]!.x)
-      const yCoordinates = chipIds.map((chipId) => chipPlacements[chipId]!.y)
-      const xRange = Math.max(...xCoordinates) - Math.min(...xCoordinates)
-      const yRange = Math.max(...yCoordinates) - Math.min(...yCoordinates)
-      let rowAxis: "x" | "y" = "x"
-      if (yRange > xRange) rowAxis = "y"
-
-      const extents = chipIds.map((chipId) => {
-        const chip = this.inputProblem.chipMap[chipId]!
-        const placement = chipPlacements[chipId]!
-        return getRotatedSize(chip.size, placement.ccwRotationDegrees)[rowAxis]
-      })
-      const rowLength =
-        extents.reduce((sum, extent) => sum + extent, 0) +
-        gap * (chipIds.length - 1)
-      const rowCenter =
-        chipIds.reduce(
-          (sum, chipId) => sum + chipPlacements[chipId]![rowAxis],
-          0,
-        ) / chipIds.length
-      let cursor = rowCenter - rowLength / 2
-
-      chipIds.forEach((chipId, index) => {
-        const placement = { ...chipPlacements[chipId]! }
-        placement[rowAxis] = cursor + extents[index]! / 2
-        chipPlacements[chipId] = placement
-        cursor += extents[index]! + gap
-      })
-    }
-
-    if (this.hasChipOverlap(chipPlacements)) return inputLayout
-
-    return {
-      chipPlacements,
-      groupPlacements: { ...inputLayout.groupPlacements },
-    }
   }
 
   private isPowerGroundNet(netId: string): boolean {
@@ -157,24 +102,20 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
 
     for (const chipId of chipIds) {
       const chip = this.inputProblem.chipMap[chipId]
-      if (!chip) return null
-      if (!this.inputLayout.chipPlacements[chipId]) return null
+      if (!chip) continue
+      if (!this.inputLayout.chipPlacements[chipId]) continue
 
       const groupId = this.getAlignmentGroupId(chip)
-      if (!groupId) return null
+      if (!groupId) continue
 
       const groupChipIds = groupMap.get(groupId) ?? []
       groupChipIds.push(chipId)
       groupMap.set(groupId, groupChipIds)
     }
 
-    return [...groupMap.values()].map((groupChipIds) => ({
-      chipIds: groupChipIds.sort(
-        (chipIdA, chipIdB) =>
-          this.inputLayout.chipPlacements[chipIdA]!.x -
-          this.inputLayout.chipPlacements[chipIdB]!.x,
-      ),
-    }))
+    return [...groupMap.values()]
+      .filter((groupChipIds) => groupChipIds.length > 1)
+      .map((groupChipIds) => ({ chipIds: groupChipIds }))
   }
 
   private alignGroup(
@@ -182,6 +123,14 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     chipIds: ChipId[],
   ): void {
     if (chipIds.length < 2) return
+
+    let gap = this.inputProblem.partitionGap
+    const allCapacitors = chipIds.every(
+      (chipId) => this.inputProblem.chipMap[chipId]?.isCapacitor,
+    )
+    if (allCapacitors) {
+      gap = this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
+    }
 
     let cursorX = 0
     const rowY =
@@ -213,10 +162,10 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
         ccwRotationDegrees: originalPlacement.ccwRotationDegrees,
       }
 
-      cursorX += width + this.inputProblem.partitionGap
+      cursorX += width + gap
     }
 
-    const rowWidth = cursorX - this.inputProblem.partitionGap
+    const rowWidth = cursorX - gap
     for (const chipId of chipIds) {
       chipPlacements[chipId]!.x += rowCenterX - rowWidth / 2
     }
@@ -301,17 +250,12 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
   }
 
   override getConstructorParams(): [
-    {
-      inputProblem: InputProblem
-      inputLayout: OutputLayout
-      decouplingCapGroups?: DecouplingCapGroup[]
-    },
+    { inputProblem: InputProblem; inputLayout: OutputLayout },
   ] {
     return [
       {
         inputProblem: this.inputProblem,
         inputLayout: this.inputLayout,
-        decouplingCapGroups: this.decouplingCapGroups,
       },
     ]
   }
