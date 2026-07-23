@@ -8,6 +8,7 @@
         "y": 0.6
       },
       "isCapacitor": false,
+      "isResistor": true,
       "availableRotations": [0]
     },
     "C17": {
@@ -38,6 +39,7 @@
         "y": 1.4
       },
       "isCapacitor": false,
+      "isCrystal": true,
       "availableRotations": [0]
     }
   },

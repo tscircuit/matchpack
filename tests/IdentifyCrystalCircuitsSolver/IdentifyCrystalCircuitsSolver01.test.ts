@@ -6,10 +6,7 @@ import verticalRawInput from "../assets/repro-32khz-crystal-load-caps.input.json
 import rawInput from "../assets/rp2040-zero-board-crystal.input.json"
 
 const buildInput = (): InputProblem => {
-  const input = structuredClone(rawInput) as InputProblem
-  input.chipMap.X1!.isCrystal = true
-  input.chipMap.R8!.isResistor = true
-  return input
+  return structuredClone(rawInput) as InputProblem
 }
 
 test("identifies a four-pin crystal, two grounded load caps, and series resistor", () => {
