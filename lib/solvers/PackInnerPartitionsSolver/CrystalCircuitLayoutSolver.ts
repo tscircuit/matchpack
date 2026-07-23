@@ -12,8 +12,10 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 
 type Rotation = 0 | 90 | 180 | 270
 
-const rotationsFor = (chip: Chip): Rotation[] =>
-  chip.availableRotations?.length ? chip.availableRotations : [0]
+const rotationsFor = (chip: Chip): Rotation[] => {
+  if (chip.availableRotations?.length) return chip.availableRotations
+  return [0]
+}
 
 const chooseCrystalRotation = (
   chip: Chip,
@@ -154,11 +156,15 @@ export class CrystalCircuitLayoutSolver extends BaseSolver {
     }
     const activeOffsetA = activePinOffsets.get(group.activeCrystalPinIds[0])!
     const activeOffsetB = activePinOffsets.get(group.activeCrystalPinIds[1])!
-    const crystalPinAxis: "x" | "y" =
+    let crystalPinAxis: "x" | "y"
+    if (
       Math.abs(activeOffsetA.x - activeOffsetB.x) >=
       Math.abs(activeOffsetA.y - activeOffsetB.y)
-        ? "x"
-        : "y"
+    ) {
+      crystalPinAxis = "x"
+    } else {
+      crystalPinAxis = "y"
+    }
 
     const capGeometry = group.loadCaps.map((loadCap, index) => {
       const chip = problem.chipMap[loadCap.chipId]!
@@ -212,7 +218,12 @@ export class CrystalCircuitLayoutSolver extends BaseSolver {
       // the same X coordinate. Each signal pin remains level with its crystal
       // terminal and body clearance comes from the horizontal extents.
       capGeometry.forEach((geometry, index) => {
-        const side = index === 0 ? -1 : 1
+        let side: 1 | -1
+        if (index === 0) {
+          side = -1
+        } else {
+          side = 1
+        }
         chipPlacements[geometry.chip.chipId] = {
           x: side * (crystalSize.x / 2 + gap + geometry.size.x / 2),
           y: geometry.crystalPinOffset.y - geometry.signalOffset.y,
