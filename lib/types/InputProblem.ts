@@ -20,6 +20,8 @@ export type Chip = {
   isCapacitor?: boolean
   /** Whether this chip is a crystal (circuit-json ftype "simple_crystal"). */
   isCrystal?: boolean
+  /** Whether this chip is a resistor (circuit-json ftype "simple_resistor"). */
+  isResistor?: boolean
   availableRotations?: Array<0 | 90 | 180 | 270>
   fixedPosition?: Point
 }
@@ -57,6 +59,7 @@ export type InputProblem = {
 
 export interface PartitionInputProblem extends InputProblem {
   isPartition?: true
-  partitionType?: "default" | "decoupling_caps"
+  partitionType?: "default" | "decoupling_caps" | "crystal_circuit"
   decouplingMainChipSide?: Side | null
+  crystalCircuitGroup?: import("../solvers/IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver").CrystalCircuitGroup
 }

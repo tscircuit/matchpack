@@ -7,6 +7,7 @@ import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipPartitionsSolver"
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import { IdentifyCrystalCircuitsSolver } from "lib/solvers/IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver"
 import { AlignPowerGroundRowsSolver } from "lib/solvers/AlignPowerGroundRowsSolver/AlignPowerGroundRowsSolver"
 import {
   PackInnerPartitionsSolver,
@@ -50,6 +51,7 @@ function definePipelineStep<
 }
 
 export class LayoutPipelineSolver extends BaseSolver {
+  identifyCrystalCircuitsSolver?: IdentifyCrystalCircuitsSolver
   identifyDecouplingCapsSolver?: IdentifyDecouplingCapsSolver
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
@@ -70,6 +72,11 @@ export class LayoutPipelineSolver extends BaseSolver {
 
   pipelineDef = [
     definePipelineStep(
+      "identifyCrystalCircuitsSolver",
+      IdentifyCrystalCircuitsSolver,
+      () => [this.inputProblem],
+    ),
+    definePipelineStep(
       "identifyDecouplingCapsSolver",
       IdentifyDecouplingCapsSolver,
       () => [this.inputProblem],
@@ -87,6 +94,8 @@ export class LayoutPipelineSolver extends BaseSolver {
           inputProblem: this.inputProblem,
           decouplingCapGroups:
             this.identifyDecouplingCapsSolver?.outputDecouplingCapGroups,
+          crystalCircuitGroups:
+            this.identifyCrystalCircuitsSolver?.outputCrystalCircuitGroups,
         },
       ],
       {
@@ -208,6 +217,8 @@ export class LayoutPipelineSolver extends BaseSolver {
       return this.partitionPackingSolver.visualize()
     }
 
+    const identifyCrystalCircuitsViz =
+      this.identifyCrystalCircuitsSolver?.visualize()
     const identifyDecouplingCapsViz =
       this.identifyDecouplingCapsSolver?.visualize()
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
@@ -221,6 +232,7 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     const visualizations = [
       inputViz,
+      identifyCrystalCircuitsViz,
       identifyDecouplingCapsViz,
       chipPartitionsViz,
       packInnerPartitionsViz,
@@ -283,6 +295,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
     if (this.identifyDecouplingCapsSolver?.solved) {
       return this.identifyDecouplingCapsSolver.visualize()
+    }
+    if (this.identifyCrystalCircuitsSolver?.solved) {
+      return this.identifyCrystalCircuitsSolver.visualize()
     }
 
     return super.preview()

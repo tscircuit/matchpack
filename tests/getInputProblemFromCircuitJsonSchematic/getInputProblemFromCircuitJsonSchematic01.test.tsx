@@ -133,6 +133,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         "R2": {
           "chipId": "R2",
           "isCapacitor": false,
+          "isResistor": true,
           "pins": [
             "R2.1",
             "R2.2",
@@ -145,6 +146,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         "R3": {
           "chipId": "R3",
           "isCapacitor": false,
+          "isResistor": true,
           "pins": [
             "R3.1",
             "R3.2",
@@ -157,6 +159,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         "R4": {
           "chipId": "R4",
           "isCapacitor": false,
+          "isResistor": true,
           "pins": [
             "R4.1",
             "R4.2",
@@ -169,6 +172,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         "R5": {
           "chipId": "R5",
           "isCapacitor": false,
+          "isResistor": true,
           "pins": [
             "R5.1",
             "R5.2",
@@ -181,6 +185,7 @@ test("getInputProblemFromCircuitJsonSchematic01", () => {
         "R7": {
           "chipId": "R7",
           "isCapacitor": false,
+          "isResistor": true,
           "pins": [
             "R7.1",
             "R7.2",
