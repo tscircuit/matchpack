@@ -16,22 +16,27 @@ import { stackGraphicsHorizontally } from "graphics-debug"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
+import type { CrystalCircuitGroup } from "../IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
   partitions: PartitionInputProblem[] = []
   decouplingCapGroups?: DecouplingCapGroup[]
+  crystalCircuitGroups?: CrystalCircuitGroup[]
 
   constructor({
     inputProblem,
     decouplingCapGroups,
+    crystalCircuitGroups,
   }: {
     inputProblem: InputProblem
     decouplingCapGroups?: DecouplingCapGroup[]
+    crystalCircuitGroups?: CrystalCircuitGroup[]
   }) {
     super()
     this.inputProblem = inputProblem
     this.decouplingCapGroups = decouplingCapGroups
+    this.crystalCircuitGroups = crystalCircuitGroups
   }
 
   override _step() {
@@ -41,13 +46,34 @@ export class ChipPartitionsSolver extends BaseSolver {
 
   /**
    * Creates partitions by:
+   * - Keeping each detected crystal and its load components in one partition
    * - Separating each decoupling capacitor group into its own partition (caps only, excluding the main chip)
    * - Partitioning remaining chips by connected components through strong pin connections
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
 
-    // 1) Build decoupling-cap-only partitions (exclude the main chip for each group)
+    // 1) Build crystal-circuit partitions. These take precedence over generic
+    // decoupling-cap detection and connected-component partitioning.
+    const crystalChipIdSet = new Set<ChipId>()
+    const crystalGroupPartitions: Array<{
+      chipIds: ChipId[]
+      group: CrystalCircuitGroup
+    }> = []
+
+    for (const group of this.crystalCircuitGroups ?? []) {
+      const groupChipIds = [
+        group.crystalChipId,
+        ...group.loadCaps.map((cap) => cap.chipId),
+        ...group.seriesResistors.map((resistor) => resistor.chipId),
+      ].filter((chipId) => inputProblem.chipMap[chipId])
+
+      if (groupChipIds.length < 3) continue
+      crystalGroupPartitions.push({ chipIds: groupChipIds, group })
+      for (const chipId of groupChipIds) crystalChipIdSet.add(chipId)
+    }
+
+    // 2) Build decoupling-cap-only partitions (exclude the main chip for each group)
     const decapChipIdSet = new Set<ChipId>()
     const decapGroupPartitions: ChipId[][] = []
 
@@ -55,7 +81,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       for (const group of this.decouplingCapGroups) {
         const capsOnly: ChipId[] = []
         for (const capId of group.decouplingCapChipIds) {
-          if (inputProblem.chipMap[capId]) {
+          if (inputProblem.chipMap[capId] && !crystalChipIdSet.has(capId)) {
             capsOnly.push(capId)
           }
         }
@@ -70,8 +96,10 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
-    // 2) Build adjacency graph for NON-decap chips based on strong pin connections
-    const nonDecapChipIds = chipIds.filter((id) => !decapChipIdSet.has(id))
+    // 3) Build adjacency graph for chips not claimed by a special partition.
+    const nonDecapChipIds = chipIds.filter(
+      (id) => !decapChipIdSet.has(id) && !crystalChipIdSet.has(id),
+    )
     const adjacencyMap = new Map<ChipId, Set<ChipId>>()
 
     // Initialize adjacency map for non-decap chips
@@ -97,14 +125,16 @@ export class ChipPartitionsSolver extends BaseSolver {
         owner2 &&
         owner1 !== owner2 &&
         !decapChipIdSet.has(owner1) &&
-        !decapChipIdSet.has(owner2)
+        !decapChipIdSet.has(owner2) &&
+        !crystalChipIdSet.has(owner1) &&
+        !crystalChipIdSet.has(owner2)
       ) {
         adjacencyMap.get(owner1)!.add(owner2)
         adjacencyMap.get(owner2)!.add(owner1)
       }
     }
 
-    // 3) Find connected components among non-decap chips using DFS
+    // 4) Find connected components among ordinary chips using DFS
     const visited = new Set<ChipId>()
     const nonDecapPartitions: ChipId[][] = []
 
@@ -118,6 +148,12 @@ export class ChipPartitionsSolver extends BaseSolver {
     }
 
     return [
+      ...crystalGroupPartitions.map(({ chipIds, group }) =>
+        this.createInputProblemFromPartition(chipIds, inputProblem, {
+          partitionType: "crystal_circuit",
+          crystalCircuitGroup: group,
+        }),
+      ),
       ...decapGroupPartitions.map((partition) => {
         const decouplingCapGroup = this.decouplingCapGroups?.find((group) =>
           group.decouplingCapChipIds.some((capId) => partition.includes(capId)),
@@ -191,8 +227,9 @@ export class ChipPartitionsSolver extends BaseSolver {
     partition: ChipId[],
     originalProblem: InputProblem,
     opts?: {
-      partitionType?: "default" | "decoupling_caps"
+      partitionType?: PartitionInputProblem["partitionType"]
       decouplingMainChipSide?: PartitionInputProblem["decouplingMainChipSide"]
+      crystalCircuitGroup?: CrystalCircuitGroup
     },
   ): PartitionInputProblem {
     const chipIds = partition
@@ -263,6 +300,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       isPartition: true,
       partitionType: opts?.partitionType,
       decouplingMainChipSide: opts?.decouplingMainChipSide,
+      crystalCircuitGroup: opts?.crystalCircuitGroup,
     }
   }
 

@@ -21,6 +21,10 @@ import {
   DecouplingCapRowSolver,
   canLayoutDecouplingCapRow,
 } from "./DecouplingCapRowSolver"
+import {
+  canLayoutCrystalCircuit,
+  CrystalCircuitLayoutSolver,
+} from "./CrystalCircuitLayoutSolver"
 import { findSameSidePassiveGroups } from "./findSameSidePassiveGroups"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
@@ -33,6 +37,7 @@ export type PackedPartition = {
 
 /** Every inner-partition layout solver exposes a `.layout` result. */
 type InnerPartitionSolver =
+  | CrystalCircuitLayoutSolver
   | SingleInnerPartitionPackingSolver
   | ParallelAlignedPassiveSolver
   | DecouplingCapRowSolver
@@ -68,6 +73,18 @@ function definePartitionSolverStrategy<
 }
 
 const PARTITION_SOLVER_STRATEGIES = [
+  definePartitionSolverStrategy(
+    "crystalCircuitLayoutSolver",
+    CrystalCircuitLayoutSolver,
+    canLayoutCrystalCircuit,
+    (instance) => [
+      {
+        partitionInputProblem: instance.partitions[
+          instance.currentPartitionIndex
+        ]! as PartitionInputProblem,
+      },
+    ],
+  ),
   definePartitionSolverStrategy(
     "decouplingCapRowSolver",
     DecouplingCapRowSolver,

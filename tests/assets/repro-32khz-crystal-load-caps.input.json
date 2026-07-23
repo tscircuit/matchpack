@@ -5,6 +5,7 @@
       "pins": ["X1.1", "X1.2"],
       "size": { "x": 1.94, "y": 1.24 },
       "isCapacitor": false,
+      "isCrystal": true,
       "availableRotations": [0, 90, 180, 270]
     },
     "C1": {
