@@ -18,6 +18,8 @@ export type Chip = {
    * detection relies on this flag rather than pin count. See IdentifyDecouplingCapsSolver.
    */
   isCapacitor?: boolean
+  /** Whether this chip is a crystal (circuit-json ftype "simple_crystal"). */
+  isCrystal?: boolean
   availableRotations?: Array<0 | 90 | 180 | 270>
   fixedPosition?: Point
 }
