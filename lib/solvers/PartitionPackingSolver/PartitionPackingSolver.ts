@@ -7,9 +7,15 @@ import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
+import type {
+  ChipId,
+  InputProblem,
+  PinId,
+  NetId,
+} from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
+import type { Side } from "lib/types/Side"
 
 export interface PartitionPackingSolverInput {
   packedPartitions: PackedPartition[]
@@ -25,6 +31,16 @@ type PartitionGroup = {
     minY: number
     maxY: number
   }
+}
+
+type DecouplingCapTarget = {
+  chipId: ChipId
+  side: Side
+  targetAxis: number
+  fixedAxis: number
+  tangentSize: number
+  normalCoordinate: "x" | "y"
+  tangentCoordinate: "x" | "y"
 }
 
 export class PartitionPackingSolver extends BaseSolver {
@@ -57,7 +73,9 @@ export class PartitionPackingSolver extends BaseSolver {
 
       if (this.packedPartitions.length === 1) {
         // Only one partition, use its layout directly
-        this.finalLayout = this.packedPartitions[0]!.layout
+        this.finalLayout = this.applyDecouplingCapSpecializedLayout(
+          this.packedPartitions[0]!.layout,
+        )
         this.solved = true
         return
       }
@@ -87,7 +105,8 @@ export class PartitionPackingSolver extends BaseSolver {
           this.packSolver2.packedComponents,
           partitionGroups,
         )
-        this.finalLayout = packedLayout
+        this.finalLayout =
+          this.applyDecouplingCapSpecializedLayout(packedLayout)
         this.solved = true
         this.activeSubSolver = null
       }
@@ -312,6 +331,258 @@ export class PartitionPackingSolver extends BaseSolver {
       chipPlacements: newChipPlacements,
       groupPlacements: {},
     }
+  }
+
+  private applyDecouplingCapSpecializedLayout(layout: OutputLayout) {
+    const capTargets = this.getDecouplingCapTargets(layout)
+    if (capTargets.length === 0) return layout
+
+    const chipPlacements = { ...layout.chipPlacements }
+    const targetsByLane = new Map<string, DecouplingCapTarget[]>()
+
+    for (const target of capTargets) {
+      const laneKey = `${target.normalCoordinate}:${target.fixedAxis}:${target.side}`
+      const targets = targetsByLane.get(laneKey) ?? []
+      targets.push(target)
+      targetsByLane.set(laneKey, targets)
+    }
+
+    for (const targets of targetsByLane.values()) {
+      const adjustedAxisValues = this.spreadTargetsAlongAxis(targets)
+
+      targets.forEach((target, index) => {
+        const originalPlacement = chipPlacements[target.chipId]
+        if (!originalPlacement) return
+
+        chipPlacements[target.chipId] = {
+          ...originalPlacement,
+          [target.normalCoordinate]: target.fixedAxis,
+          [target.tangentCoordinate]: adjustedAxisValues[index]!,
+        }
+      })
+    }
+
+    return {
+      ...layout,
+      chipPlacements,
+    }
+  }
+
+  private getDecouplingCapTargets(layout: OutputLayout) {
+    const pinOwnerMap = this.buildPinOwnerMap()
+    const targets: DecouplingCapTarget[] = []
+
+    for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
+      if (chip.pins.length !== 2) continue
+      if (!layout.chipPlacements[chipId]) continue
+      if (!this.isDecouplingCapChip(chipId)) continue
+
+      const mainConnection = this.findMainChipConnectionForCap(
+        chipId,
+        pinOwnerMap,
+        layout,
+      )
+      if (!mainConnection) continue
+
+      const mainChip = this.inputProblem.chipMap[mainConnection.mainChipId]
+      const mainPlacement = layout.chipPlacements[mainConnection.mainChipId]
+      const mainPin = this.inputProblem.chipPinMap[mainConnection.mainPinId]
+      if (!mainChip || !mainPlacement || !mainPin) continue
+
+      const mainRotation = mainPlacement.ccwRotationDegrees ?? 0
+      const mainSize = this.getRotatedSize(mainChip.size, mainRotation)
+      const mainPinOffset = this.rotatePoint(mainPin.offset, mainRotation)
+      const mainPinSide = this.rotateSide(mainPin.side, mainRotation)
+      const capPlacement = layout.chipPlacements[chipId]!
+      const capSize = this.getRotatedSize(
+        chip.size,
+        capPlacement.ccwRotationDegrees ?? 0,
+      )
+      const gap =
+        this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
+
+      if (mainPinSide === "x-" || mainPinSide === "x+") {
+        const direction = mainPinSide === "x-" ? -1 : 1
+        targets.push({
+          chipId,
+          side: mainPinSide,
+          fixedAxis:
+            mainPlacement.x +
+            direction * (mainSize.x / 2 + gap + capSize.x / 2),
+          targetAxis: mainPlacement.y + mainPinOffset.y,
+          tangentSize: capSize.y,
+          normalCoordinate: "x",
+          tangentCoordinate: "y",
+        })
+      } else {
+        const direction = mainPinSide === "y-" ? -1 : 1
+        targets.push({
+          chipId,
+          side: mainPinSide,
+          fixedAxis:
+            mainPlacement.y +
+            direction * (mainSize.y / 2 + gap + capSize.y / 2),
+          targetAxis: mainPlacement.x + mainPinOffset.x,
+          tangentSize: capSize.x,
+          normalCoordinate: "y",
+          tangentCoordinate: "x",
+        })
+      }
+    }
+
+    return targets
+  }
+
+  private buildPinOwnerMap() {
+    const pinOwnerMap = new Map<PinId, ChipId>()
+    for (const [chipId, chip] of Object.entries(this.inputProblem.chipMap)) {
+      for (const pinId of chip.pins) {
+        pinOwnerMap.set(pinId, chipId)
+      }
+    }
+    return pinOwnerMap
+  }
+
+  private isDecouplingCapChip(chipId: ChipId) {
+    const chip = this.inputProblem.chipMap[chipId]
+    if (!chip || chip.pins.length !== 2) return false
+
+    const netIds = new Set<NetId>()
+    for (const pinId of chip.pins) {
+      for (const [connKey, connected] of Object.entries(
+        this.inputProblem.netConnMap,
+      )) {
+        if (!connected) continue
+        const [connPinId, netId] = connKey.split("-") as [PinId, NetId]
+        if (connPinId === pinId) netIds.add(netId)
+      }
+    }
+
+    let hasGround = false
+    let hasPositiveVoltage = false
+    for (const netId of netIds) {
+      const net = this.inputProblem.netMap[netId]
+      hasGround ||= Boolean(net?.isGround)
+      hasPositiveVoltage ||= Boolean(net?.isPositiveVoltageSource)
+    }
+
+    return hasGround && hasPositiveVoltage
+  }
+
+  private findMainChipConnectionForCap(
+    capChipId: ChipId,
+    pinOwnerMap: Map<PinId, ChipId>,
+    layout: OutputLayout,
+  ) {
+    const capChip = this.inputProblem.chipMap[capChipId]
+    if (!capChip) return null
+
+    for (const [connKey, connected] of Object.entries(
+      this.inputProblem.pinStrongConnMap,
+    )) {
+      if (!connected) continue
+      const [pinA, pinB] = connKey.split("-") as [PinId, PinId]
+      const ownerA = pinOwnerMap.get(pinA)
+      const ownerB = pinOwnerMap.get(pinB)
+
+      const capPinId =
+        ownerA === capChipId ? pinA : ownerB === capChipId ? pinB : null
+      const mainPinId =
+        ownerA === capChipId ? pinB : ownerB === capChipId ? pinA : null
+      const mainChipId = mainPinId ? pinOwnerMap.get(mainPinId) : null
+
+      if (!capPinId || !mainPinId || !mainChipId) continue
+      if (mainChipId === capChipId) continue
+      if (!layout.chipPlacements[mainChipId]) continue
+      if ((this.inputProblem.chipMap[mainChipId]?.pins.length ?? 0) <= 2)
+        continue
+
+      return { capPinId, mainPinId, mainChipId }
+    }
+
+    return null
+  }
+
+  private spreadTargetsAlongAxis(targets: DecouplingCapTarget[]) {
+    const minGap =
+      this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
+    const indexedTargets = targets
+      .map((target, originalIndex) => ({ target, originalIndex }))
+      .sort(
+        (a, b) =>
+          a.target.targetAxis - b.target.targetAxis ||
+          a.target.chipId.localeCompare(b.target.chipId),
+      )
+
+    const adjustedSortedValues: number[] = []
+    for (let i = 0; i < indexedTargets.length; i++) {
+      const current = indexedTargets[i]!.target
+      if (i === 0) {
+        adjustedSortedValues.push(current.targetAxis)
+        continue
+      }
+
+      const previous = indexedTargets[i - 1]!.target
+      const previousValue = adjustedSortedValues[i - 1]!
+      const minimumValue =
+        previousValue +
+        previous.tangentSize / 2 +
+        current.tangentSize / 2 +
+        minGap
+      adjustedSortedValues.push(Math.max(current.targetAxis, minimumValue))
+    }
+
+    const targetCenter =
+      indexedTargets.reduce((sum, item) => sum + item.target.targetAxis, 0) /
+      indexedTargets.length
+    const adjustedCenter =
+      adjustedSortedValues.reduce((sum, value) => sum + value, 0) /
+      adjustedSortedValues.length
+    const centerOffset = adjustedCenter - targetCenter
+
+    const valuesByOriginalIndex: number[] = []
+    adjustedSortedValues.forEach((value, sortedIndex) => {
+      valuesByOriginalIndex[indexedTargets[sortedIndex]!.originalIndex] =
+        value - centerOffset
+    })
+
+    return valuesByOriginalIndex
+  }
+
+  private rotatePoint(
+    point: { x: number; y: number },
+    rotationDegrees: number,
+  ) {
+    const normalizedRotation = ((rotationDegrees % 360) + 360) % 360
+    if (normalizedRotation === 90) return { x: -point.y, y: point.x }
+    if (normalizedRotation === 180) return { x: -point.x, y: -point.y }
+    if (normalizedRotation === 270) return { x: point.y, y: -point.x }
+    return point
+  }
+
+  private rotateSide(side: Side, rotationDegrees: number): Side {
+    const sideVectors: Record<Side, { x: number; y: number }> = {
+      "x+": { x: 1, y: 0 },
+      "x-": { x: -1, y: 0 },
+      "y+": { x: 0, y: 1 },
+      "y-": { x: 0, y: -1 },
+    }
+    const rotatedVector = this.rotatePoint(sideVectors[side], rotationDegrees)
+    if (rotatedVector.x === 1) return "x+"
+    if (rotatedVector.x === -1) return "x-"
+    if (rotatedVector.y === 1) return "y+"
+    return "y-"
+  }
+
+  private getRotatedSize(
+    size: { x: number; y: number },
+    rotationDegrees: number,
+  ) {
+    const normalizedRotation = ((rotationDegrees % 360) + 360) % 360
+    if (normalizedRotation === 90 || normalizedRotation === 270) {
+      return { x: size.y, y: size.x }
+    }
+    return size
   }
 
   private getCombinedPackedPartitionsProblem(): InputProblem {
