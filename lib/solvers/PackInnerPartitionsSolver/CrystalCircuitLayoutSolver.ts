@@ -224,7 +224,7 @@ export class CrystalCircuitLayoutSolver extends BaseSolver {
         rightPlacement.x -
         rightCap!.size.x / 2 -
         (leftPlacement.x + leftCap!.size.x / 2)
-      const adjustment = Math.max(0, (gap - currentGap) / 2)
+      const adjustment = Math.max(0, (gap * 2 - currentGap) / 2)
       leftPlacement.x -= adjustment
       rightPlacement.x += adjustment
     } else {
