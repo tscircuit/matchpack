@@ -41,8 +41,10 @@ test("32.768 kHz crystal with two grounded load capacitors", async () => {
     return { x: placement.x + offset.x, y: placement.y + offset.y }
   }
 
-  expect(absolutePin("C1", "C1.1").x).toBeCloseTo(absolutePin("X1", "X1.1").x)
-  expect(absolutePin("C2", "C2.1").x).toBeCloseTo(absolutePin("X1", "X1.2").x)
+  expect(absolutePin("C1", "C1.1").x).toBeLessThan(absolutePin("X1", "X1.1").x)
+  expect(absolutePin("C2", "C2.1").x).toBeGreaterThan(
+    absolutePin("X1", "X1.2").x,
+  )
   expect(absolutePin("C1", "C1.2").y).toBeCloseTo(absolutePin("C2", "C2.2").y)
   expect(solver.checkForOverlaps(layout)).toEqual([])
 

@@ -83,3 +83,18 @@ test("places load capacitors on opposite sides of a vertically locked crystal", 
   )
   expect(solver.checkForOverlaps(layout)).toEqual([])
 })
+
+test("leaves a horizontal chip gap between load capacitors", () => {
+  const input = structuredClone(verticalRawInput) as InputProblem
+  const solver = new LayoutPipelineSolver(input)
+  solver.solve()
+  const layout = solver.getOutputLayout()
+  const cap1 = layout.chipPlacements.C1!
+  const cap2 = layout.chipPlacements.C2!
+  const cap1Width = input.chipMap.C1!.size.y
+  const cap2Width = input.chipMap.C2!.size.y
+  const horizontalGap = cap2.x - cap2Width / 2 - (cap1.x + cap1Width / 2)
+
+  expect(horizontalGap).toBeCloseTo(input.chipGap)
+  expect(solver.checkForOverlaps(layout)).toEqual([])
+})

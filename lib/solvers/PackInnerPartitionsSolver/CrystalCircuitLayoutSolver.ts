@@ -212,6 +212,21 @@ export class CrystalCircuitLayoutSolver extends BaseSolver {
           ccwRotationDegrees: geometry.rotation,
         }
       }
+
+      const [leftCap, rightCap] = [...capGeometry].sort(
+        (a, b) =>
+          chipPlacements[a.chip.chipId]!.x - chipPlacements[b.chip.chipId]!.x,
+      )
+      const leftPlacement = chipPlacements[leftCap!.chip.chipId]!
+      const rightPlacement = chipPlacements[rightCap!.chip.chipId]!
+      // Measure the horizontal space between the capacitor bodies.
+      const currentGap =
+        rightPlacement.x -
+        rightCap!.size.x / 2 -
+        (leftPlacement.x + leftCap!.size.x / 2)
+      const adjustment = Math.max(0, (gap - currentGap) / 2)
+      leftPlacement.x -= adjustment
+      rightPlacement.x += adjustment
     } else {
       // If an explicit orientation locks the crystal vertically, put one load
       // capacitor on each side. Placing both "below" would collapse them onto
