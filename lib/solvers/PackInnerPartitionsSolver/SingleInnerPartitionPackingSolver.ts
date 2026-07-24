@@ -130,15 +130,20 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     })
 
     let minGap = this.partitionInputProblem.chipGap
+    let packPlacementStrategy = "minimum_closest_sum_squared_distance"
+    
     if (this.partitionInputProblem.partitionType === "decoupling_caps") {
       minGap = this.partitionInputProblem.decouplingCapsGap ?? minGap
+      // Use shortest_connection_along_outline for decoupling caps to create clean linear layout
+      // instead of scattered placement (addresses issue #15)
+      packPlacementStrategy = "shortest_connection_along_outline"
     }
 
     return {
       components: packComponents,
       minGap,
       packOrderStrategy: "largest_to_smallest",
-      packPlacementStrategy: "minimum_closest_sum_squared_distance",
+      packPlacementStrategy,
     }
   }
 
