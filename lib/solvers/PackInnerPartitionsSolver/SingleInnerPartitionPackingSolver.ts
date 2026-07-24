@@ -36,6 +36,13 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   }
 
   override _step() {
+    // Decoupling cap partitions: place all caps in a neat single column
+    if (this.partitionInputProblem.partitionType === "decoupling_caps") {
+      this.layout = this.createDecouplingCapColumnLayout()
+      this.solved = true
+      return
+    }
+
     // Initialize PackSolver2 if not already created
     if (!this.activeSubSolver) {
       const pinToNetworkMap = createFilteredNetworkMapping({
@@ -64,6 +71,33 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       this.solved = true
       this.activeSubSolver = null
     }
+  }
+
+  private createDecouplingCapColumnLayout(): OutputLayout {
+    const gap =
+      this.partitionInputProblem.decouplingCapsGap ??
+      this.partitionInputProblem.chipGap
+    const chips = Object.entries(this.partitionInputProblem.chipMap).sort(
+      ([a], [b]) => a.localeCompare(b),
+    )
+
+    const chipPlacements: Record<string, Placement> = {}
+    let y = 0
+    for (const [chipId, chip] of chips) {
+      chipPlacements[chipId] = {
+        x: 0,
+        y,
+        ccwRotationDegrees: chip.availableRotations?.[0] ?? 0,
+      }
+      y += chip.size.y + gap
+    }
+
+    const totalHeight = y - gap
+    for (const id of Object.keys(chipPlacements)) {
+      chipPlacements[id]!.y -= totalHeight / 2
+    }
+
+    return { chipPlacements, groupPlacements: {} }
   }
 
   private createPackInput(pinToNetworkMap: Map<PinId, string>): PackInput {
