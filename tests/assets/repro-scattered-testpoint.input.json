@@ -1,7 +1,7 @@
 {
   "chipMap": {
-    "source_component_0": {
-      "chipId": "source_component_0",
+    "U1": {
+      "chipId": "U1",
       "pins": [
         "source_port_0",
         "source_port_1",
@@ -59,8 +59,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_1": {
-      "chipId": "source_component_1",
+    "R_EN": {
+      "chipId": "R_EN",
       "pins": ["source_port_49", "source_port_50"],
       "size": {
         "x": 0.6,
@@ -69,8 +69,8 @@
       "isCapacitor": false,
       "isResistor": true
     },
-    "source_component_2": {
-      "chipId": "source_component_2",
+    "C_EN": {
+      "chipId": "C_EN",
       "pins": ["source_port_51", "source_port_52"],
       "size": {
         "x": 0.9,
@@ -78,8 +78,8 @@
       },
       "isCapacitor": true
     },
-    "source_component_3": {
-      "chipId": "source_component_3",
+    "SW_RESET": {
+      "chipId": "SW_RESET",
       "pins": ["source_port_53", "source_port_54"],
       "size": {
         "x": 0.94,
@@ -87,8 +87,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_4": {
-      "chipId": "source_component_4",
+    "SW_BOOT": {
+      "chipId": "SW_BOOT",
       "pins": ["source_port_57", "source_port_58"],
       "size": {
         "x": 0.94,
@@ -96,8 +96,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_5": {
-      "chipId": "source_component_5",
+    "TP_LED_DATA": {
+      "chipId": "TP_LED_DATA",
       "pins": ["source_port_61"],
       "size": {
         "x": 0.325,
@@ -105,8 +105,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_6": {
-      "chipId": "source_component_6",
+    "TCH1": {
+      "chipId": "TCH1",
       "pins": ["source_port_62"],
       "size": {
         "x": 0.325,
@@ -114,8 +114,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_7": {
-      "chipId": "source_component_7",
+    "TCH2": {
+      "chipId": "TCH2",
       "pins": ["source_port_63"],
       "size": {
         "x": 0.325,
@@ -123,8 +123,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_8": {
-      "chipId": "source_component_8",
+    "TCH3": {
+      "chipId": "TCH3",
       "pins": ["source_port_64"],
       "size": {
         "x": 0.325,
@@ -132,8 +132,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_9": {
-      "chipId": "source_component_9",
+    "TCH4": {
+      "chipId": "TCH4",
       "pins": ["source_port_65"],
       "size": {
         "x": 0.325,
@@ -141,8 +141,8 @@
       },
       "isCapacitor": false
     },
-    "source_component_10": {
-      "chipId": "source_component_10",
+    "TCH5": {
+      "chipId": "TCH5",
       "pins": ["source_port_66"],
       "size": {
         "x": 0.325,
