@@ -146,3 +146,61 @@ test("AlignTestPointsSolver moves a whole side group around a blocking component
   expect(solver.outputLayout!.chipPlacements.TP1!.y).toBeLessThan(-0.1)
   expect(solver.outputLayout!.chipPlacements.TP2!.y).toBeLessThan(0.1)
 })
+
+test("AlignTestPointsSolver splits non-adjacent anchor pins into separate groups", () => {
+  const problemWithPinGap: InputProblem = structuredClone(problem)
+  problemWithPinGap.chipMap.U1!.pins.push("U1.left3", "U1.left4", "U1.left7")
+  problemWithPinGap.chipPinMap["U1.left3"] = {
+    pinId: "U1.left3",
+    offset: { x: -1.2, y: 0.3 },
+    side: "x-",
+  }
+  problemWithPinGap.chipPinMap["U1.left4"] = {
+    pinId: "U1.left4",
+    offset: { x: -1.2, y: 0.5 },
+    side: "x-",
+  }
+  problemWithPinGap.chipPinMap["U1.left7"] = {
+    pinId: "U1.left7",
+    offset: { x: -1.2, y: 0.9 },
+    side: "x-",
+  }
+  problemWithPinGap.chipMap.TP7 = {
+    chipId: "TP7",
+    pins: ["TP7.1"],
+    size: { x: 0.4, y: 0.2 },
+    isTestPoint: true,
+  }
+  problemWithPinGap.chipPinMap["TP7.1"] = {
+    pinId: "TP7.1",
+    offset: { x: -0.2, y: 0 },
+    side: "x-",
+  }
+  problemWithPinGap.pinStrongConnMap["U1.left7-TP7.1"] = true
+  problemWithPinGap.pinStrongConnMap["TP7.1-U1.left7"] = true
+
+  const solver = new AlignTestPointsSolver({
+    inputProblem: problemWithPinGap,
+    inputLayout: {
+      ...inputLayout,
+      chipPlacements: {
+        ...inputLayout.chipPlacements,
+        TP7: { x: -4, y: 4, ccwRotationDegrees: 0 },
+      },
+    },
+  })
+  solver.solve()
+
+  const leftGroups = solver.testPointSideGroups.filter(
+    (group) => group.side === "x-",
+  )
+  expect(leftGroups).toHaveLength(2)
+  expect(leftGroups.map((group) => group.members.length).sort()).toEqual([1, 2])
+  expect(
+    leftGroups.some(
+      (group) =>
+        group.members.length === 1 &&
+        group.members[0]!.testPointChipId === "TP7",
+    ),
+  ).toBe(true)
+})

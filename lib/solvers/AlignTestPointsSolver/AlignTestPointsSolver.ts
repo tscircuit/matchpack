@@ -127,6 +127,96 @@ export class AlignTestPointsSolver extends BaseSolver {
     return null
   }
 
+  private getAnchorPinTangentPosition(
+    anchorChipId: ChipId,
+    anchorPinId: PinId,
+    side: Side,
+  ): number {
+    const anchorPlacement = this.inputLayout.chipPlacements[anchorChipId]!
+    const anchorPin = this.inputProblem.chipPinMap[anchorPinId]!
+    const rotatedOffset = rotatePinOffset(
+      anchorPin.offset,
+      anchorPlacement.ccwRotationDegrees,
+    )
+    return side.startsWith("x")
+      ? anchorPlacement.y + rotatedOffset.y
+      : anchorPlacement.x + rotatedOffset.x
+  }
+
+  private getAnchorSidePinPitch(group: TestPointSideGroup): number | null {
+    const anchorChip = this.inputProblem.chipMap[group.anchorChipId]!
+    const anchorPlacement = this.inputLayout.chipPlacements[group.anchorChipId]!
+    const tangentPositions = anchorChip.pins
+      .filter((pinId) => {
+        const pin = this.inputProblem.chipPinMap[pinId]
+        return (
+          pin &&
+          rotateSide(pin.side, anchorPlacement.ccwRotationDegrees) ===
+            group.side
+        )
+      })
+      .map((pinId) =>
+        this.getAnchorPinTangentPosition(group.anchorChipId, pinId, group.side),
+      )
+      .sort((a, b) => a - b)
+
+    const positiveGaps: number[] = []
+    for (let index = 1; index < tangentPositions.length; index++) {
+      const gap = tangentPositions[index]! - tangentPositions[index - 1]!
+      if (gap > 1e-6) positiveGaps.push(gap)
+    }
+    return positiveGaps.length > 0 ? Math.min(...positiveGaps) : null
+  }
+
+  private splitGroupByPinProximity(
+    group: TestPointSideGroup,
+  ): TestPointSideGroup[] {
+    if (group.members.length < 2) return [group]
+
+    const pinPitch = this.getAnchorSidePinPitch(group)
+    if (!pinPitch) return [group]
+
+    const sortedMembers = [...group.members].sort(
+      (a, b) =>
+        this.getAnchorPinTangentPosition(
+          group.anchorChipId,
+          a.anchorPinId,
+          group.side,
+        ) -
+        this.getAnchorPinTangentPosition(
+          group.anchorChipId,
+          b.anchorPinId,
+          group.side,
+        ),
+    )
+    const maxAdjacentPinGap = pinPitch * 1.5
+    const splitGroups: TestPointSideGroup[] = []
+    let currentMembers: TestPointMember[] = []
+    let previousPosition: number | null = null
+
+    for (const member of sortedMembers) {
+      const position = this.getAnchorPinTangentPosition(
+        group.anchorChipId,
+        member.anchorPinId,
+        group.side,
+      )
+      if (
+        previousPosition !== null &&
+        position - previousPosition > maxAdjacentPinGap + 1e-6
+      ) {
+        splitGroups.push({ ...group, members: currentMembers })
+        currentMembers = []
+      }
+      currentMembers.push(member)
+      previousPosition = position
+    }
+    if (currentMembers.length > 0) {
+      splitGroups.push({ ...group, members: currentMembers })
+    }
+
+    return splitGroups
+  }
+
   private createSideGroups(): TestPointSideGroup[] {
     const pinOwnerMap = this.getPinOwnerMap()
     const groups = new Map<string, TestPointSideGroup>()
@@ -172,7 +262,9 @@ export class AlignTestPointsSolver extends BaseSolver {
       groups.set(groupKey, group)
     }
 
-    return [...groups.values()]
+    return [...groups.values()].flatMap((group) =>
+      this.splitGroupByPinProximity(group),
+    )
   }
 
   private getTestPointRotation(member: TestPointMember): number {
