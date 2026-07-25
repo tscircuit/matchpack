@@ -14,6 +14,9 @@ test("repro scattered testpoint", async () => {
   )
 
   expect(solver.alignTestPointsSolver?.testPointSideGroups).toHaveLength(1)
+  expect(
+    solver.alignTestPointsSolver?.testPointSideGroups[0]?.tangentOffset,
+  ).toBeLessThan(0)
   expect(new Set(testPointXPositions).size).toBe(1)
   expect(
     testPointIds.every(

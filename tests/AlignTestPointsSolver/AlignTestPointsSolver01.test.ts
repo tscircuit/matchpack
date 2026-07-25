@@ -118,3 +118,31 @@ test("AlignTestPointsSolver follows rotated anchor pin sides", () => {
   expect(output.chipPlacements.TP2!.ccwRotationDegrees).toBe(270)
   expect(output.chipPlacements.TP3!.ccwRotationDegrees).toBe(90)
 })
+
+test("AlignTestPointsSolver moves a whole side group around a blocking component", () => {
+  const problemWithBlocker: InputProblem = structuredClone(problem)
+  problemWithBlocker.chipMap.BLOCKER = {
+    chipId: "BLOCKER",
+    pins: [],
+    size: { x: 0.4, y: 0.8 },
+  }
+  const layoutWithBlocker: OutputLayout = {
+    ...inputLayout,
+    chipPlacements: {
+      ...inputLayout.chipPlacements,
+      BLOCKER: { x: -2, y: 0, ccwRotationDegrees: 0 },
+    },
+  }
+  const solver = new AlignTestPointsSolver({
+    inputProblem: problemWithBlocker,
+    inputLayout: layoutWithBlocker,
+  })
+  solver.solve()
+
+  const leftGroup = solver.testPointSideGroups.find(
+    (group) => group.side === "x-",
+  )!
+  expect(leftGroup.tangentOffset).toBeLessThan(0)
+  expect(solver.outputLayout!.chipPlacements.TP1!.y).toBeLessThan(-0.1)
+  expect(solver.outputLayout!.chipPlacements.TP2!.y).toBeLessThan(0.1)
+})
