@@ -6,5 +6,21 @@ import input from "../assets/repro-scattered-testpoint.input.json"
 test("repro scattered testpoint", async () => {
   const solver = new LayoutPipelineSolver(input as InputProblem)
   solver.solve()
+
+  const outputLayout = solver.getOutputLayout()
+  const testPointIds = ["TP_LED_DATA", "TCH1", "TCH2", "TCH3", "TCH4", "TCH5"]
+  const testPointXPositions = testPointIds.map(
+    (chipId) => outputLayout.chipPlacements[chipId]!.x,
+  )
+
+  expect(solver.alignTestPointsSolver?.testPointSideGroups).toHaveLength(1)
+  expect(new Set(testPointXPositions).size).toBe(1)
+  expect(
+    testPointIds.every(
+      (chipId) =>
+        outputLayout.chipPlacements[chipId]!.ccwRotationDegrees === 180,
+    ),
+  ).toBe(true)
+  expect(solver.checkForOverlaps(outputLayout)).toHaveLength(0)
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })
