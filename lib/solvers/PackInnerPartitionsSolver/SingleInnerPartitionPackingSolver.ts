@@ -45,6 +45,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
 
       const packInput = this.createPackInput(pinToNetworkMap)
       this.activeSubSolver = new PackSolver2(packInput)
+      this.activeSubSolver.MAX_ITERATIONS = this.MAX_ITERATIONS
     }
 
     // Run one step of the PackSolver2
