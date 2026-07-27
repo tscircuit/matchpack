@@ -17,10 +17,8 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
-import { rotatePinOffset } from "../../utils/rotatePinOffset"
 
 const PIN_SIZE = 0.1
-const DIRECT_PASSIVE_PIN_VERTICAL_OFFSET = 0.2
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
@@ -162,99 +160,10 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     }
 
-    this.offsetSingleDirectPassiveBelowPin(chipPlacements)
-
     return {
       chipPlacements,
       groupPlacements: {},
     }
-  }
-
-  /**
-   * A two-chip partition with one direct passive connection is a common
-   * schematic pattern (for example an LDO's BYP capacitor). PackSolver2 tends
-   * to put the connected pins on one horizontal line, which makes the result
-   * look like a continuation of the main chip's pin. Drop the passive's
-   * connected pin slightly below that line while preserving the packed X
-   * position.
-   *
-   * Only move a passive whose connected pin is its upper pin, and only move it
-   * downward. That preserves the packer's collision clearance.
-   */
-  private offsetSingleDirectPassiveBelowPin(
-    chipPlacements: Record<string, Placement>,
-  ): void {
-    const problem = this.partitionInputProblem
-    const chips = Object.values(problem.chipMap)
-    if (chips.length !== 2) return
-
-    const passive = chips.find(
-      (chip) =>
-        chip.pins.length === 2 &&
-        !chip.fixedPosition &&
-        (chip.isCapacitor || chip.isResistor),
-    )
-    const mainChip = chips.find(
-      (chip) => chip.chipId !== passive?.chipId && chip.pins.length > 2,
-    )
-    if (!passive || !mainChip) return
-
-    const directPinPairs = new Map<string, [PinId, PinId]>()
-    for (const [connectionKey, connected] of Object.entries(
-      problem.pinStrongConnMap,
-    )) {
-      if (!connected) continue
-      const [pinA, pinB] = connectionKey.split("-") as [PinId, PinId]
-      const passivePinId = passive.pins.includes(pinA)
-        ? pinA
-        : passive.pins.includes(pinB)
-          ? pinB
-          : null
-      const mainPinId = mainChip.pins.includes(pinA)
-        ? pinA
-        : mainChip.pins.includes(pinB)
-          ? pinB
-          : null
-      if (!passivePinId || !mainPinId) continue
-      directPinPairs.set([passivePinId, mainPinId].sort().join("|"), [
-        passivePinId,
-        mainPinId,
-      ])
-    }
-    if (directPinPairs.size !== 1) return
-
-    const [passivePinId, mainPinId] = [...directPinPairs.values()][0]!
-    const passivePlacement = chipPlacements[passive.chipId]
-    const mainPlacement = chipPlacements[mainChip.chipId]
-    const passivePin = problem.chipPinMap[passivePinId]
-    const mainPin = problem.chipPinMap[mainPinId]
-    if (!passivePlacement || !mainPlacement || !passivePin || !mainPin) return
-
-    const passivePinOffset = rotatePinOffset(
-      passivePin.offset,
-      passivePlacement.ccwRotationDegrees,
-    )
-    const otherPassivePinId = passive.pins.find(
-      (pinId) => pinId !== passivePinId,
-    )
-    const otherPassivePin =
-      otherPassivePinId && problem.chipPinMap[otherPassivePinId]
-    if (!otherPassivePin) return
-    const otherPassivePinOffset = rotatePinOffset(
-      otherPassivePin.offset,
-      passivePlacement.ccwRotationDegrees,
-    )
-    if (passivePinOffset.y <= otherPassivePinOffset.y) return
-
-    const mainPinOffset = rotatePinOffset(
-      mainPin.offset,
-      mainPlacement.ccwRotationDegrees,
-    )
-    const mainPinY = mainPlacement.y + mainPinOffset.y
-    const desiredPassiveY =
-      mainPinY - DIRECT_PASSIVE_PIN_VERTICAL_OFFSET - passivePinOffset.y
-    if (passivePlacement.y <= desiredPassiveY) return
-    passivePlacement.y = desiredPassiveY
   }
 
   override visualize(): GraphicsObject {
