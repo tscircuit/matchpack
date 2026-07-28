@@ -20,6 +20,7 @@ import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
+import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsSolver/PlaceNetOnlyDecouplingRowsSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -59,6 +60,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   partitionPackingSolver?: PartitionPackingSolver
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
   alignTestPointsSolver?: AlignTestPointsSolver
+  placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -147,10 +149,22 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep(
+      "placeNetOnlyDecouplingRowsSolver",
+      PlaceNetOnlyDecouplingRowsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          packedPartitions: this.packedPartitions!,
+          inputLayout: this.alignPowerGroundRowsSolver!.outputLayout!,
+        },
+      ],
+    ),
     definePipelineStep("alignTestPointsSolver", AlignTestPointsSolver, () => [
       {
         inputProblem: this.inputProblem,
         inputLayout:
+          this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
           this.alignPowerGroundRowsSolver!.outputLayout ??
           this.partitionPackingSolver!.finalLayout!,
       },
@@ -223,6 +237,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (this.solved && this.alignTestPointsSolver?.solved) {
       return this.alignTestPointsSolver.visualize()
     }
+    if (this.solved && this.placeNetOnlyDecouplingRowsSolver?.solved) {
+      return this.placeNetOnlyDecouplingRowsSolver.visualize()
+    }
     if (this.solved && this.alignPowerGroundRowsSolver?.solved) {
       return this.alignPowerGroundRowsSolver.visualize()
     }
@@ -239,6 +256,8 @@ export class LayoutPipelineSolver extends BaseSolver {
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
     const alignPowerGroundRowsViz = this.alignPowerGroundRowsSolver?.visualize()
     const alignTestPointsViz = this.alignTestPointsSolver?.visualize()
+    const placeNetOnlyDecouplingRowsViz =
+      this.placeNetOnlyDecouplingRowsSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
@@ -252,6 +271,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       packInnerPartitionsViz,
       partitionPackingViz,
       alignPowerGroundRowsViz,
+      placeNetOnlyDecouplingRowsViz,
       alignTestPointsViz,
     ]
       .filter(Boolean)
@@ -298,6 +318,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     // Show the most recent solver's output
     if (this.alignTestPointsSolver?.solved) {
       return this.alignTestPointsSolver.visualize()
+    }
+    if (this.placeNetOnlyDecouplingRowsSolver?.solved) {
+      return this.placeNetOnlyDecouplingRowsSolver.visualize()
     }
     if (this.alignPowerGroundRowsSolver?.solved) {
       return this.alignPowerGroundRowsSolver.visualize()
@@ -458,6 +481,11 @@ export class LayoutPipelineSolver extends BaseSolver {
       this.alignTestPointsSolver.outputLayout
     ) {
       finalLayout = this.alignTestPointsSolver.outputLayout
+    } else if (
+      this.placeNetOnlyDecouplingRowsSolver?.solved &&
+      this.placeNetOnlyDecouplingRowsSolver.outputLayout
+    ) {
+      finalLayout = this.placeNetOnlyDecouplingRowsSolver.outputLayout
     } else if (
       this.alignPowerGroundRowsSolver?.solved &&
       this.alignPowerGroundRowsSolver.outputLayout
