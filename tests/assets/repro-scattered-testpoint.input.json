@@ -1,0 +1,704 @@
+{
+  "chipMap": {
+    "U1": {
+      "chipId": "U1",
+      "pins": [
+        "source_port_0",
+        "source_port_1",
+        "source_port_2",
+        "source_port_3",
+        "source_port_4",
+        "source_port_5",
+        "source_port_6",
+        "source_port_7",
+        "source_port_8",
+        "source_port_9",
+        "source_port_10",
+        "source_port_11",
+        "source_port_12",
+        "source_port_13",
+        "source_port_14",
+        "source_port_15",
+        "source_port_16",
+        "source_port_17",
+        "source_port_18",
+        "source_port_19",
+        "source_port_20",
+        "source_port_21",
+        "source_port_22",
+        "source_port_23",
+        "source_port_24",
+        "source_port_25",
+        "source_port_26",
+        "source_port_27",
+        "source_port_28",
+        "source_port_29",
+        "source_port_30",
+        "source_port_31",
+        "source_port_32",
+        "source_port_33",
+        "source_port_34",
+        "source_port_35",
+        "source_port_36",
+        "source_port_37",
+        "source_port_38",
+        "source_port_39",
+        "source_port_40",
+        "source_port_41",
+        "source_port_42",
+        "source_port_43",
+        "source_port_44",
+        "source_port_45",
+        "source_port_46",
+        "source_port_47",
+        "source_port_48"
+      ],
+      "size": {
+        "x": 2.4,
+        "y": 5
+      },
+      "isCapacitor": false
+    },
+    "R_EN": {
+      "chipId": "R_EN",
+      "pins": ["source_port_49", "source_port_50"],
+      "size": {
+        "x": 0.6,
+        "y": 0.65
+      },
+      "isCapacitor": false,
+      "isResistor": true
+    },
+    "C_EN": {
+      "chipId": "C_EN",
+      "pins": ["source_port_51", "source_port_52"],
+      "size": {
+        "x": 0.9,
+        "y": 0.6
+      },
+      "isCapacitor": true
+    },
+    "SW_RESET": {
+      "chipId": "SW_RESET",
+      "pins": ["source_port_53", "source_port_54"],
+      "size": {
+        "x": 0.94,
+        "y": 0.718910699999999
+      },
+      "isCapacitor": false
+    },
+    "SW_BOOT": {
+      "chipId": "SW_BOOT",
+      "pins": ["source_port_57", "source_port_58"],
+      "size": {
+        "x": 0.94,
+        "y": 0.718910699999999
+      },
+      "isCapacitor": false
+    },
+    "TP_LED_DATA": {
+      "chipId": "TP_LED_DATA",
+      "pins": ["source_port_61"],
+      "size": {
+        "x": 0.325,
+        "y": 0.2
+      },
+      "isCapacitor": false
+    },
+    "TCH1": {
+      "chipId": "TCH1",
+      "pins": ["source_port_62"],
+      "size": {
+        "x": 0.325,
+        "y": 0.2
+      },
+      "isCapacitor": false
+    },
+    "TCH2": {
+      "chipId": "TCH2",
+      "pins": ["source_port_63"],
+      "size": {
+        "x": 0.325,
+        "y": 0.2
+      },
+      "isCapacitor": false
+    },
+    "TCH3": {
+      "chipId": "TCH3",
+      "pins": ["source_port_64"],
+      "size": {
+        "x": 0.325,
+        "y": 0.2
+      },
+      "isCapacitor": false
+    },
+    "TCH4": {
+      "chipId": "TCH4",
+      "pins": ["source_port_65"],
+      "size": {
+        "x": 0.325,
+        "y": 0.2
+      },
+      "isCapacitor": false
+    },
+    "TCH5": {
+      "chipId": "TCH5",
+      "pins": ["source_port_66"],
+      "size": {
+        "x": 0.325,
+        "y": 0.2
+      },
+      "isCapacitor": false
+    }
+  },
+  "chipPinMap": {
+    "source_port_0": {
+      "pinId": "source_port_0",
+      "offset": {
+        "x": -1.6,
+        "y": 2.400000000000001
+      },
+      "side": "x-"
+    },
+    "source_port_1": {
+      "pinId": "source_port_1",
+      "offset": {
+        "x": -1.6,
+        "y": 2.2000000000000006
+      },
+      "side": "x-"
+    },
+    "source_port_2": {
+      "pinId": "source_port_2",
+      "offset": {
+        "x": -1.6,
+        "y": 2.000000000000001
+      },
+      "side": "x-"
+    },
+    "source_port_3": {
+      "pinId": "source_port_3",
+      "offset": {
+        "x": -1.6,
+        "y": 1.8000000000000007
+      },
+      "side": "x-"
+    },
+    "source_port_4": {
+      "pinId": "source_port_4",
+      "offset": {
+        "x": -1.6,
+        "y": 1.6000000000000008
+      },
+      "side": "x-"
+    },
+    "source_port_5": {
+      "pinId": "source_port_5",
+      "offset": {
+        "x": -1.6,
+        "y": 1.4000000000000008
+      },
+      "side": "x-"
+    },
+    "source_port_6": {
+      "pinId": "source_port_6",
+      "offset": {
+        "x": -1.6,
+        "y": 1.2000000000000008
+      },
+      "side": "x-"
+    },
+    "source_port_7": {
+      "pinId": "source_port_7",
+      "offset": {
+        "x": -1.6,
+        "y": 1.0000000000000009
+      },
+      "side": "x-"
+    },
+    "source_port_8": {
+      "pinId": "source_port_8",
+      "offset": {
+        "x": -1.6,
+        "y": 0.8000000000000009
+      },
+      "side": "x-"
+    },
+    "source_port_9": {
+      "pinId": "source_port_9",
+      "offset": {
+        "x": -1.6,
+        "y": 0.600000000000001
+      },
+      "side": "x-"
+    },
+    "source_port_10": {
+      "pinId": "source_port_10",
+      "offset": {
+        "x": -1.6,
+        "y": 0.400000000000001
+      },
+      "side": "x-"
+    },
+    "source_port_11": {
+      "pinId": "source_port_11",
+      "offset": {
+        "x": -1.6,
+        "y": 0.20000000000000107
+      },
+      "side": "x-"
+    },
+    "source_port_12": {
+      "pinId": "source_port_12",
+      "offset": {
+        "x": -1.6,
+        "y": 8.881784197001252e-16
+      },
+      "side": "x-"
+    },
+    "source_port_13": {
+      "pinId": "source_port_13",
+      "offset": {
+        "x": -1.6,
+        "y": -0.1999999999999993
+      },
+      "side": "x-"
+    },
+    "source_port_14": {
+      "pinId": "source_port_14",
+      "offset": {
+        "x": -1.6,
+        "y": -0.39999999999999947
+      },
+      "side": "x-"
+    },
+    "source_port_15": {
+      "pinId": "source_port_15",
+      "offset": {
+        "x": -1.6,
+        "y": -0.5999999999999996
+      },
+      "side": "x-"
+    },
+    "source_port_16": {
+      "pinId": "source_port_16",
+      "offset": {
+        "x": -1.6,
+        "y": -0.7999999999999998
+      },
+      "side": "x-"
+    },
+    "source_port_17": {
+      "pinId": "source_port_17",
+      "offset": {
+        "x": -1.6,
+        "y": -1
+      },
+      "side": "x-"
+    },
+    "source_port_18": {
+      "pinId": "source_port_18",
+      "offset": {
+        "x": -1.6,
+        "y": -1.2000000000000002
+      },
+      "side": "x-"
+    },
+    "source_port_19": {
+      "pinId": "source_port_19",
+      "offset": {
+        "x": -1.6,
+        "y": -1.4000000000000004
+      },
+      "side": "x-"
+    },
+    "source_port_20": {
+      "pinId": "source_port_20",
+      "offset": {
+        "x": -1.6,
+        "y": -1.6
+      },
+      "side": "x-"
+    },
+    "source_port_21": {
+      "pinId": "source_port_21",
+      "offset": {
+        "x": -1.6,
+        "y": -1.8000000000000003
+      },
+      "side": "x-"
+    },
+    "source_port_22": {
+      "pinId": "source_port_22",
+      "offset": {
+        "x": -1.6,
+        "y": -2.0000000000000004
+      },
+      "side": "x-"
+    },
+    "source_port_23": {
+      "pinId": "source_port_23",
+      "offset": {
+        "x": -1.6,
+        "y": -2.2000000000000006
+      },
+      "side": "x-"
+    },
+    "source_port_24": {
+      "pinId": "source_port_24",
+      "offset": {
+        "x": -1.6,
+        "y": -2.400000000000001
+      },
+      "side": "x-"
+    },
+    "source_port_25": {
+      "pinId": "source_port_25",
+      "offset": {
+        "x": 1.6,
+        "y": -2.3000000000000007
+      },
+      "side": "x+"
+    },
+    "source_port_26": {
+      "pinId": "source_port_26",
+      "offset": {
+        "x": 1.6,
+        "y": -2.1000000000000005
+      },
+      "side": "x+"
+    },
+    "source_port_27": {
+      "pinId": "source_port_27",
+      "offset": {
+        "x": 1.6,
+        "y": -1.9000000000000008
+      },
+      "side": "x+"
+    },
+    "source_port_28": {
+      "pinId": "source_port_28",
+      "offset": {
+        "x": 1.6,
+        "y": -1.7000000000000006
+      },
+      "side": "x+"
+    },
+    "source_port_29": {
+      "pinId": "source_port_29",
+      "offset": {
+        "x": 1.6,
+        "y": -1.5000000000000007
+      },
+      "side": "x+"
+    },
+    "source_port_30": {
+      "pinId": "source_port_30",
+      "offset": {
+        "x": 1.6,
+        "y": -1.3000000000000007
+      },
+      "side": "x+"
+    },
+    "source_port_31": {
+      "pinId": "source_port_31",
+      "offset": {
+        "x": 1.6,
+        "y": -1.1000000000000008
+      },
+      "side": "x+"
+    },
+    "source_port_32": {
+      "pinId": "source_port_32",
+      "offset": {
+        "x": 1.6,
+        "y": -0.9000000000000008
+      },
+      "side": "x+"
+    },
+    "source_port_33": {
+      "pinId": "source_port_33",
+      "offset": {
+        "x": 1.6,
+        "y": -0.7000000000000008
+      },
+      "side": "x+"
+    },
+    "source_port_34": {
+      "pinId": "source_port_34",
+      "offset": {
+        "x": 1.6,
+        "y": -0.5000000000000009
+      },
+      "side": "x+"
+    },
+    "source_port_35": {
+      "pinId": "source_port_35",
+      "offset": {
+        "x": 1.6,
+        "y": -0.30000000000000093
+      },
+      "side": "x+"
+    },
+    "source_port_36": {
+      "pinId": "source_port_36",
+      "offset": {
+        "x": 1.6,
+        "y": -0.10000000000000098
+      },
+      "side": "x+"
+    },
+    "source_port_37": {
+      "pinId": "source_port_37",
+      "offset": {
+        "x": 1.6,
+        "y": 0.0999999999999992
+      },
+      "side": "x+"
+    },
+    "source_port_38": {
+      "pinId": "source_port_38",
+      "offset": {
+        "x": 1.6,
+        "y": 0.2999999999999994
+      },
+      "side": "x+"
+    },
+    "source_port_39": {
+      "pinId": "source_port_39",
+      "offset": {
+        "x": 1.6,
+        "y": 0.49999999999999956
+      },
+      "side": "x+"
+    },
+    "source_port_40": {
+      "pinId": "source_port_40",
+      "offset": {
+        "x": 1.6,
+        "y": 0.6999999999999997
+      },
+      "side": "x+"
+    },
+    "source_port_41": {
+      "pinId": "source_port_41",
+      "offset": {
+        "x": 1.6,
+        "y": 0.8999999999999999
+      },
+      "side": "x+"
+    },
+    "source_port_42": {
+      "pinId": "source_port_42",
+      "offset": {
+        "x": 1.6,
+        "y": 1.1
+      },
+      "side": "x+"
+    },
+    "source_port_43": {
+      "pinId": "source_port_43",
+      "offset": {
+        "x": 1.6,
+        "y": 1.3000000000000003
+      },
+      "side": "x+"
+    },
+    "source_port_44": {
+      "pinId": "source_port_44",
+      "offset": {
+        "x": 1.6,
+        "y": 1.5000000000000004
+      },
+      "side": "x+"
+    },
+    "source_port_45": {
+      "pinId": "source_port_45",
+      "offset": {
+        "x": 1.6,
+        "y": 1.7000000000000002
+      },
+      "side": "x+"
+    },
+    "source_port_46": {
+      "pinId": "source_port_46",
+      "offset": {
+        "x": 1.6,
+        "y": 1.9000000000000004
+      },
+      "side": "x+"
+    },
+    "source_port_47": {
+      "pinId": "source_port_47",
+      "offset": {
+        "x": 1.6,
+        "y": 2.1000000000000005
+      },
+      "side": "x+"
+    },
+    "source_port_48": {
+      "pinId": "source_port_48",
+      "offset": {
+        "x": 1.6,
+        "y": 2.3000000000000007
+      },
+      "side": "x+"
+    },
+    "source_port_49": {
+      "pinId": "source_port_49",
+      "offset": {
+        "x": -0.2999999999999998,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "source_port_50": {
+      "pinId": "source_port_50",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "source_port_51": {
+      "pinId": "source_port_51",
+      "offset": {
+        "x": 0,
+        "y": 0.2999999999999998
+      },
+      "side": "y+"
+    },
+    "source_port_52": {
+      "pinId": "source_port_52",
+      "offset": {
+        "x": 0,
+        "y": -0.2999999999999998
+      },
+      "side": "y-"
+    },
+    "source_port_53": {
+      "pinId": "source_port_53",
+      "offset": {
+        "x": -0.4700000000000002,
+        "y": -0.050000000000000044
+      },
+      "side": "x-"
+    },
+    "source_port_54": {
+      "pinId": "source_port_54",
+      "offset": {
+        "x": 0.4700000000000002,
+        "y": -0.050000000000000044
+      },
+      "side": "x+"
+    },
+    "source_port_57": {
+      "pinId": "source_port_57",
+      "offset": {
+        "x": -0.4700000000000002,
+        "y": -0.04999999999999982
+      },
+      "side": "x-"
+    },
+    "source_port_58": {
+      "pinId": "source_port_58",
+      "offset": {
+        "x": 0.4700000000000002,
+        "y": -0.04999999999999982
+      },
+      "side": "x+"
+    },
+    "source_port_61": {
+      "pinId": "source_port_61",
+      "offset": {
+        "x": -0.20000000000000018,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "source_port_62": {
+      "pinId": "source_port_62",
+      "offset": {
+        "x": -0.20000000000000007,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "source_port_63": {
+      "pinId": "source_port_63",
+      "offset": {
+        "x": -0.19999999999999996,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "source_port_64": {
+      "pinId": "source_port_64",
+      "offset": {
+        "x": -0.20000000000000018,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "source_port_65": {
+      "pinId": "source_port_65",
+      "offset": {
+        "x": -0.20000000000000018,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "source_port_66": {
+      "pinId": "source_port_66",
+      "offset": {
+        "x": -0.20000000000000018,
+        "y": 0
+      },
+      "side": "x-"
+    }
+  },
+  "netMap": {
+    "source_net_0": {
+      "netId": "source_net_0"
+    },
+    "source_net_1": {
+      "netId": "source_net_1"
+    }
+  },
+  "pinStrongConnMap": {
+    "source_port_2-source_port_49": true,
+    "source_port_49-source_port_2": true,
+    "source_port_2-source_port_51": true,
+    "source_port_51-source_port_2": true,
+    "source_port_2-source_port_53": true,
+    "source_port_53-source_port_2": true,
+    "source_port_26-source_port_57": true,
+    "source_port_57-source_port_26": true,
+    "source_port_3-source_port_62": true,
+    "source_port_62-source_port_3": true,
+    "source_port_4-source_port_63": true,
+    "source_port_63-source_port_4": true,
+    "source_port_5-source_port_64": true,
+    "source_port_64-source_port_5": true,
+    "source_port_6-source_port_65": true,
+    "source_port_65-source_port_6": true,
+    "source_port_7-source_port_66": true,
+    "source_port_66-source_port_7": true,
+    "source_port_22-source_port_61": true,
+    "source_port_61-source_port_22": true,
+    "source_port_1-source_port_50": true,
+    "source_port_50-source_port_1": true
+  },
+  "netConnMap": {
+    "source_port_1-source_net_0": true,
+    "source_port_0-source_net_1": true,
+    "source_port_39-source_net_1": true,
+    "source_port_40-source_net_1": true,
+    "source_port_50-source_net_0": true,
+    "source_port_52-source_net_1": true,
+    "source_port_54-source_net_1": true,
+    "source_port_58-source_net_1": true
+  },
+  "chipGap": 0.2,
+  "partitionGap": 2
+}
