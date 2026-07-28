@@ -47,46 +47,6 @@ const SIDE_VECTORS: Record<Side, { x: number; y: number }> = {
 
 type Axis = "x" | "y"
 
-const SIDE_LAYOUT: Record<
-  Side,
-  {
-    opposite: Side
-    normalAxis: Axis
-    tangentAxis: Axis
-    direction: -1 | 1
-    anchorEdge: "minX" | "maxX" | "minY" | "maxY"
-  }
-> = {
-  "x-": {
-    opposite: "x+",
-    normalAxis: "x",
-    tangentAxis: "y",
-    direction: -1,
-    anchorEdge: "minX",
-  },
-  "x+": {
-    opposite: "x-",
-    normalAxis: "x",
-    tangentAxis: "y",
-    direction: 1,
-    anchorEdge: "maxX",
-  },
-  "y-": {
-    opposite: "y+",
-    normalAxis: "y",
-    tangentAxis: "x",
-    direction: -1,
-    anchorEdge: "minY",
-  },
-  "y+": {
-    opposite: "y-",
-    normalAxis: "y",
-    tangentAxis: "x",
-    direction: 1,
-    anchorEdge: "maxY",
-  },
-}
-
 const vectorToSide = (vector: { x: number; y: number }): Side => {
   if (Math.abs(vector.x) > Math.abs(vector.y)) {
     if (vector.x < 0) return "x-"
@@ -98,6 +58,11 @@ const vectorToSide = (vector: { x: number; y: number }): Side => {
 
 const rotateSide = (side: Side, ccwRotationDegrees: number): Side =>
   vectorToSide(rotatePinOffset(SIDE_VECTORS[side], ccwRotationDegrees))
+
+const getOppositeSide = (side: Side): Side => {
+  const vector = SIDE_VECTORS[side]
+  return vectorToSide({ x: -vector.x, y: -vector.y })
+}
 
 const getPlacementBounds = ({
   placement,
@@ -253,7 +218,7 @@ const getTestPointRotation = ({
   const chip = inputProblem.chipMap[member.testPointChipId]!
   const pin = inputProblem.chipPinMap[member.testPointPinId]!
   const allowedRotations = chip.availableRotations ?? [0, 90, 180, 270]
-  const desiredPinSide = SIDE_LAYOUT[member.side].opposite
+  const desiredPinSide = getOppositeSide(member.side)
   return (
     allowedRotations.find(
       (rotation) => rotateSide(pin.side, rotation) === desiredPinSide,
@@ -480,8 +445,10 @@ export class AlignTestPointsSolver extends BaseSolver {
       placement: anchorPlacement,
       size: anchorChip.size,
     })
-    const { normalAxis, tangentAxis, direction, anchorEdge } =
-      SIDE_LAYOUT[group.side]
+    const normalAxis = group.side[0] as Axis
+    let tangentAxis: Axis = "x"
+    if (normalAxis === "x") tangentAxis = "y"
+    const direction = SIDE_VECTORS[group.side][normalAxis] as -1 | 1
     const members = group.members
       .map((member) => {
         const anchorPin = this.inputProblem.chipPinMap[member.anchorPinId]!
@@ -519,9 +486,13 @@ export class AlignTestPointsSolver extends BaseSolver {
       previousTangentEnd = tangentCenter + tangentExtent / 2
 
       const pinNormal = entry.anchorPinPosition[normalAxis]
-      let outwardBoundary = Math.min(anchorBounds[anchorEdge], pinNormal)
+      let anchorEdge = anchorBounds.minX
+      if (normalAxis === "y") anchorEdge = anchorBounds.minY
+      if (normalAxis === "x" && direction > 0) anchorEdge = anchorBounds.maxX
+      if (normalAxis === "y" && direction > 0) anchorEdge = anchorBounds.maxY
+      let outwardBoundary = Math.min(anchorEdge, pinNormal)
       if (direction > 0) {
-        outwardBoundary = Math.max(anchorBounds[anchorEdge], pinNormal)
+        outwardBoundary = Math.max(anchorEdge, pinNormal)
       }
       const normalCenter =
         outwardBoundary +
