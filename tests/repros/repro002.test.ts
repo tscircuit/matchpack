@@ -11,7 +11,7 @@ test("repro002", async () => {
 
   const testPointIds = ["TP5", "TP6", "TP7", "TP8", "TP9"]
   const outputLayout = solver.getOutputLayout()
-  expect(solver.alignTestPointsSolver?.unconnectedTestPointAlignment).toEqual({
+  expect(solver.alignTestPointsSolver?.looseTestPointGroup).toEqual({
     orientation: "horizontal",
     chipIds: testPointIds,
     perpendicularOffset: 0,

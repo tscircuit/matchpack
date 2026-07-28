@@ -147,7 +147,7 @@ test("AlignTestPointsSolver moves a whole side group around a blocking component
   expect(solver.outputLayout!.chipPlacements.TP2!.y).toBeLessThan(0.1)
 })
 
-test("AlignTestPointsSolver keeps same-side testpoints ordered by connected anchor pins", () => {
+test("AlignTestPointsSolver groups only testpoints on nearby anchor pins", () => {
   const problemWithPinGap: InputProblem = structuredClone(problem)
   problemWithPinGap.chipMap.U1!.pins.push("U1.left3", "U1.left4", "U1.left7")
   problemWithPinGap.chipPinMap["U1.left3"] = {
@@ -201,13 +201,16 @@ test("AlignTestPointsSolver keeps same-side testpoints ordered by connected anch
   const leftGroups = solver.testPointSideGroups.filter(
     (group) => group.side === "x-",
   )
-  expect(leftGroups).toHaveLength(1)
+  expect(leftGroups).toHaveLength(2)
   expect(
     leftGroups[0]!.members.map((member) => member.testPointChipId),
-  ).toEqual(["TP1", "TP2", "TP7"])
+  ).toEqual(["TP1", "TP2"])
+  expect(
+    leftGroups[1]!.members.map((member) => member.testPointChipId),
+  ).toEqual(["TP7"])
 })
 
-test("AlignTestPointsSolver aligns unconnected testpoints along the least-movement axis", async () => {
+test("AlignTestPointsSolver places loose testpoints on their nearest axis", async () => {
   const problemWithUnconnectedTestPoints: InputProblem =
     structuredClone(problem)
   const layoutWithUnconnectedTestPoints: OutputLayout =
@@ -255,13 +258,9 @@ test("AlignTestPointsSolver aligns unconnected testpoints along the least-moveme
   solver.solve()
 
   const output = solver.outputLayout!
-  expect(solver.unconnectedTestPointAlignment?.orientation).toBe("horizontal")
-  expect(solver.unconnectedTestPointAlignment?.chipIds).toEqual([
-    "TP4",
-    "TP5",
-    "TP6",
-  ])
-  expect(solver.unconnectedTestPointAlignment?.perpendicularOffset).not.toBe(0)
+  expect(solver.looseTestPointGroup?.orientation).toBe("horizontal")
+  expect(solver.looseTestPointGroup?.chipIds).toEqual(["TP4", "TP5", "TP6"])
+  expect(solver.looseTestPointGroup?.perpendicularOffset).not.toBe(0)
   expect(
     new Set(placements.map(({ chipId }) => output.chipPlacements[chipId]!.y))
       .size,
@@ -279,7 +278,7 @@ test("AlignTestPointsSolver aligns unconnected testpoints along the least-moveme
   })
 })
 
-test("AlignTestPointsSolver chooses a vertical line for vertically scattered unconnected testpoints", () => {
+test("AlignTestPointsSolver places vertically scattered loose testpoints in a column", () => {
   const problemWithUnconnectedTestPoints: InputProblem =
     structuredClone(problem)
   problemWithUnconnectedTestPoints.pinStrongConnMap = {}
@@ -298,7 +297,7 @@ test("AlignTestPointsSolver chooses a vertical line for vertically scattered unc
   solver.solve()
 
   const output = solver.outputLayout!
-  expect(solver.unconnectedTestPointAlignment?.orientation).toBe("vertical")
+  expect(solver.looseTestPointGroup?.orientation).toBe("vertical")
   expect(
     new Set(["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.x))
       .size,

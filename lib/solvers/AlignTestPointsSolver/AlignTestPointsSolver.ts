@@ -11,13 +11,13 @@ import type { ChipId, InputProblem, PinId } from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
-import {
-  alignUnconnectedTestPoints,
-  type PlacementPair,
-  type UnconnectedTestPointAlignment,
-} from "./alignUnconnectedTestPoints"
 
-export type { UnconnectedTestPointAlignment } from "./alignUnconnectedTestPoints"
+type PlacementPair = {
+  chipIdA: ChipId
+  placementA: Placement
+  chipIdB: ChipId
+  placementB: Placement
+}
 
 type TestPointMember = {
   testPointChipId: ChipId
@@ -32,6 +32,12 @@ export type TestPointSideGroup = {
   side: Side
   members: TestPointMember[]
   tangentOffset?: number
+}
+
+export type LooseTestPointGroup = {
+  orientation: "horizontal" | "vertical"
+  chipIds: ChipId[]
+  perpendicularOffset: number
 }
 
 const MINIMUM_SEARCH_STEP = 0.2
@@ -205,7 +211,63 @@ const createSideGroups = ({
         }),
     )
   }
-  return groups
+  return groups.flatMap((group) => {
+    if (group.members.length < 2) return [group]
+
+    const anchorChip = inputProblem.chipMap[group.anchorChipId]!
+    const anchorPlacement = inputLayout.chipPlacements[group.anchorChipId]!
+    const sidePinPositions = anchorChip.pins
+      .filter((pinId) => {
+        const pin = inputProblem.chipPinMap[pinId]
+        return (
+          pin &&
+          rotateSide(pin.side, anchorPlacement.ccwRotationDegrees) ===
+            group.side
+        )
+      })
+      .map((pinId) =>
+        getAnchorPinTangentPosition({
+          inputProblem,
+          inputLayout,
+          anchorChipId: group.anchorChipId,
+          anchorPinId: pinId,
+          side: group.side,
+        }),
+      )
+      .sort((a, b) => a - b)
+
+    const pinGaps = sidePinPositions
+      .slice(1)
+      .map((position, index) => position - sidePinPositions[index]!)
+      .filter((gap) => gap > 1e-6)
+    if (pinGaps.length === 0) return [group]
+
+    const maximumNearbyGap = Math.min(...pinGaps) * 1.5
+    const splitGroups: TestPointSideGroup[] = []
+    let members: TestPointMember[] = []
+    let previousPosition: number | undefined
+
+    for (const member of group.members) {
+      const position = getAnchorPinTangentPosition({
+        inputProblem,
+        inputLayout,
+        anchorChipId: member.anchorChipId,
+        anchorPinId: member.anchorPinId,
+        side: member.side,
+      })
+      if (
+        previousPosition !== undefined &&
+        position - previousPosition > maximumNearbyGap + 1e-6
+      ) {
+        splitGroups.push({ ...group, members })
+        members = []
+      }
+      members.push(member)
+      previousPosition = position
+    }
+    if (members.length > 0) splitGroups.push({ ...group, members })
+    return splitGroups
+  })
 }
 
 const getTestPointRotation = ({
@@ -350,7 +412,7 @@ export class AlignTestPointsSolver extends BaseSolver {
   inputLayout: OutputLayout
   outputLayout: OutputLayout | null = null
   testPointSideGroups: TestPointSideGroup[] = []
-  unconnectedTestPointAlignment: UnconnectedTestPointAlignment | null = null
+  looseTestPointGroup: LooseTestPointGroup | null = null
 
   constructor(params: {
     inputProblem: InputProblem
@@ -544,7 +606,7 @@ export class AlignTestPointsSolver extends BaseSolver {
     this.moveGroupAlongTangent({ group, tangentAxis, chipPlacements })
   }
 
-  private alignUnconnectedTestPoints(
+  private placeLooseTestPoints(
     connectedTestPointIds: Set<ChipId>,
     chipPlacements: Record<ChipId, Placement>,
   ): void {
@@ -559,18 +621,113 @@ export class AlignTestPointsSolver extends BaseSolver {
       )
       .map((chip) => chip.chipId)
 
-    const result = alignUnconnectedTestPoints({
-      inputProblem: this.inputProblem,
-      chipIds,
-      chipPlacements,
-      placementsOverlap: (placementPair) =>
-        placementsOverlap({
-          inputProblem: this.inputProblem,
-          ...placementPair,
+    if (chipIds.length < 2) return
+
+    const span = (axis: Axis) => {
+      const positions = chipIds.map((chipId) => chipPlacements[chipId]![axis])
+      return Math.max(...positions) - Math.min(...positions)
+    }
+    const orientation = span("x") >= span("y") ? "horizontal" : "vertical"
+    const alignmentAxis: Axis = orientation === "horizontal" ? "x" : "y"
+    const perpendicularAxis: Axis = alignmentAxis === "x" ? "y" : "x"
+    const entries = chipIds
+      .map((chipId) => ({
+        chipId,
+        original: chipPlacements[chipId]!,
+        size: getRotatedSize(
+          this.inputProblem.chipMap[chipId]!.size,
+          chipPlacements[chipId]!.ccwRotationDegrees,
+        ),
+      }))
+      .sort(
+        (a, b) =>
+          a.original[alignmentAxis] - b.original[alignmentAxis] ||
+          a.chipId.localeCompare(b.chipId),
+      )
+
+    const perpendicularCenter =
+      entries.reduce(
+        (sum, entry) => sum + entry.original[perpendicularAxis],
+        0,
+      ) / entries.length
+    let previousEnd = -Infinity
+    const placements: Record<ChipId, Placement> = {}
+    for (const entry of entries) {
+      const extent = entry.size[alignmentAxis]
+      const center = Math.max(
+        entry.original[alignmentAxis],
+        previousEnd + this.inputProblem.chipGap + extent / 2,
+      )
+      placements[entry.chipId] = {
+        ...entry.original,
+        [alignmentAxis]: center,
+        [perpendicularAxis]: perpendicularCenter,
+      }
+      previousEnd = center + extent / 2
+    }
+
+    const groupIds = new Set(chipIds)
+    const step = Math.max(
+      this.inputProblem.partitionGap / 2,
+      this.inputProblem.chipGap,
+      MINIMUM_SEARCH_STEP,
+    )
+    const otherEntries = Object.entries(chipPlacements).filter(
+      ([chipId]) => !groupIds.has(chipId),
+    )
+    const maximumOffset =
+      otherEntries.reduce(
+        (maximum, [chipId, placement]) =>
+          Math.max(
+            maximum,
+            Math.abs(placement[perpendicularAxis] - perpendicularCenter) +
+              getRotatedSize(
+                this.inputProblem.chipMap[chipId]!.size,
+                placement.ccwRotationDegrees,
+              )[perpendicularAxis],
+          ),
+        0,
+      ) + this.inputProblem.partitionGap
+
+    let perpendicularOffset = 0
+    const maximumSteps = Math.ceil(maximumOffset / step) + 2
+    for (let stepIndex = 0; stepIndex <= maximumSteps; stepIndex++) {
+      const offsets =
+        stepIndex === 0 ? [0] : [-stepIndex * step, stepIndex * step]
+      const candidate = offsets.find((offset) =>
+        entries.every((entry) => {
+          const placement = {
+            ...placements[entry.chipId]!,
+            [perpendicularAxis]:
+              placements[entry.chipId]![perpendicularAxis] + offset,
+          }
+          return otherEntries.every(
+            ([otherChipId, otherPlacement]) =>
+              !placementsOverlap({
+                inputProblem: this.inputProblem,
+                chipIdA: entry.chipId,
+                placementA: placement,
+                chipIdB: otherChipId,
+                placementB: otherPlacement,
+              }),
+          )
         }),
-    })
-    this.unconnectedTestPointAlignment = result?.alignment ?? null
-    if (result) Object.assign(chipPlacements, result.placements)
+      )
+      if (candidate !== undefined) {
+        perpendicularOffset = candidate
+        break
+      }
+    }
+
+    for (const entry of entries) {
+      placements[entry.chipId]![perpendicularAxis] += perpendicularOffset
+    }
+    Object.assign(chipPlacements, placements)
+    this.looseTestPointGroup = {
+      orientation,
+      chipIds: entries.map((entry) => entry.chipId),
+      perpendicularOffset,
+    }
   }
 
   override _step() {
@@ -588,7 +745,7 @@ export class AlignTestPointsSolver extends BaseSolver {
         group.members.map((member) => member.testPointChipId),
       ),
     )
-    this.alignUnconnectedTestPoints(connectedTestPointIds, chipPlacements)
+    this.placeLooseTestPoints(connectedTestPointIds, chipPlacements)
 
     this.outputLayout = {
       chipPlacements,

@@ -9,17 +9,20 @@ test("repro scattered testpoint", async () => {
 
   const outputLayout = solver.getOutputLayout()
   const testPointIds = ["TP_LED_DATA", "TCH1", "TCH2", "TCH3", "TCH4", "TCH5"]
-  const testPointXPositions = testPointIds.map(
-    (chipId) => outputLayout.chipPlacements[chipId]!.x,
-  )
+  const touchTestPointXPositions = testPointIds
+    .slice(1)
+    .map((chipId) => outputLayout.chipPlacements[chipId]!.x)
 
   const testPointGroups = solver.alignTestPointsSolver!.testPointSideGroups
-  expect(testPointGroups).toHaveLength(1)
+  expect(testPointGroups).toHaveLength(2)
   expect(
     testPointGroups[0]!.members.map((member) => member.testPointChipId),
-  ).toEqual(["TP_LED_DATA", "TCH5", "TCH4", "TCH3", "TCH2", "TCH1"])
-  expect(testPointGroups[0]!.tangentOffset).toBeLessThan(0)
-  expect(new Set(testPointXPositions).size).toBe(1)
+  ).toEqual(["TP_LED_DATA"])
+  expect(
+    testPointGroups[1]!.members.map((member) => member.testPointChipId),
+  ).toEqual(["TCH5", "TCH4", "TCH3", "TCH2", "TCH1"])
+  expect(testPointGroups[1]!.tangentOffset).toBeLessThan(0)
+  expect(new Set(touchTestPointXPositions).size).toBe(1)
   expect(
     testPointIds.every(
       (chipId) =>
