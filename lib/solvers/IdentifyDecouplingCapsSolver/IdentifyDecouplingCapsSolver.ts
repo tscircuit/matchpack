@@ -261,7 +261,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     }
   }
 
-  /** Find the main-chip side shared by the largest number of rail pins. */
+  /** Find the side with the most positive-rail pins. */
   private getMainChipSide(
     mainChipId: ChipId,
     netPair: [NetId, NetId],
@@ -269,26 +269,27 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const mainChip = this.inputProblem.chipMap[mainChipId]
     if (!mainChip) return null
 
+    const positiveNetIds = netPair.filter(
+      (netId) => this.inputProblem.netMap[netId]?.isPositiveVoltageSource,
+    )
     const sideCounts = new Map<Side, number>()
-    let mainChipSide: Side | null = null
-    let largestSideCount = 0
 
     for (const pinId of mainChip.pins) {
       const pin = this.inputProblem.chipPinMap[pinId]
       if (!pin) continue
-
       const pinNetIds = this.getNetIdsForPin(pinId)
-      if (!netPair.some((netId) => pinNetIds.has(netId))) continue
-
-      const sideCount = (sideCounts.get(pin.side) ?? 0) + 1
-      sideCounts.set(pin.side, sideCount)
-      if (sideCount > largestSideCount) {
-        largestSideCount = sideCount
-        mainChipSide = pin.side
-      }
+      if (!positiveNetIds.some((netId) => pinNetIds.has(netId))) continue
+      sideCounts.set(pin.side, (sideCounts.get(pin.side) ?? 0) + 1)
     }
 
-    return mainChipSide
+    let selectedSide: Side | null = null
+    let largestCount = 0
+    for (const [side, count] of sideCounts) {
+      if (count <= largestCount) continue
+      selectedSide = side
+      largestCount = count
+    }
+    return selectedSide
   }
 
   lastChip: Chip | null = null

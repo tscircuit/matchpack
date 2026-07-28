@@ -19,6 +19,7 @@ import type { OutputLayout } from "lib/types/OutputLayout"
 import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
+import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsSolver/PlaceNetOnlyDecouplingRowsSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -57,6 +58,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
+  placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -145,6 +147,17 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep(
+      "placeNetOnlyDecouplingRowsSolver",
+      PlaceNetOnlyDecouplingRowsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          packedPartitions: this.packedPartitions!,
+          inputLayout: this.alignPowerGroundRowsSolver!.outputLayout!,
+        },
+      ],
+    ),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -210,6 +223,9 @@ export class LayoutPipelineSolver extends BaseSolver {
       return this.activeSubSolver.visualize()
 
     // If the pipeline is complete, show only the final chip placements.
+    if (this.solved && this.placeNetOnlyDecouplingRowsSolver?.solved) {
+      return this.placeNetOnlyDecouplingRowsSolver.visualize()
+    }
     if (this.solved && this.alignPowerGroundRowsSolver?.solved) {
       return this.alignPowerGroundRowsSolver.visualize()
     }
@@ -225,6 +241,8 @@ export class LayoutPipelineSolver extends BaseSolver {
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
     const alignPowerGroundRowsViz = this.alignPowerGroundRowsSolver?.visualize()
+    const placeNetOnlyDecouplingRowsViz =
+      this.placeNetOnlyDecouplingRowsSolver?.visualize()
 
     // Get basic layout positions to avoid overlapping at (0,0)
     const basicLayout = doBasicInputProblemLayout(this.inputProblem)
@@ -238,6 +256,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       packInnerPartitionsViz,
       partitionPackingViz,
       alignPowerGroundRowsViz,
+      placeNetOnlyDecouplingRowsViz,
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
@@ -281,6 +300,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     // Show the most recent solver's output
+    if (this.placeNetOnlyDecouplingRowsSolver?.solved) {
+      return this.placeNetOnlyDecouplingRowsSolver.visualize()
+    }
     if (this.alignPowerGroundRowsSolver?.solved) {
       return this.alignPowerGroundRowsSolver.visualize()
     }
@@ -436,6 +458,11 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     // Get the final layout from the last layout stage.
     if (
+      this.placeNetOnlyDecouplingRowsSolver?.solved &&
+      this.placeNetOnlyDecouplingRowsSolver.outputLayout
+    ) {
+      finalLayout = this.placeNetOnlyDecouplingRowsSolver.outputLayout
+    } else if (
       this.alignPowerGroundRowsSolver?.solved &&
       this.alignPowerGroundRowsSolver.outputLayout
     ) {
