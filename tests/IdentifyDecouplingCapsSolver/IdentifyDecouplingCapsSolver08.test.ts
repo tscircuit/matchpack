@@ -48,3 +48,37 @@ test("does not guess when multiple chips share both capacitor rails", () => {
 
   expect(solver.outputDecouplingCapGroups).toEqual([])
 })
+
+test("uses the positive rail pin when ground and power are on opposite sides", () => {
+  const oppositeSideInput = structuredClone(input) as InputProblem
+  const powerNetId = Object.values(oppositeSideInput.netMap).find(
+    (net) => net.isPositiveVoltageSource,
+  )!.netId
+  const groundNetId = Object.values(oppositeSideInput.netMap).find(
+    (net) => net.isGround,
+  )!.netId
+
+  const mainChipConnections = Object.keys(
+    oppositeSideInput.netConnMap,
+  ) as Array<keyof InputProblem["netConnMap"]>
+  for (const connectionKey of mainChipConnections) {
+    const isMainChipRail =
+      connectionKey.startsWith("U1.") &&
+      (connectionKey.endsWith(powerNetId) ||
+        connectionKey.endsWith(groundNetId))
+    if (isMainChipRail) delete oppositeSideInput.netConnMap[connectionKey]
+  }
+  oppositeSideInput.netConnMap[`U1.2-${groundNetId}`] = true
+  oppositeSideInput.netConnMap[`U1.7-${powerNetId}`] = true
+
+  const solver = new IdentifyDecouplingCapsSolver(oppositeSideInput)
+  solver.solve()
+
+  expect(solver.outputDecouplingCapGroups).toEqual([
+    expect.objectContaining({
+      mainChipId: "U1",
+      mainChipSide: "x+",
+      decouplingCapChipIds: ["C1", "C2", "C3"],
+    }),
+  ])
+})
