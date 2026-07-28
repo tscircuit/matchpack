@@ -147,7 +147,7 @@ test("AlignTestPointsSolver moves a whole side group around a blocking component
   expect(solver.outputLayout!.chipPlacements.TP2!.y).toBeLessThan(0.1)
 })
 
-test("AlignTestPointsSolver splits non-adjacent anchor pins into separate groups", () => {
+test("AlignTestPointsSolver keeps same-side testpoints ordered by connected anchor pins", () => {
   const problemWithPinGap: InputProblem = structuredClone(problem)
   problemWithPinGap.chipMap.U1!.pins.push("U1.left3", "U1.left4", "U1.left7")
   problemWithPinGap.chipPinMap["U1.left3"] = {
@@ -178,6 +178,13 @@ test("AlignTestPointsSolver splits non-adjacent anchor pins into separate groups
   }
   problemWithPinGap.pinStrongConnMap["U1.left7-TP7.1"] = true
   problemWithPinGap.pinStrongConnMap["TP7.1-U1.left7"] = true
+  problemWithPinGap.chipMap = {
+    U1: problemWithPinGap.chipMap.U1!,
+    TP7: problemWithPinGap.chipMap.TP7!,
+    TP3: problemWithPinGap.chipMap.TP3!,
+    TP2: problemWithPinGap.chipMap.TP2!,
+    TP1: problemWithPinGap.chipMap.TP1!,
+  }
 
   const solver = new AlignTestPointsSolver({
     inputProblem: problemWithPinGap,
@@ -194,15 +201,10 @@ test("AlignTestPointsSolver splits non-adjacent anchor pins into separate groups
   const leftGroups = solver.testPointSideGroups.filter(
     (group) => group.side === "x-",
   )
-  expect(leftGroups).toHaveLength(2)
-  expect(leftGroups.map((group) => group.members.length).sort()).toEqual([1, 2])
+  expect(leftGroups).toHaveLength(1)
   expect(
-    leftGroups.some(
-      (group) =>
-        group.members.length === 1 &&
-        group.members[0]!.testPointChipId === "TP7",
-    ),
-  ).toBe(true)
+    leftGroups[0]!.members.map((member) => member.testPointChipId),
+  ).toEqual(["TP1", "TP2", "TP7"])
 })
 
 test("AlignTestPointsSolver aligns unconnected testpoints along the least-movement axis", async () => {

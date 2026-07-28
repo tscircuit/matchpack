@@ -13,16 +13,29 @@ type AlignmentCandidate = UnconnectedTestPointAlignment & {
   movement: number
 }
 
-type AlignUnconnectedTestPointsParams = {
+export type PlacementPair = {
+  chipIdA: ChipId
+  placementA: Placement
+  chipIdB: ChipId
+  placementB: Placement
+}
+
+type AlignUnconnectedTestPointsInput = {
   inputProblem: InputProblem
   chipIds: ChipId[]
   chipPlacements: Record<ChipId, Placement>
-  placementsOverlap: (
-    chipIdA: ChipId,
-    placementA: Placement,
-    chipIdB: ChipId,
-    placementB: Placement,
-  ) => boolean
+  placementsOverlap: (placementPair: PlacementPair) => boolean
+}
+
+type Axis = "x" | "y"
+
+const getAlignmentAxes = (
+  orientation: "horizontal" | "vertical",
+): { alignmentAxis: Axis; perpendicularAxis: Axis } => {
+  if (orientation === "horizontal") {
+    return { alignmentAxis: "x", perpendicularAxis: "y" }
+  }
+  return { alignmentAxis: "y", perpendicularAxis: "x" }
 }
 
 const createAlignmentCandidate = ({
@@ -31,11 +44,10 @@ const createAlignmentCandidate = ({
   chipPlacements,
   placementsOverlap,
   orientation,
-}: AlignUnconnectedTestPointsParams & {
+}: AlignUnconnectedTestPointsInput & {
   orientation: "horizontal" | "vertical"
 }): AlignmentCandidate => {
-  const alignmentAxis = orientation === "horizontal" ? "x" : "y"
-  const perpendicularAxis = alignmentAxis === "x" ? "y" : "x"
+  const { alignmentAxis, perpendicularAxis } = getAlignmentAxes(orientation)
   const entries = chipIds
     .map((chipId) => {
       const placement = chipPlacements[chipId]!
@@ -90,26 +102,6 @@ const createAlignmentCandidate = ({
   }
 
   const groupChipIds = new Set(chipIds)
-  const hasCollision = (perpendicularOffset: number): boolean =>
-    entries.some((entry) => {
-      const placement = {
-        ...basePlacements[entry.chipId]!,
-        [perpendicularAxis]:
-          basePlacements[entry.chipId]![perpendicularAxis] +
-          perpendicularOffset,
-      }
-      return Object.entries(chipPlacements).some(
-        ([otherChipId, otherPlacement]) =>
-          !groupChipIds.has(otherChipId) &&
-          placementsOverlap(
-            entry.chipId,
-            placement,
-            otherChipId,
-            otherPlacement,
-          ),
-      )
-    })
-
   const step = Math.max(
     inputProblem.partitionGap / 2,
     inputProblem.chipGap,
@@ -136,9 +128,30 @@ const createAlignmentCandidate = ({
   let perpendicularOffset: number | null = null
 
   for (let stepIndex = 0; stepIndex <= maximumSteps; stepIndex++) {
-    const offsets =
-      stepIndex === 0 ? [0] : [-stepIndex * step, stepIndex * step]
-    const collisionFreeOffset = offsets.find((offset) => !hasCollision(offset))
+    const offsets = [0]
+    if (stepIndex > 0) {
+      offsets.splice(0, 1, -stepIndex * step, stepIndex * step)
+    }
+    const collisionFreeOffset = offsets.find(
+      (offset) =>
+        !entries.some((entry) => {
+          const placement = {
+            ...basePlacements[entry.chipId]!,
+            [perpendicularAxis]:
+              basePlacements[entry.chipId]![perpendicularAxis] + offset,
+          }
+          return Object.entries(chipPlacements).some(
+            ([otherChipId, otherPlacement]) =>
+              !groupChipIds.has(otherChipId) &&
+              placementsOverlap({
+                chipIdA: entry.chipId,
+                placementA: placement,
+                chipIdB: otherChipId,
+                placementB: otherPlacement,
+              }),
+          )
+        }),
+    )
     if (collisionFreeOffset !== undefined) {
       perpendicularOffset = collisionFreeOffset
       break
@@ -180,15 +193,15 @@ const createAlignmentCandidate = ({
 }
 
 export const alignUnconnectedTestPoints = (
-  params: AlignUnconnectedTestPointsParams,
+  input: AlignUnconnectedTestPointsInput,
 ): {
   alignment: UnconnectedTestPointAlignment
   placements: Record<ChipId, Placement>
 } | null => {
-  if (params.chipIds.length < 2) return null
+  if (input.chipIds.length < 2) return null
 
   const bestCandidate = (["horizontal", "vertical"] as const)
-    .map((orientation) => createAlignmentCandidate({ ...params, orientation }))
+    .map((orientation) => createAlignmentCandidate({ ...input, orientation }))
     .sort(
       (a, b) =>
         a.movement - b.movement || a.orientation.localeCompare(b.orientation),

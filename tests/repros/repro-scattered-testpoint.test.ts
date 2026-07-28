@@ -9,25 +9,17 @@ test("repro scattered testpoint", async () => {
 
   const outputLayout = solver.getOutputLayout()
   const testPointIds = ["TP_LED_DATA", "TCH1", "TCH2", "TCH3", "TCH4", "TCH5"]
-  const touchTestPointXPositions = testPointIds
-    .slice(1)
-    .map((chipId) => outputLayout.chipPlacements[chipId]!.x)
+  const testPointXPositions = testPointIds.map(
+    (chipId) => outputLayout.chipPlacements[chipId]!.x,
+  )
 
   const testPointGroups = solver.alignTestPointsSolver!.testPointSideGroups
-  expect(testPointGroups).toHaveLength(2)
-  expect(testPointGroups.map((group) => group.members.length).sort()).toEqual([
-    1, 5,
-  ])
+  expect(testPointGroups).toHaveLength(1)
   expect(
-    testPointGroups.find((group) => group.members.length === 5)?.tangentOffset,
-  ).toBeLessThan(0)
-  expect(
-    testPointGroups.find((group) => group.members.length === 1)?.tangentOffset,
-  ).toBe(0)
-  expect(new Set(touchTestPointXPositions).size).toBe(1)
-  expect(outputLayout.chipPlacements.TP_LED_DATA!.x).not.toBe(
-    touchTestPointXPositions[0],
-  )
+    testPointGroups[0]!.members.map((member) => member.testPointChipId),
+  ).toEqual(["TP_LED_DATA", "TCH5", "TCH4", "TCH3", "TCH2", "TCH1"])
+  expect(testPointGroups[0]!.tangentOffset).toBeLessThan(0)
+  expect(new Set(testPointXPositions).size).toBe(1)
   expect(
     testPointIds.every(
       (chipId) =>

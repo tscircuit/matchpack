@@ -1,3 +1,9 @@
+import {
+  boundsAreaOverlap,
+  doesSegmentIntersectRect,
+  getBoundFromCenteredRect,
+  type Point,
+} from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
@@ -7,6 +13,7 @@ import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
 import {
   alignUnconnectedTestPoints,
+  type PlacementPair,
   type UnconnectedTestPointAlignment,
 } from "./alignUnconnectedTestPoints"
 
@@ -36,9 +43,11 @@ const SIDE_VECTORS: Record<Side, { x: number; y: number }> = {
 
 const vectorToSide = (vector: { x: number; y: number }): Side => {
   if (Math.abs(vector.x) > Math.abs(vector.y)) {
-    return vector.x < 0 ? "x-" : "x+"
+    if (vector.x < 0) return "x-"
+    return "x+"
   }
-  return vector.y < 0 ? "y-" : "y+"
+  if (vector.y < 0) return "y-"
+  return "y+"
 }
 
 const rotateSide = (side: Side, ccwRotationDegrees: number): Side =>
@@ -57,44 +66,38 @@ const oppositeSide = (side: Side): Side => {
   }
 }
 
-const getBounds = (placement: Placement, size: { x: number; y: number }) => {
-  const rotatedSize = getRotatedSize(size, placement.ccwRotationDegrees)
-  return {
-    minX: placement.x - rotatedSize.x / 2,
-    maxX: placement.x + rotatedSize.x / 2,
-    minY: placement.y - rotatedSize.y / 2,
-    maxY: placement.y + rotatedSize.y / 2,
+type Axis = "x" | "y"
+
+const getSideAxes = (
+  side: Side,
+): { normalAxis: Axis; tangentAxis: Axis; direction: -1 | 1 } => {
+  switch (side) {
+    case "x-":
+      return { normalAxis: "x", tangentAxis: "y", direction: -1 }
+    case "x+":
+      return { normalAxis: "x", tangentAxis: "y", direction: 1 }
+    case "y-":
+      return { normalAxis: "y", tangentAxis: "x", direction: -1 }
+    case "y+":
+      return { normalAxis: "y", tangentAxis: "x", direction: 1 }
   }
 }
 
-type Bounds = ReturnType<typeof getBounds>
-
-const segmentIntersectsBounds = (
-  start: { x: number; y: number },
-  end: { x: number; y: number },
-  bounds: Bounds,
-): boolean => {
-  const direction = { x: end.x - start.x, y: end.y - start.y }
-  let minT = 0
-  let maxT = 1
-
-  for (const [origin, delta, min, max] of [
-    [start.x, direction.x, bounds.minX, bounds.maxX],
-    [start.y, direction.y, bounds.minY, bounds.maxY],
-  ] as const) {
-    if (Math.abs(delta) < 1e-9) {
-      if (origin < min || origin > max) return false
-      continue
-    }
-
-    const entryT = (min - origin) / delta
-    const exitT = (max - origin) / delta
-    minT = Math.max(minT, Math.min(entryT, exitT))
-    maxT = Math.min(maxT, Math.max(entryT, exitT))
-    if (minT > maxT) return false
-  }
-
-  return true
+const getPlacementBounds = ({
+  placement,
+  size,
+  margin = 0,
+}: {
+  placement: Placement
+  size: Point
+  margin?: number
+}) => {
+  const rotatedSize = getRotatedSize(size, placement.ccwRotationDegrees)
+  return getBoundFromCenteredRect({
+    center: placement,
+    width: rotatedSize.x + margin * 2,
+    height: rotatedSize.y + margin * 2,
+  })
 }
 
 export class AlignTestPointsSolver extends BaseSolver {
@@ -134,94 +137,25 @@ export class AlignTestPointsSolver extends BaseSolver {
     return null
   }
 
-  private getAnchorPinTangentPosition(
-    anchorChipId: ChipId,
-    anchorPinId: PinId,
-    side: Side,
-  ): number {
+  private getAnchorPinTangentPosition({
+    anchorChipId,
+    anchorPinId,
+    side,
+  }: {
+    anchorChipId: ChipId
+    anchorPinId: PinId
+    side: Side
+  }): number {
     const anchorPlacement = this.inputLayout.chipPlacements[anchorChipId]!
     const anchorPin = this.inputProblem.chipPinMap[anchorPinId]!
     const rotatedOffset = rotatePinOffset(
       anchorPin.offset,
       anchorPlacement.ccwRotationDegrees,
     )
-    return side.startsWith("x")
-      ? anchorPlacement.y + rotatedOffset.y
-      : anchorPlacement.x + rotatedOffset.x
-  }
-
-  private getAnchorSidePinPitch(group: TestPointSideGroup): number | null {
-    const anchorChip = this.inputProblem.chipMap[group.anchorChipId]!
-    const anchorPlacement = this.inputLayout.chipPlacements[group.anchorChipId]!
-    const tangentPositions = anchorChip.pins
-      .filter((pinId) => {
-        const pin = this.inputProblem.chipPinMap[pinId]
-        return (
-          pin &&
-          rotateSide(pin.side, anchorPlacement.ccwRotationDegrees) ===
-            group.side
-        )
-      })
-      .map((pinId) =>
-        this.getAnchorPinTangentPosition(group.anchorChipId, pinId, group.side),
-      )
-      .sort((a, b) => a - b)
-
-    const positiveGaps: number[] = []
-    for (let index = 1; index < tangentPositions.length; index++) {
-      const gap = tangentPositions[index]! - tangentPositions[index - 1]!
-      if (gap > 1e-6) positiveGaps.push(gap)
+    if (side.startsWith("x")) {
+      return anchorPlacement.y + rotatedOffset.y
     }
-    return positiveGaps.length > 0 ? Math.min(...positiveGaps) : null
-  }
-
-  private splitGroupByPinProximity(
-    group: TestPointSideGroup,
-  ): TestPointSideGroup[] {
-    if (group.members.length < 2) return [group]
-
-    const pinPitch = this.getAnchorSidePinPitch(group)
-    if (!pinPitch) return [group]
-
-    const sortedMembers = [...group.members].sort(
-      (a, b) =>
-        this.getAnchorPinTangentPosition(
-          group.anchorChipId,
-          a.anchorPinId,
-          group.side,
-        ) -
-        this.getAnchorPinTangentPosition(
-          group.anchorChipId,
-          b.anchorPinId,
-          group.side,
-        ),
-    )
-    const maxAdjacentPinGap = pinPitch * 1.5
-    const splitGroups: TestPointSideGroup[] = []
-    let currentMembers: TestPointMember[] = []
-    let previousPosition: number | null = null
-
-    for (const member of sortedMembers) {
-      const position = this.getAnchorPinTangentPosition(
-        group.anchorChipId,
-        member.anchorPinId,
-        group.side,
-      )
-      if (
-        previousPosition !== null &&
-        position - previousPosition > maxAdjacentPinGap + 1e-6
-      ) {
-        splitGroups.push({ ...group, members: currentMembers })
-        currentMembers = []
-      }
-      currentMembers.push(member)
-      previousPosition = position
-    }
-    if (currentMembers.length > 0) {
-      splitGroups.push({ ...group, members: currentMembers })
-    }
-
-    return splitGroups
+    return anchorPlacement.x + rotatedOffset.x
   }
 
   private createSideGroups(): TestPointSideGroup[] {
@@ -269,9 +203,22 @@ export class AlignTestPointsSolver extends BaseSolver {
       groups.set(groupKey, group)
     }
 
-    return [...groups.values()].flatMap((group) =>
-      this.splitGroupByPinProximity(group),
-    )
+    return [...groups.values()].map((group) => ({
+      ...group,
+      members: [...group.members].sort(
+        (a, b) =>
+          this.getAnchorPinTangentPosition({
+            anchorChipId: group.anchorChipId,
+            anchorPinId: a.anchorPinId,
+            side: group.side,
+          }) -
+          this.getAnchorPinTangentPosition({
+            anchorChipId: group.anchorChipId,
+            anchorPinId: b.anchorPinId,
+            side: group.side,
+          }),
+      ),
+    }))
   }
 
   private getTestPointRotation(member: TestPointMember): number {
@@ -286,34 +233,31 @@ export class AlignTestPointsSolver extends BaseSolver {
     )
   }
 
-  private placementsOverlap(
-    chipIdA: ChipId,
-    placementA: Placement,
-    chipIdB: ChipId,
-    placementB: Placement,
-  ): boolean {
-    const boundsA = getBounds(
-      placementA,
-      this.inputProblem.chipMap[chipIdA]!.size,
-    )
-    const boundsB = getBounds(
-      placementB,
-      this.inputProblem.chipMap[chipIdB]!.size,
-    )
-    const gap = this.inputProblem.chipGap
-    return !(
-      boundsA.maxX + gap <= boundsB.minX ||
-      boundsA.minX - gap >= boundsB.maxX ||
-      boundsA.maxY + gap <= boundsB.minY ||
-      boundsA.minY - gap >= boundsB.maxY
-    )
+  private placementsOverlap({
+    chipIdA,
+    placementA,
+    chipIdB,
+    placementB,
+  }: PlacementPair): boolean {
+    const boundsA = getPlacementBounds({
+      placement: placementA,
+      size: this.inputProblem.chipMap[chipIdA]!.size,
+      margin: this.inputProblem.chipGap,
+    })
+    const boundsB = getPlacementBounds({
+      placement: placementB,
+      size: this.inputProblem.chipMap[chipIdB]!.size,
+    })
+    return boundsAreaOverlap(boundsA, boundsB) > 0
   }
 
-  private getAbsolutePinPosition(
-    chipId: ChipId,
-    pinId: PinId,
-    placement: Placement,
-  ): { x: number; y: number } {
+  private getAbsolutePinPosition({
+    pinId,
+    placement,
+  }: {
+    pinId: PinId
+    placement: Placement
+  }): Point {
     const pin = this.inputProblem.chipPinMap[pinId]!
     const rotatedOffset = rotatePinOffset(
       pin.offset,
@@ -337,16 +281,14 @@ export class AlignTestPointsSolver extends BaseSolver {
     for (const member of group.members) {
       const testPointPlacement = chipPlacements[member.testPointChipId]!
       const anchorPlacement = chipPlacements[member.anchorChipId]!
-      const segmentStart = this.getAbsolutePinPosition(
-        member.testPointChipId,
-        member.testPointPinId,
-        testPointPlacement,
-      )
-      const segmentEnd = this.getAbsolutePinPosition(
-        member.anchorChipId,
-        member.anchorPinId,
-        anchorPlacement,
-      )
+      const segmentStart = this.getAbsolutePinPosition({
+        pinId: member.testPointPinId,
+        placement: testPointPlacement,
+      })
+      const segmentEnd = this.getAbsolutePinPosition({
+        pinId: member.anchorPinId,
+        placement: anchorPlacement,
+      })
 
       for (const [otherChipId, otherPlacement] of Object.entries(
         chipPlacements,
@@ -358,11 +300,11 @@ export class AlignTestPointsSolver extends BaseSolver {
           continue
         }
 
-        const bounds = getBounds(
-          otherPlacement,
-          this.inputProblem.chipMap[otherChipId]!.size,
-        )
-        if (segmentIntersectsBounds(segmentStart, segmentEnd, bounds)) {
+        const bounds = getPlacementBounds({
+          placement: otherPlacement,
+          size: this.inputProblem.chipMap[otherChipId]!.size,
+        })
+        if (doesSegmentIntersectRect(segmentStart, segmentEnd, bounds)) {
           crossingCount++
         }
       }
@@ -384,21 +326,25 @@ export class AlignTestPointsSolver extends BaseSolver {
         ([otherChipId, otherPlacement]) =>
           otherChipId !== group.anchorChipId &&
           !groupChipIds.has(otherChipId) &&
-          this.placementsOverlap(
-            member.testPointChipId,
-            testPointPlacement,
-            otherChipId,
-            otherPlacement,
-          ),
+          this.placementsOverlap({
+            chipIdA: member.testPointChipId,
+            placementA: testPointPlacement,
+            chipIdB: otherChipId,
+            placementB: otherPlacement,
+          }),
       )
     })
   }
 
-  private moveGroupAlongTangent(
-    group: TestPointSideGroup,
-    tangentAxis: "x" | "y",
-    chipPlacements: Record<ChipId, Placement>,
-  ): void {
+  private moveGroupAlongTangent({
+    group,
+    tangentAxis,
+    chipPlacements,
+  }: {
+    group: TestPointSideGroup
+    tangentAxis: Axis
+    chipPlacements: Record<ChipId, Placement>
+  }): void {
     const originalPlacements = new Map(
       group.members.map((member) => [
         member.testPointChipId,
@@ -457,10 +403,11 @@ export class AlignTestPointsSolver extends BaseSolver {
   ): void {
     const anchorPlacement = chipPlacements[group.anchorChipId]!
     const anchorChip = this.inputProblem.chipMap[group.anchorChipId]!
-    const anchorBounds = getBounds(anchorPlacement, anchorChip.size)
-    const normalAxis = group.side.startsWith("x") ? "x" : "y"
-    const tangentAxis = normalAxis === "x" ? "y" : "x"
-    const direction = group.side.endsWith("+") ? 1 : -1
+    const anchorBounds = getPlacementBounds({
+      placement: anchorPlacement,
+      size: anchorChip.size,
+    })
+    const { normalAxis, tangentAxis, direction } = getSideAxes(group.side)
     const members = group.members
       .map((member) => {
         const anchorPin = this.inputProblem.chipPinMap[member.anchorPinId]!
@@ -494,28 +441,26 @@ export class AlignTestPointsSolver extends BaseSolver {
       )
       previousTangentEnd = tangentCenter + tangentExtent / 2
 
-      const anchorEdge =
-        normalAxis === "x"
-          ? direction > 0
-            ? anchorBounds.maxX
-            : anchorBounds.minX
-          : direction > 0
-            ? anchorBounds.maxY
-            : anchorBounds.minY
+      let anchorEdge = anchorBounds.minX
+      if (normalAxis === "y") anchorEdge = anchorBounds.minY
+      if (normalAxis === "x" && direction > 0) anchorEdge = anchorBounds.maxX
+      if (normalAxis === "y" && direction > 0) anchorEdge = anchorBounds.maxY
       const pinNormal = entry.anchorPinPosition[normalAxis]
-      const outwardBoundary =
-        direction > 0
-          ? Math.max(anchorEdge, pinNormal)
-          : Math.min(anchorEdge, pinNormal)
+      let outwardBoundary = Math.min(anchorEdge, pinNormal)
+      if (direction > 0) {
+        outwardBoundary = Math.max(anchorEdge, pinNormal)
+      }
       const normalCenter =
         outwardBoundary +
         direction * (this.inputProblem.chipGap + entry.size[normalAxis] / 2)
 
-      chipPlacements[entry.member.testPointChipId] = {
-        x: normalAxis === "x" ? normalCenter : tangentCenter,
-        y: normalAxis === "y" ? normalCenter : tangentCenter,
+      const placement: Placement = {
+        x: tangentCenter,
+        y: tangentCenter,
         ccwRotationDegrees: entry.rotation,
       }
+      placement[normalAxis] = normalCenter
+      chipPlacements[entry.member.testPointChipId] = placement
     }
 
     const groupChipIds = new Set(
@@ -530,12 +475,12 @@ export class AlignTestPointsSolver extends BaseSolver {
           ([otherChipId, otherPlacement]) =>
             otherChipId !== group.anchorChipId &&
             !groupChipIds.has(otherChipId) &&
-            this.placementsOverlap(
-              testPointChipId,
-              testPointPlacement,
-              otherChipId,
-              otherPlacement,
-            ),
+            this.placementsOverlap({
+              chipIdA: testPointChipId,
+              placementA: testPointPlacement,
+              chipIdB: otherChipId,
+              placementB: otherPlacement,
+            }),
         )
       })
       if (!collision) break
@@ -545,7 +490,8 @@ export class AlignTestPointsSolver extends BaseSolver {
       }
     }
 
-    this.moveGroupAlongTangent(group, tangentAxis, chipPlacements)
+    // Shift the complete ordered group together so connections stay uncrossed.
+    this.moveGroupAlongTangent({ group, tangentAxis, chipPlacements })
   }
 
   private alignUnconnectedTestPoints(
@@ -567,8 +513,8 @@ export class AlignTestPointsSolver extends BaseSolver {
       inputProblem: this.inputProblem,
       chipIds,
       chipPlacements,
-      placementsOverlap: (chipIdA, placementA, chipIdB, placementB) =>
-        this.placementsOverlap(chipIdA, placementA, chipIdB, placementB),
+      placementsOverlap: (placementPair) =>
+        this.placementsOverlap(placementPair),
     })
     this.unconnectedTestPointAlignment = result?.alignment ?? null
     if (result) Object.assign(chipPlacements, result.placements)
