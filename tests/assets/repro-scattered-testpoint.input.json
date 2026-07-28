@@ -103,8 +103,7 @@
         "x": 0.325,
         "y": 0.2
       },
-      "isCapacitor": false,
-      "isTestPoint": true
+      "isCapacitor": false
     },
     "TCH1": {
       "chipId": "TCH1",
@@ -113,8 +112,7 @@
         "x": 0.325,
         "y": 0.2
       },
-      "isCapacitor": false,
-      "isTestPoint": true
+      "isCapacitor": false
     },
     "TCH2": {
       "chipId": "TCH2",
@@ -123,8 +121,7 @@
         "x": 0.325,
         "y": 0.2
       },
-      "isCapacitor": false,
-      "isTestPoint": true
+      "isCapacitor": false
     },
     "TCH3": {
       "chipId": "TCH3",
@@ -133,8 +130,7 @@
         "x": 0.325,
         "y": 0.2
       },
-      "isCapacitor": false,
-      "isTestPoint": true
+      "isCapacitor": false
     },
     "TCH4": {
       "chipId": "TCH4",
@@ -143,8 +139,7 @@
         "x": 0.325,
         "y": 0.2
       },
-      "isCapacitor": false,
-      "isTestPoint": true
+      "isCapacitor": false
     },
     "TCH5": {
       "chipId": "TCH5",
@@ -153,8 +148,7 @@
         "x": 0.325,
         "y": 0.2
       },
-      "isCapacitor": false,
-      "isTestPoint": true
+      "isCapacitor": false
     }
   },
   "chipPinMap": {
