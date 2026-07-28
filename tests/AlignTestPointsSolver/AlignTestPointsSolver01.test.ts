@@ -147,6 +147,7 @@ test("AlignTestPointsSolver moves an anchored group outward past a blocker", () 
   expect(solver.outputLayout!.chipPlacements.BLOCKER).toEqual(
     layoutWithBlocker.chipPlacements.BLOCKER,
   )
+  expect(solver.connectionBodyCrossingCount).toBe(0)
 })
 
 test("AlignTestPointsSolver groups only testpoints on nearby anchor pins", () => {
