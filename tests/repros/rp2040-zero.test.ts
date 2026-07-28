@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import group1Input from "./../assets/rp2040-zero-group1.input.json"
 import group3Input from "./../assets/rp2040-zero-group3.input.json"
 import crystalInput from "./../assets/rp2040-zero-crystal-group4.input.json"
@@ -27,6 +28,22 @@ for (const { name, input } of cases) {
 
     expect(solver.solved).toBe(true)
     expect(solver.failed).toBe(false)
+
+    if (name === "group1") {
+      const inputProblem = input as any
+      const outputLayout = solver.getOutputLayout()
+      const placements = outputLayout.chipPlacements
+      const getPinY = (chipId: string, pinId: string) => {
+        const placement = placements[chipId]!
+        const pin = inputProblem.chipPinMap[pinId]!
+        return (
+          placement.y +
+          rotatePinOffset(pin.offset, placement.ccwRotationDegrees).y
+        )
+      }
+      expect(getPinY("U1", "U1.5") - getPinY("C5", "C5.1")).toBeCloseTo(0.2)
+      expect(solver.checkForOverlaps(outputLayout)).toEqual([])
+    }
 
     await expect(solver).toMatchSolverSnapshot(import.meta.path, {
       svgName: name,
