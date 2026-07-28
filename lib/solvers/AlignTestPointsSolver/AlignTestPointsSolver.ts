@@ -417,6 +417,7 @@ const moveTestPointGroupOutwardUntilClear = (
     context.inputProblem.chipGap,
     MINIMUM_COLLISION_SEARCH_STEP,
   )
+  // Move the complete row so pin ordering and spacing remain unchanged.
   while (testPointGroupOverlapsOtherChips({ group }, context)) {
     for (const member of group.members) {
       context.chipPlacements[member.testPointChipId]![normalAxis] +=
@@ -454,6 +455,7 @@ const countConnectionBodyCrossings = (
   )
   let crossingCount = 0
   for (const member of group.members) {
+    // The straight pin-to-pin segment is the trace proxy used by the layout preview.
     const segmentStart = getAbsolutePinPosition({
       inputProblem: context.inputProblem,
       pinId: member.testPointPinId,
@@ -516,6 +518,7 @@ const getMaximumTangentSearchSteps = (
       )[tangentAxis]
     }),
   )
+  // Search beyond every body on this axis so a clear candidate is reachable.
   const maximumSearchDistance =
     Object.entries(context.chipPlacements).reduce(
       (maximumDistance, [chipId, placement]) => {
@@ -544,6 +547,7 @@ const moveTestPointGroupAlongTangent = (
   context: TestPointPlacementContext,
 ): void => {
   const { tangentAxis } = SIDE_AXES[group.side]
+  // Each candidate is derived from the same placement to avoid accumulating drift.
   const originalPlacements = new Map(
     group.members.map((member) => [
       member.testPointChipId,
@@ -562,6 +566,7 @@ const moveTestPointGroupAlongTangent = (
   let bestOffset = 0
   let bestCrossingCount = Number.POSITIVE_INFINITY
 
+  // Test nearest offsets first and stop as soon as a collision-free trace path exists.
   for (let stepIndex = 0; stepIndex <= maximumSearchSteps; stepIndex++) {
     const offsets = [0]
     if (stepIndex > 0) {
@@ -684,6 +689,7 @@ export class AlignTestPointsSolver extends BaseSolver {
     for (const group of this.testPointSideGroups) {
       placeTestPointSideGroup({ group }, placementContext)
     }
+    // Resolve body clearance before optimizing the connection paths.
     for (const group of this.testPointSideGroups) {
       moveTestPointGroupOutwardUntilClear({ group }, placementContext)
       moveTestPointGroupAlongTangent({ group }, placementContext)
