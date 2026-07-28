@@ -2,6 +2,9 @@ import type { ChipId, InputProblem } from "lib/types/InputProblem"
 import type { Placement } from "lib/types/OutputLayout"
 import { getRotatedSize } from "lib/utils/rotatePinOffset"
 
+const MINIMUM_SEARCH_STEP = 0.2
+const SEARCH_BOUNDARY_PADDING_STEPS = 2
+
 export type UnconnectedTestPointAlignment = {
   orientation: "horizontal" | "vertical"
   chipIds: ChipId[]
@@ -104,7 +107,7 @@ const createAlignmentCandidate = ({
   const step = Math.max(
     inputProblem.partitionGap / 2,
     inputProblem.chipGap,
-    0.2,
+    MINIMUM_SEARCH_STEP,
   )
   const maximumGroupExtent = Math.max(
     ...entries.map((entry) => entry.size[perpendicularAxis]),
@@ -123,7 +126,8 @@ const createAlignmentCandidate = ({
           maximumGroupExtent,
       )
     }, 0) + inputProblem.partitionGap
-  const maximumSteps = Math.ceil(maximumDistance / step) + 2
+  const maximumSteps =
+    Math.ceil(maximumDistance / step) + SEARCH_BOUNDARY_PADDING_STEPS
   let perpendicularOffset: number | null = null
 
   for (let stepIndex = 0; stepIndex <= maximumSteps; stepIndex++) {
