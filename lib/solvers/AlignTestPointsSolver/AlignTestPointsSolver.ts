@@ -369,6 +369,61 @@ const placeTestPointSideGroup = (
   }
 }
 
+const getTestPointPlacementSpan = (
+  {
+    testPointChipIds,
+    axis,
+  }: {
+    testPointChipIds: ChipId[]
+    axis: Axis
+  },
+  context: TestPointPlacementContext,
+): number => {
+  const positions = testPointChipIds.map(
+    (chipId) => context.chipPlacements[chipId]![axis],
+  )
+  return Math.max(...positions) - Math.min(...positions)
+}
+
+const alignLooseTestPoints = (
+  { anchoredTestPointChipIds }: { anchoredTestPointChipIds: Set<ChipId> },
+  context: TestPointPlacementContext,
+): void => {
+  const looseTestPointChipIds = Object.values(context.inputProblem.chipMap)
+    .filter(
+      (chip) =>
+        chip.isTestPoint &&
+        !chip.fixedPosition &&
+        chip.pins.length === 1 &&
+        context.chipPlacements[chip.chipId] &&
+        !anchoredTestPointChipIds.has(chip.chipId),
+    )
+    .map((chip) => chip.chipId)
+  if (looseTestPointChipIds.length < 2) return
+
+  let perpendicularAxis: Axis = "x"
+  const horizontalSpan = getTestPointPlacementSpan(
+    { testPointChipIds: looseTestPointChipIds, axis: "x" },
+    context,
+  )
+  const verticalSpan = getTestPointPlacementSpan(
+    { testPointChipIds: looseTestPointChipIds, axis: "y" },
+    context,
+  )
+  if (horizontalSpan >= verticalSpan) {
+    perpendicularAxis = "y"
+  }
+
+  const perpendicularCenter =
+    looseTestPointChipIds.reduce(
+      (sum, chipId) => sum + context.chipPlacements[chipId]![perpendicularAxis],
+      0,
+    ) / looseTestPointChipIds.length
+  for (const chipId of looseTestPointChipIds) {
+    context.chipPlacements[chipId]![perpendicularAxis] = perpendicularCenter
+  }
+}
+
 export class AlignTestPointsSolver extends BaseSolver {
   inputProblem: InputProblem
   inputLayout: OutputLayout
@@ -398,6 +453,12 @@ export class AlignTestPointsSolver extends BaseSolver {
     for (const group of this.testPointSideGroups) {
       placeTestPointSideGroup({ group }, placementContext)
     }
+    const anchoredTestPointChipIds = new Set(
+      this.testPointSideGroups.flatMap((group) =>
+        group.members.map((member) => member.testPointChipId),
+      ),
+    )
+    alignLooseTestPoints({ anchoredTestPointChipIds }, placementContext)
 
     this.outputLayout = {
       chipPlacements,

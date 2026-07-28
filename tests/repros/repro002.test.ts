@@ -13,11 +13,23 @@ test("repro002", async () => {
   const alignTestPointsSolver = solver.alignTestPointsSolver!
   const outputLayout = solver.getOutputLayout()
   expect(alignTestPointsSolver.testPointSideGroups).toHaveLength(0)
-  for (const testPointId of testPointIds) {
-    expect(outputLayout.chipPlacements[testPointId]).toEqual(
-      alignTestPointsSolver.inputLayout.chipPlacements[testPointId],
-    )
-  }
+  expect(
+    new Set(
+      testPointIds.map(
+        (testPointId) => outputLayout.chipPlacements[testPointId]!.y,
+      ),
+    ).size,
+  ).toBe(1)
+  expect(
+    testPointIds.map(
+      (testPointId) => outputLayout.chipPlacements[testPointId]!.x,
+    ),
+  ).toEqual(
+    testPointIds.map(
+      (testPointId) =>
+        alignTestPointsSolver.inputLayout.chipPlacements[testPointId]!.x,
+    ),
+  )
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })

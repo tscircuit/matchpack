@@ -184,3 +184,35 @@ test("AlignTestPointsSolver groups only testpoints on nearby anchor pins", () =>
     leftGroups[1]!.members.map((member) => member.testPointChipId),
   ).toEqual(["TP7"])
 })
+
+test("AlignTestPointsSolver aligns loose testpoints on their nearest axis", () => {
+  const looseProblem = structuredClone(problem)
+  looseProblem.pinStrongConnMap = {}
+  const looseInputLayout = structuredClone(inputLayout)
+  looseInputLayout.chipPlacements = {
+    ...looseInputLayout.chipPlacements,
+    TP1: { x: 5.4, y: -4, ccwRotationDegrees: 0 },
+    TP2: { x: 4.6, y: 0, ccwRotationDegrees: 180 },
+    TP3: { x: 5, y: 4, ccwRotationDegrees: 90 },
+  }
+
+  const solver = new AlignTestPointsSolver({
+    inputProblem: looseProblem,
+    inputLayout: looseInputLayout,
+  })
+  solver.solve()
+
+  const output = solver.outputLayout!
+  expect(
+    new Set(["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.x))
+      .size,
+  ).toBe(1)
+  expect(
+    ["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.y),
+  ).toEqual([-4, 0, 4])
+  expect(
+    ["TP1", "TP2", "TP3"].map(
+      (id) => output.chipPlacements[id]!.ccwRotationDegrees,
+    ),
+  ).toEqual([0, 180, 90])
+})
