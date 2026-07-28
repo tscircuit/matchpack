@@ -204,3 +204,109 @@ test("AlignTestPointsSolver splits non-adjacent anchor pins into separate groups
     ),
   ).toBe(true)
 })
+
+test("AlignTestPointsSolver aligns unconnected testpoints along the least-movement axis", async () => {
+  const problemWithUnconnectedTestPoints: InputProblem =
+    structuredClone(problem)
+  const layoutWithUnconnectedTestPoints: OutputLayout =
+    structuredClone(inputLayout)
+  problemWithUnconnectedTestPoints.chipMap.BLOCKER = {
+    chipId: "BLOCKER",
+    pins: [],
+    size: { x: 1, y: 1 },
+  }
+  layoutWithUnconnectedTestPoints.chipPlacements.BLOCKER = {
+    x: 0,
+    y: 5,
+    ccwRotationDegrees: 0,
+  }
+  const placements = [
+    { chipId: "TP4", x: -4, y: 4.6, ccwRotationDegrees: 90 as const },
+    { chipId: "TP5", x: 0, y: 5.4, ccwRotationDegrees: 180 as const },
+    { chipId: "TP6", x: 4, y: 5, ccwRotationDegrees: 270 as const },
+  ]
+
+  for (const placement of placements) {
+    const pinId = `${placement.chipId}.1`
+    problemWithUnconnectedTestPoints.chipMap[placement.chipId] = {
+      chipId: placement.chipId,
+      pins: [pinId],
+      size: { x: 0.4, y: 0.2 },
+      isTestPoint: true,
+    }
+    problemWithUnconnectedTestPoints.chipPinMap[pinId] = {
+      pinId,
+      offset: { x: -0.2, y: 0 },
+      side: "x-",
+    }
+    layoutWithUnconnectedTestPoints.chipPlacements[placement.chipId] = {
+      x: placement.x,
+      y: placement.y,
+      ccwRotationDegrees: placement.ccwRotationDegrees,
+    }
+  }
+
+  const solver = new AlignTestPointsSolver({
+    inputProblem: problemWithUnconnectedTestPoints,
+    inputLayout: layoutWithUnconnectedTestPoints,
+  })
+  solver.solve()
+
+  const output = solver.outputLayout!
+  expect(solver.unconnectedTestPointAlignment?.orientation).toBe("horizontal")
+  expect(solver.unconnectedTestPointAlignment?.chipIds).toEqual([
+    "TP4",
+    "TP5",
+    "TP6",
+  ])
+  expect(solver.unconnectedTestPointAlignment?.perpendicularOffset).not.toBe(0)
+  expect(
+    new Set(placements.map(({ chipId }) => output.chipPlacements[chipId]!.y))
+      .size,
+  ).toBe(1)
+  expect(
+    placements.map(({ chipId }) => output.chipPlacements[chipId]!.x),
+  ).toEqual([-4, 0, 4])
+  expect(
+    placements.map(
+      ({ chipId }) => output.chipPlacements[chipId]!.ccwRotationDegrees,
+    ),
+  ).toEqual([90, 180, 270])
+  await expect(solver).toMatchSolverSnapshot(import.meta.path, {
+    svgName: "unconnected-testpoints-horizontal",
+  })
+})
+
+test("AlignTestPointsSolver chooses a vertical line for vertically scattered unconnected testpoints", () => {
+  const problemWithUnconnectedTestPoints: InputProblem =
+    structuredClone(problem)
+  problemWithUnconnectedTestPoints.pinStrongConnMap = {}
+  const verticalInputLayout: OutputLayout = structuredClone(inputLayout)
+  verticalInputLayout.chipPlacements = {
+    ...verticalInputLayout.chipPlacements,
+    TP1: { x: 5.4, y: -4, ccwRotationDegrees: 0 },
+    TP2: { x: 4.6, y: 0, ccwRotationDegrees: 180 },
+    TP3: { x: 5, y: 4, ccwRotationDegrees: 90 },
+  }
+
+  const solver = new AlignTestPointsSolver({
+    inputProblem: problemWithUnconnectedTestPoints,
+    inputLayout: verticalInputLayout,
+  })
+  solver.solve()
+
+  const output = solver.outputLayout!
+  expect(solver.unconnectedTestPointAlignment?.orientation).toBe("vertical")
+  expect(
+    new Set(["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.x))
+      .size,
+  ).toBe(1)
+  expect(
+    ["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.y),
+  ).toEqual([-4, 0, 4])
+  expect(
+    ["TP1", "TP2", "TP3"].map(
+      (id) => output.chipPlacements[id]!.ccwRotationDegrees,
+    ),
+  ).toEqual([0, 180, 90])
+})

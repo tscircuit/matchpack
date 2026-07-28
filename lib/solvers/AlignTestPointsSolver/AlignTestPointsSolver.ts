@@ -5,6 +5,12 @@ import type { ChipId, InputProblem, PinId } from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
+import {
+  alignUnconnectedTestPoints,
+  type UnconnectedTestPointAlignment,
+} from "./alignUnconnectedTestPoints"
+
+export type { UnconnectedTestPointAlignment } from "./alignUnconnectedTestPoints"
 
 type TestPointMember = {
   testPointChipId: ChipId
@@ -96,6 +102,7 @@ export class AlignTestPointsSolver extends BaseSolver {
   inputLayout: OutputLayout
   outputLayout: OutputLayout | null = null
   testPointSideGroups: TestPointSideGroup[] = []
+  unconnectedTestPointAlignment: UnconnectedTestPointAlignment | null = null
 
   constructor(params: {
     inputProblem: InputProblem
@@ -541,6 +548,32 @@ export class AlignTestPointsSolver extends BaseSolver {
     this.moveGroupAlongTangent(group, tangentAxis, chipPlacements)
   }
 
+  private alignUnconnectedTestPoints(
+    connectedTestPointIds: Set<ChipId>,
+    chipPlacements: Record<ChipId, Placement>,
+  ): void {
+    const chipIds = Object.values(this.inputProblem.chipMap)
+      .filter(
+        (chip) =>
+          chip.isTestPoint &&
+          !chip.fixedPosition &&
+          chip.pins.length === 1 &&
+          chipPlacements[chip.chipId] &&
+          !connectedTestPointIds.has(chip.chipId),
+      )
+      .map((chip) => chip.chipId)
+
+    const result = alignUnconnectedTestPoints({
+      inputProblem: this.inputProblem,
+      chipIds,
+      chipPlacements,
+      placementsOverlap: (chipIdA, placementA, chipIdB, placementB) =>
+        this.placementsOverlap(chipIdA, placementA, chipIdB, placementB),
+    })
+    this.unconnectedTestPointAlignment = result?.alignment ?? null
+    if (result) Object.assign(chipPlacements, result.placements)
+  }
+
   override _step() {
     const chipPlacements = structuredClone(this.inputLayout.chipPlacements)
     this.testPointSideGroups = this.createSideGroups()
@@ -548,6 +581,12 @@ export class AlignTestPointsSolver extends BaseSolver {
     for (const group of this.testPointSideGroups) {
       this.placeGroup(group, chipPlacements)
     }
+    const connectedTestPointIds = new Set(
+      this.testPointSideGroups.flatMap((group) =>
+        group.members.map((member) => member.testPointChipId),
+      ),
+    )
+    this.alignUnconnectedTestPoints(connectedTestPointIds, chipPlacements)
 
     this.outputLayout = {
       chipPlacements,
