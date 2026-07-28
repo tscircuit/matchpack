@@ -8,7 +8,6 @@ import {
 import type { GraphicsObject } from "graphics-debug"
 import { applyToPoint, translate } from "transformation-matrix"
 import type {
-  ChipPin,
   ChipId,
   InputProblem,
   PartitionInputProblem,
@@ -16,12 +15,10 @@ import type {
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
-import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
+import { getRotatedSize } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
-import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
-import { DIRECT_PASSIVE_VERTICAL_OFFSET } from "../PackInnerPartitionsSolver/offsetSingleDirectPassiveBelowPin"
 
 type SolverOptions = {
   inputProblem: InputProblem
@@ -62,7 +59,7 @@ const getPartitionBounds = (
   return getBoundsFromPoints(corners)
 }
 
-const getDirectMainPin = (
+const getDirectNeighbor = (
   {
     mainPartition,
     mainChipId,
@@ -72,25 +69,28 @@ const getDirectMainPin = (
     mainChipId: ChipId
     side: Side
   },
-  context: {
-    inputProblem: InputProblem
-    connectedPinsByPinId: Record<PinId, ChipPin[]>
-  },
-): ChipPin | null => {
-  const mainChip = context.inputProblem.chipMap[mainChipId]
-  if (!mainChip) return null
-  const partitionPinIds = new Set(
-    Object.keys(mainPartition.inputProblem.chipPinMap),
+  inputProblem: InputProblem,
+): ChipId | null => {
+  const sidePins = new Set(
+    inputProblem.chipMap[mainChipId]?.pins.filter(
+      (pinId) => inputProblem.chipPinMap[pinId]?.side === side,
+    ),
   )
-  for (const pinId of mainChip.pins) {
-    const mainPin = context.inputProblem.chipPinMap[pinId]
-    if (!mainPin || mainPin.side !== side) continue
-    const hasDirectNeighbor = (context.connectedPinsByPinId[pinId] ?? []).some(
-      (connectedPin) =>
-        partitionPinIds.has(connectedPin.pinId) &&
-        !mainChip.pins.includes(connectedPin.pinId),
+  for (const [connection, connected] of Object.entries(
+    inputProblem.pinStrongConnMap,
+  )) {
+    if (!connected) continue
+    const [pinA, pinB] = connection.split("-") as [PinId, PinId]
+    const neighborPin = sidePins.has(pinA)
+      ? pinB
+      : sidePins.has(pinB)
+        ? pinA
+        : null
+    if (!neighborPin) continue
+    const neighbor = Object.values(mainPartition.inputProblem.chipMap).find(
+      (chip) => chip.chipId !== mainChipId && chip.pins.includes(neighborPin),
     )
-    if (hasDirectNeighbor) return mainPin
+    if (neighbor) return neighbor.chipId
   }
   return null
 }
@@ -100,14 +100,19 @@ const partitionsHaveDirectConnection = (
     partitionA,
     partitionB,
   }: { partitionA: PackedPartition; partitionB: PackedPartition },
-  connectedPinsByPinId: Record<PinId, ChipPin[]>,
+  inputProblem: InputProblem,
 ): boolean => {
   const pinsA = new Set(Object.keys(partitionA.inputProblem.chipPinMap))
   const pinsB = new Set(Object.keys(partitionB.inputProblem.chipPinMap))
-  return [...pinsA].some((pinId) =>
-    (connectedPinsByPinId[pinId] ?? []).some((connectedPin) =>
-      pinsB.has(connectedPin.pinId),
-    ),
+  return Object.entries(inputProblem.pinStrongConnMap).some(
+    ([connection, connected]) => {
+      if (!connected) return false
+      const [pinA, pinB] = connection.split("-")
+      return (
+        (pinsA.has(pinA!) && pinsB.has(pinB!)) ||
+        (pinsA.has(pinB!) && pinsB.has(pinA!))
+      )
+    },
   )
 }
 
@@ -121,8 +126,7 @@ const movedChipsOverlap = (
     return Object.keys(context.layout.chipPlacements).some((chipId) => {
       if (!movedBounds || movedChipIdSet.has(chipId)) return false
       const chipBounds = getChipBounds(chipId, context)
-      if (!chipBounds) return false
-      return doBoundsOverlap(movedBounds, chipBounds)
+      return chipBounds ? doBoundsOverlap(movedBounds, chipBounds) : false
     })
   })
 }
@@ -132,18 +136,18 @@ const getRowOffset = ({
   chipGap,
   mainBounds,
   rowBounds,
-  mainPinPosition,
+  neighbor,
 }: {
   side: Side
   chipGap: number
   mainBounds: Bounds
   rowBounds: Bounds
-  mainPinPosition: { x: number; y: number }
+  neighbor: Placement
 }) => {
   const rowCenter = getBoundsCenter(rowBounds)
   const offset = {
-    x: mainPinPosition.x - rowCenter.x,
-    y: mainPinPosition.y - DIRECT_PASSIVE_VERTICAL_OFFSET - rowCenter.y,
+    x: neighbor.x - rowCenter.x,
+    y: neighbor.y - rowCenter.y,
   }
   if (side === "x+") offset.x = mainBounds.maxX + chipGap - rowBounds.minX
   if (side === "x-") offset.x = mainBounds.minX - chipGap - rowBounds.maxX
@@ -166,7 +170,6 @@ const placeNetOnlyDecouplingRow = (
     return
   }
 
-  const connectedPinsByPinId = getPinIdToStronglyConnectedPinsObj(inputProblem)
   const mainPartition = packedPartitions.find(
     (candidate) =>
       candidate !== decouplingPartition &&
@@ -176,17 +179,17 @@ const placeNetOnlyDecouplingRow = (
     !mainPartition ||
     partitionsHaveDirectConnection(
       { partitionA: decouplingPartition, partitionB: mainPartition },
-      connectedPinsByPinId,
+      inputProblem,
     )
   ) {
     return
   }
 
-  const mainPin = getDirectMainPin(
+  const neighborId = getDirectNeighbor(
     { mainPartition, mainChipId, side },
-    { inputProblem, connectedPinsByPinId },
+    inputProblem,
   )
-  const mainChipPlacement = layout.chipPlacements[mainChipId]
+  const neighbor = neighborId && layout.chipPlacements[neighborId]
   const rowChipIds = Object.keys(partition.chipMap)
   const boundsContext = { inputProblem, layout }
   const mainBounds = getPartitionBounds(
@@ -194,22 +197,14 @@ const placeNetOnlyDecouplingRow = (
     boundsContext,
   )
   const rowBounds = getPartitionBounds(rowChipIds, boundsContext)
-  if (!mainPin || !mainChipPlacement || !mainBounds || !rowBounds) return
-  const rotatedPinOffset = rotatePinOffset(
-    mainPin.offset,
-    mainChipPlacement.ccwRotationDegrees,
-  )
-  const mainPinPosition = {
-    x: mainChipPlacement.x + rotatedPinOffset.x,
-    y: mainChipPlacement.y + rotatedPinOffset.y,
-  }
+  if (!neighbor || !mainBounds || !rowBounds) return
 
   const offset = getRowOffset({
     side,
     chipGap: inputProblem.chipGap,
     mainBounds,
     rowBounds,
-    mainPinPosition,
+    neighbor,
   })
   const rowToPlacedTransform = translate(offset.x, offset.y)
   const previousPlacements = new Map<ChipId, Placement>()

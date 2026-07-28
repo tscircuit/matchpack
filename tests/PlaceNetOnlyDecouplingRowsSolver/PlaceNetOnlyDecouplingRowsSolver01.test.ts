@@ -1,8 +1,6 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
-import { DIRECT_PASSIVE_VERTICAL_OFFSET } from "lib/solvers/PackInnerPartitionsSolver/offsetSingleDirectPassiveBelowPin"
 import type { InputProblem } from "lib/types/InputProblem"
-import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 
 const inputProblem: InputProblem = {
   chipMap: {
@@ -126,14 +124,7 @@ test("places a net-only decoupling row after a direct connection", () => {
   expect(weakPartitionLeft - mainPartitionRight).toBeCloseTo(
     inputProblem.chipGap,
   )
-  const mainChipPlacement = layout.chipPlacements.U1!
-  const mainPinOffset = rotatePinOffset(
-    inputProblem.chipPinMap["U1.out"]!.offset,
-    mainChipPlacement.ccwRotationDegrees,
-  )
-  expect(layout.chipPlacements.C2!.y).toBeCloseTo(
-    mainChipPlacement.y + mainPinOffset.y - DIRECT_PASSIVE_VERTICAL_OFFSET,
-  )
+  expect(layout.chipPlacements.C2!.y).toBeCloseTo(layout.chipPlacements.C1!.y)
   expect(layout.chipPlacements.C2!.x).toBeGreaterThan(
     layout.chipPlacements.C1!.x,
   )
