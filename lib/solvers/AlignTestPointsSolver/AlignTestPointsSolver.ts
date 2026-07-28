@@ -41,6 +41,48 @@ const SIDE_VECTORS: Record<Side, { x: number; y: number }> = {
   "y+": { x: 0, y: 1 },
 }
 
+type Axis = "x" | "y"
+
+const SIDE_LAYOUT: Record<
+  Side,
+  {
+    opposite: Side
+    normalAxis: Axis
+    tangentAxis: Axis
+    direction: -1 | 1
+    anchorEdge: "minX" | "maxX" | "minY" | "maxY"
+  }
+> = {
+  "x-": {
+    opposite: "x+",
+    normalAxis: "x",
+    tangentAxis: "y",
+    direction: -1,
+    anchorEdge: "minX",
+  },
+  "x+": {
+    opposite: "x-",
+    normalAxis: "x",
+    tangentAxis: "y",
+    direction: 1,
+    anchorEdge: "maxX",
+  },
+  "y-": {
+    opposite: "y+",
+    normalAxis: "y",
+    tangentAxis: "x",
+    direction: -1,
+    anchorEdge: "minY",
+  },
+  "y+": {
+    opposite: "y-",
+    normalAxis: "y",
+    tangentAxis: "x",
+    direction: 1,
+    anchorEdge: "maxY",
+  },
+}
+
 const vectorToSide = (vector: { x: number; y: number }): Side => {
   if (Math.abs(vector.x) > Math.abs(vector.y)) {
     if (vector.x < 0) return "x-"
@@ -52,36 +94,6 @@ const vectorToSide = (vector: { x: number; y: number }): Side => {
 
 const rotateSide = (side: Side, ccwRotationDegrees: number): Side =>
   vectorToSide(rotatePinOffset(SIDE_VECTORS[side], ccwRotationDegrees))
-
-const oppositeSide = (side: Side): Side => {
-  switch (side) {
-    case "x-":
-      return "x+"
-    case "x+":
-      return "x-"
-    case "y-":
-      return "y+"
-    case "y+":
-      return "y-"
-  }
-}
-
-type Axis = "x" | "y"
-
-const getSideAxes = (
-  side: Side,
-): { normalAxis: Axis; tangentAxis: Axis; direction: -1 | 1 } => {
-  switch (side) {
-    case "x-":
-      return { normalAxis: "x", tangentAxis: "y", direction: -1 }
-    case "x+":
-      return { normalAxis: "x", tangentAxis: "y", direction: 1 }
-    case "y-":
-      return { normalAxis: "y", tangentAxis: "x", direction: -1 }
-    case "y+":
-      return { normalAxis: "y", tangentAxis: "x", direction: 1 }
-  }
-}
 
 const getPlacementBounds = ({
   placement,
@@ -225,7 +237,7 @@ export class AlignTestPointsSolver extends BaseSolver {
     const chip = this.inputProblem.chipMap[member.testPointChipId]!
     const pin = this.inputProblem.chipPinMap[member.testPointPinId]!
     const allowedRotations = chip.availableRotations ?? [0, 90, 180, 270]
-    const desiredPinSide = oppositeSide(member.side)
+    const desiredPinSide = SIDE_LAYOUT[member.side].opposite
     return (
       allowedRotations.find(
         (rotation) => rotateSide(pin.side, rotation) === desiredPinSide,
@@ -407,7 +419,8 @@ export class AlignTestPointsSolver extends BaseSolver {
       placement: anchorPlacement,
       size: anchorChip.size,
     })
-    const { normalAxis, tangentAxis, direction } = getSideAxes(group.side)
+    const { normalAxis, tangentAxis, direction, anchorEdge } =
+      SIDE_LAYOUT[group.side]
     const members = group.members
       .map((member) => {
         const anchorPin = this.inputProblem.chipPinMap[member.anchorPinId]!
@@ -441,25 +454,26 @@ export class AlignTestPointsSolver extends BaseSolver {
       )
       previousTangentEnd = tangentCenter + tangentExtent / 2
 
-      let anchorEdge = anchorBounds.minX
-      if (normalAxis === "y") anchorEdge = anchorBounds.minY
-      if (normalAxis === "x" && direction > 0) anchorEdge = anchorBounds.maxX
-      if (normalAxis === "y" && direction > 0) anchorEdge = anchorBounds.maxY
       const pinNormal = entry.anchorPinPosition[normalAxis]
-      let outwardBoundary = Math.min(anchorEdge, pinNormal)
+      let outwardBoundary = Math.min(anchorBounds[anchorEdge], pinNormal)
       if (direction > 0) {
-        outwardBoundary = Math.max(anchorEdge, pinNormal)
+        outwardBoundary = Math.max(anchorBounds[anchorEdge], pinNormal)
       }
       const normalCenter =
         outwardBoundary +
         direction * (this.inputProblem.chipGap + entry.size[normalAxis] / 2)
 
+      let x = normalCenter
+      let y = tangentCenter
+      if (normalAxis === "y") {
+        x = tangentCenter
+        y = normalCenter
+      }
       const placement: Placement = {
-        x: tangentCenter,
-        y: tangentCenter,
+        x,
+        y,
         ccwRotationDegrees: entry.rotation,
       }
-      placement[normalAxis] = normalCenter
       chipPlacements[entry.member.testPointChipId] = placement
     }
 

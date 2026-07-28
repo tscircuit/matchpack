@@ -29,13 +29,12 @@ type AlignUnconnectedTestPointsInput = {
 
 type Axis = "x" | "y"
 
-const getAlignmentAxes = (
-  orientation: "horizontal" | "vertical",
-): { alignmentAxis: Axis; perpendicularAxis: Axis } => {
-  if (orientation === "horizontal") {
-    return { alignmentAxis: "x", perpendicularAxis: "y" }
-  }
-  return { alignmentAxis: "y", perpendicularAxis: "x" }
+const ALIGNMENT_AXES: Record<
+  "horizontal" | "vertical",
+  { alignmentAxis: Axis; perpendicularAxis: Axis }
+> = {
+  horizontal: { alignmentAxis: "x", perpendicularAxis: "y" },
+  vertical: { alignmentAxis: "y", perpendicularAxis: "x" },
 }
 
 const createAlignmentCandidate = ({
@@ -47,7 +46,7 @@ const createAlignmentCandidate = ({
 }: AlignUnconnectedTestPointsInput & {
   orientation: "horizontal" | "vertical"
 }): AlignmentCandidate => {
-  const { alignmentAxis, perpendicularAxis } = getAlignmentAxes(orientation)
+  const { alignmentAxis, perpendicularAxis } = ALIGNMENT_AXES[orientation]
   const entries = chipIds
     .map((chipId) => {
       const placement = chipPlacements[chipId]!
@@ -128,9 +127,9 @@ const createAlignmentCandidate = ({
   let perpendicularOffset: number | null = null
 
   for (let stepIndex = 0; stepIndex <= maximumSteps; stepIndex++) {
-    const offsets = [0]
+    let offsets = [0]
     if (stepIndex > 0) {
-      offsets.splice(0, 1, -stepIndex * step, stepIndex * step)
+      offsets = [-stepIndex * step, stepIndex * step]
     }
     const collisionFreeOffset = offsets.find(
       (offset) =>
