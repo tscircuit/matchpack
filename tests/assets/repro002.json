@@ -79,6 +79,7 @@
         "x": 0.2,
         "y": 0.325
       },
+      "isTestPoint": true,
       "availableRotations": [0]
     },
     "TP6": {
@@ -88,6 +89,7 @@
         "x": 0.2,
         "y": 0.325
       },
+      "isTestPoint": true,
       "availableRotations": [0]
     },
     "TP7": {
@@ -97,6 +99,7 @@
         "x": 0.2,
         "y": 0.325
       },
+      "isTestPoint": true,
       "availableRotations": [0]
     },
     "TP8": {
@@ -106,6 +109,7 @@
         "x": 0.2,
         "y": 0.325
       },
+      "isTestPoint": true,
       "availableRotations": [0]
     },
     "TP9": {
@@ -115,6 +119,7 @@
         "x": 0.2,
         "y": 0.325
       },
+      "isTestPoint": true,
       "availableRotations": [0]
     }
   },
