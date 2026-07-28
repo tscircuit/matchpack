@@ -160,6 +160,7 @@ export class ChipPartitionsSolver extends BaseSolver {
         )
         return this.createInputProblemFromPartition(partition, inputProblem, {
           partitionType: "decoupling_caps",
+          decouplingMainChipId: decouplingCapGroup?.mainChipId,
           decouplingMainChipSide: decouplingCapGroup?.mainChipSide,
         })
       }),
@@ -228,6 +229,7 @@ export class ChipPartitionsSolver extends BaseSolver {
     originalProblem: InputProblem,
     opts?: {
       partitionType?: PartitionInputProblem["partitionType"]
+      decouplingMainChipId?: PartitionInputProblem["decouplingMainChipId"]
       decouplingMainChipSide?: PartitionInputProblem["decouplingMainChipSide"]
       crystalCircuitGroup?: CrystalCircuitGroup
     },
@@ -299,6 +301,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       netConnMap,
       isPartition: true,
       partitionType: opts?.partitionType,
+      decouplingMainChipId: opts?.decouplingMainChipId,
       decouplingMainChipSide: opts?.decouplingMainChipSide,
       crystalCircuitGroup: opts?.crystalCircuitGroup,
     }

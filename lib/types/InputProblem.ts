@@ -60,6 +60,7 @@ export type InputProblem = {
 export interface PartitionInputProblem extends InputProblem {
   isPartition?: true
   partitionType?: "default" | "decoupling_caps" | "crystal_circuit"
+  decouplingMainChipId?: ChipId
   decouplingMainChipSide?: Side | null
   crystalCircuitGroup?: import("../solvers/IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver").CrystalCircuitGroup
 }
