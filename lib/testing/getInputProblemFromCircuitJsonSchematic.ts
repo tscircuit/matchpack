@@ -90,6 +90,9 @@ export const getInputProblemFromCircuitJsonSchematic = (
       ...(source_component.ftype === "simple_resistor" && {
         isResistor: true,
       }),
+      ...(source_component.ftype === "simple_test_point" && {
+        isTestPoint: true,
+      }),
     }
 
     // Create chipPinMap entries for each pin

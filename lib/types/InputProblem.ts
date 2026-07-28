@@ -22,6 +22,8 @@ export type Chip = {
   isCrystal?: boolean
   /** Whether this chip is a resistor (circuit-json ftype "simple_resistor"). */
   isResistor?: boolean
+  /** Whether this chip is a one-pin schematic testpoint. */
+  isTestPoint?: boolean
   availableRotations?: Array<0 | 90 | 180 | 270>
   fixedPosition?: Point
 }

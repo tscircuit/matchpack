@@ -9,6 +9,7 @@ import { ChipPartitionsSolver } from "lib/solvers/ChipPartitionsSolver/ChipParti
 import { IdentifyDecouplingCapsSolver } from "lib/solvers/IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import { IdentifyCrystalCircuitsSolver } from "lib/solvers/IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver"
 import { AlignPowerGroundRowsSolver } from "lib/solvers/AlignPowerGroundRowsSolver/AlignPowerGroundRowsSolver"
+import { AlignTestPointsSolver } from "lib/solvers/AlignTestPointsSolver/AlignTestPointsSolver"
 import {
   PackInnerPartitionsSolver,
   type PackedPartition,
@@ -58,6 +59,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
+  alignTestPointsSolver?: AlignTestPointsSolver
   placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
 
   startTimeOfPhase: Record<string, number>
@@ -158,6 +160,15 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep("alignTestPointsSolver", AlignTestPointsSolver, () => [
+      {
+        inputProblem: this.inputProblem,
+        inputLayout:
+          this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
+          this.alignPowerGroundRowsSolver!.outputLayout ??
+          this.partitionPackingSolver!.finalLayout!,
+      },
+    ]),
   ]
 
   constructor(inputProblem: InputProblem) {
@@ -223,6 +234,9 @@ export class LayoutPipelineSolver extends BaseSolver {
       return this.activeSubSolver.visualize()
 
     // If the pipeline is complete, show only the final chip placements.
+    if (this.solved && this.alignTestPointsSolver?.solved) {
+      return this.alignTestPointsSolver.visualize()
+    }
     if (this.solved && this.placeNetOnlyDecouplingRowsSolver?.solved) {
       return this.placeNetOnlyDecouplingRowsSolver.visualize()
     }
@@ -241,6 +255,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
     const alignPowerGroundRowsViz = this.alignPowerGroundRowsSolver?.visualize()
+    const alignTestPointsViz = this.alignTestPointsSolver?.visualize()
     const placeNetOnlyDecouplingRowsViz =
       this.placeNetOnlyDecouplingRowsSolver?.visualize()
 
@@ -257,6 +272,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       partitionPackingViz,
       alignPowerGroundRowsViz,
       placeNetOnlyDecouplingRowsViz,
+      alignTestPointsViz,
     ]
       .filter(Boolean)
       .map((viz, stepIndex) => {
@@ -300,6 +316,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
 
     // Show the most recent solver's output
+    if (this.alignTestPointsSolver?.solved) {
+      return this.alignTestPointsSolver.visualize()
+    }
     if (this.placeNetOnlyDecouplingRowsSolver?.solved) {
       return this.placeNetOnlyDecouplingRowsSolver.visualize()
     }
@@ -458,6 +477,11 @@ export class LayoutPipelineSolver extends BaseSolver {
 
     // Get the final layout from the last layout stage.
     if (
+      this.alignTestPointsSolver?.solved &&
+      this.alignTestPointsSolver.outputLayout
+    ) {
+      finalLayout = this.alignTestPointsSolver.outputLayout
+    } else if (
       this.placeNetOnlyDecouplingRowsSolver?.solved &&
       this.placeNetOnlyDecouplingRowsSolver.outputLayout
     ) {
