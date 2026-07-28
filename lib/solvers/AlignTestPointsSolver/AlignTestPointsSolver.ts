@@ -1,4 +1,8 @@
-import { getBoundFromCenteredRect, type Point } from "@tscircuit/math-utils"
+import {
+  boundsAreaOverlap,
+  getBoundFromCenteredRect,
+  type Point,
+} from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { getPinIdToStronglyConnectedPinsObj } from "lib/solvers/LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
@@ -30,6 +34,7 @@ type TestPointPlacementContext = {
 }
 
 const MAXIMUM_NEARBY_PIN_GAP_IN_PIN_PITCHES = 1.5
+const MINIMUM_COLLISION_SEARCH_STEP = 0.2
 const PIN_POSITION_EPSILON = 1e-6
 
 const SIDE_VECTORS: Record<Side, Point> = {
@@ -71,16 +76,43 @@ const rotateSide = (side: Side, ccwRotationDegrees: number): Side =>
 const getPlacementBounds = ({
   placement,
   size,
+  margin = 0,
 }: {
   placement: Placement
   size: Point
+  margin?: number
 }) => {
   const rotatedSize = getRotatedSize(size, placement.ccwRotationDegrees)
   return getBoundFromCenteredRect({
     center: placement,
-    width: rotatedSize.x,
-    height: rotatedSize.y,
+    width: rotatedSize.x + margin * 2,
+    height: rotatedSize.y + margin * 2,
   })
+}
+
+const placementsOverlap = ({
+  inputProblem,
+  chipIdA,
+  placementA,
+  chipIdB,
+  placementB,
+}: {
+  inputProblem: InputProblem
+  chipIdA: ChipId
+  placementA: Placement
+  chipIdB: ChipId
+  placementB: Placement
+}): boolean => {
+  const boundsA = getPlacementBounds({
+    placement: placementA,
+    size: inputProblem.chipMap[chipIdA]!.size,
+    margin: inputProblem.chipGap,
+  })
+  const boundsB = getPlacementBounds({
+    placement: placementB,
+    size: inputProblem.chipMap[chipIdB]!.size,
+  })
+  return boundsAreaOverlap(boundsA, boundsB) > 0
 }
 
 const getPinOwnerMap = (inputProblem: InputProblem): Map<PinId, ChipId> => {
@@ -349,6 +381,47 @@ const placeTestPointSideGroup = (
   }
 }
 
+const testPointGroupOverlapsOtherChips = (
+  { group }: { group: TestPointSideGroup },
+  context: TestPointPlacementContext,
+): boolean => {
+  const groupChipIds = new Set(
+    group.members.map((member) => member.testPointChipId),
+  )
+  return group.members.some((member) => {
+    const testPointPlacement = context.chipPlacements[member.testPointChipId]!
+    return Object.entries(context.chipPlacements).some(
+      ([otherChipId, otherPlacement]) =>
+        otherChipId !== group.anchorChipId &&
+        !groupChipIds.has(otherChipId) &&
+        placementsOverlap({
+          inputProblem: context.inputProblem,
+          chipIdA: member.testPointChipId,
+          placementA: testPointPlacement,
+          chipIdB: otherChipId,
+          placementB: otherPlacement,
+        }),
+    )
+  })
+}
+
+const moveTestPointGroupOutwardUntilClear = (
+  { group }: { group: TestPointSideGroup },
+  context: TestPointPlacementContext,
+): void => {
+  const { normalAxis, direction } = SIDE_AXES[group.side]
+  const searchStep = Math.max(
+    context.inputProblem.chipGap,
+    MINIMUM_COLLISION_SEARCH_STEP,
+  )
+  while (testPointGroupOverlapsOtherChips({ group }, context)) {
+    for (const member of group.members) {
+      context.chipPlacements[member.testPointChipId]![normalAxis] +=
+        direction * searchStep
+    }
+  }
+}
+
 const getTestPointPlacementSpan = (
   {
     testPointChipIds,
@@ -432,6 +505,9 @@ export class AlignTestPointsSolver extends BaseSolver {
 
     for (const group of this.testPointSideGroups) {
       placeTestPointSideGroup({ group }, placementContext)
+    }
+    for (const group of this.testPointSideGroups) {
+      moveTestPointGroupOutwardUntilClear({ group }, placementContext)
     }
     const anchoredTestPointChipIds = new Set(
       this.testPointSideGroups.flatMap((group) =>
