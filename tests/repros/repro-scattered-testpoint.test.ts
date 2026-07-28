@@ -29,6 +29,8 @@ test("repro scattered testpoint", async () => {
         outputLayout.chipPlacements[chipId]!.ccwRotationDegrees === 180,
     ),
   ).toBe(true)
+  expect(solver.checkForOverlaps(outputLayout)).toHaveLength(0)
+  expect(solver.alignTestPointsSolver!.connectionBodyCrossingCount).toBe(0)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })

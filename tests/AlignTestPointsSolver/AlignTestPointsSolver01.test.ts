@@ -122,6 +122,34 @@ test("AlignTestPointsSolver follows rotated anchor pin sides", () => {
   expect(output.chipPlacements.TP3!.ccwRotationDegrees).toBe(90)
 })
 
+test("AlignTestPointsSolver moves an anchored group outward past a blocker", () => {
+  const problemWithBlocker = structuredClone(problem)
+  problemWithBlocker.chipMap.BLOCKER = {
+    chipId: "BLOCKER",
+    pins: [],
+    size: { x: 0.4, y: 0.8 },
+  }
+  const layoutWithBlocker = structuredClone(inputLayout)
+  layoutWithBlocker.chipPlacements.BLOCKER = {
+    x: -1.6,
+    y: 0,
+    ccwRotationDegrees: 0,
+  }
+
+  const solver = new AlignTestPointsSolver({
+    inputProblem: problemWithBlocker,
+    inputLayout: layoutWithBlocker,
+  })
+  solver.solve()
+
+  expect(solver.outputLayout!.chipPlacements.TP1!.x).toBeLessThan(-1.8)
+  expect(solver.outputLayout!.chipPlacements.TP2!.x).toBeLessThan(-1.8)
+  expect(solver.outputLayout!.chipPlacements.BLOCKER).toEqual(
+    layoutWithBlocker.chipPlacements.BLOCKER,
+  )
+  expect(solver.connectionBodyCrossingCount).toBe(0)
+})
+
 test("AlignTestPointsSolver groups only testpoints on nearby anchor pins", () => {
   const problemWithPinGap: InputProblem = structuredClone(problem)
   problemWithPinGap.chipMap.U1!.pins.push("U1.left3", "U1.left4", "U1.left7")

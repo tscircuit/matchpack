@@ -1,4 +1,9 @@
-import { getBoundFromCenteredRect, type Point } from "@tscircuit/math-utils"
+import {
+  boundsAreaOverlap,
+  doesSegmentIntersectRect,
+  getBoundFromCenteredRect,
+  type Point,
+} from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { getPinIdToStronglyConnectedPinsObj } from "lib/solvers/LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
@@ -30,7 +35,10 @@ type TestPointPlacementContext = {
 }
 
 const MAXIMUM_NEARBY_PIN_GAP_IN_PIN_PITCHES = 1.5
+const MINIMUM_COLLISION_SEARCH_STEP = 0.2
 const PIN_POSITION_EPSILON = 1e-6
+const TANGENT_SEARCH_BOUNDARY_PADDING_STEPS = 2
+const TANGENT_SEARCH_PARTITION_GAP_FRACTION = 0.5
 
 const SIDE_VECTORS: Record<Side, Point> = {
   "x-": { x: -1, y: 0 },
@@ -71,16 +79,43 @@ const rotateSide = (side: Side, ccwRotationDegrees: number): Side =>
 const getPlacementBounds = ({
   placement,
   size,
+  margin = 0,
 }: {
   placement: Placement
   size: Point
+  margin?: number
 }) => {
   const rotatedSize = getRotatedSize(size, placement.ccwRotationDegrees)
   return getBoundFromCenteredRect({
     center: placement,
-    width: rotatedSize.x,
-    height: rotatedSize.y,
+    width: rotatedSize.x + margin * 2,
+    height: rotatedSize.y + margin * 2,
   })
+}
+
+const placementsOverlap = ({
+  inputProblem,
+  chipIdA,
+  placementA,
+  chipIdB,
+  placementB,
+}: {
+  inputProblem: InputProblem
+  chipIdA: ChipId
+  placementA: Placement
+  chipIdB: ChipId
+  placementB: Placement
+}): boolean => {
+  const boundsA = getPlacementBounds({
+    placement: placementA,
+    size: inputProblem.chipMap[chipIdA]!.size,
+    margin: inputProblem.chipGap,
+  })
+  const boundsB = getPlacementBounds({
+    placement: placementB,
+    size: inputProblem.chipMap[chipIdB]!.size,
+  })
+  return boundsAreaOverlap(boundsA, boundsB) > 0
 }
 
 const getPinOwnerMap = (inputProblem: InputProblem): Map<PinId, ChipId> => {
@@ -349,6 +384,226 @@ const placeTestPointSideGroup = (
   }
 }
 
+const testPointGroupOverlapsOtherChips = (
+  { group }: { group: TestPointSideGroup },
+  context: TestPointPlacementContext,
+): boolean => {
+  const groupChipIds = new Set(
+    group.members.map((member) => member.testPointChipId),
+  )
+  return group.members.some((member) => {
+    const testPointPlacement = context.chipPlacements[member.testPointChipId]!
+    return Object.entries(context.chipPlacements).some(
+      ([otherChipId, otherPlacement]) =>
+        otherChipId !== group.anchorChipId &&
+        !groupChipIds.has(otherChipId) &&
+        placementsOverlap({
+          inputProblem: context.inputProblem,
+          chipIdA: member.testPointChipId,
+          placementA: testPointPlacement,
+          chipIdB: otherChipId,
+          placementB: otherPlacement,
+        }),
+    )
+  })
+}
+
+const moveTestPointGroupOutwardUntilClear = (
+  { group }: { group: TestPointSideGroup },
+  context: TestPointPlacementContext,
+): void => {
+  const { normalAxis, direction } = SIDE_AXES[group.side]
+  const searchStep = Math.max(
+    context.inputProblem.chipGap,
+    MINIMUM_COLLISION_SEARCH_STEP,
+  )
+  // Move the complete row so pin ordering and spacing remain unchanged.
+  while (testPointGroupOverlapsOtherChips({ group }, context)) {
+    for (const member of group.members) {
+      context.chipPlacements[member.testPointChipId]![normalAxis] +=
+        direction * searchStep
+    }
+  }
+}
+
+const getAbsolutePinPosition = ({
+  inputProblem,
+  pinId,
+  placement,
+}: {
+  inputProblem: InputProblem
+  pinId: PinId
+  placement: Placement
+}): Point => {
+  const pin = inputProblem.chipPinMap[pinId]!
+  const rotatedOffset = rotatePinOffset(
+    pin.offset,
+    placement.ccwRotationDegrees,
+  )
+  return {
+    x: placement.x + rotatedOffset.x,
+    y: placement.y + rotatedOffset.y,
+  }
+}
+
+const countConnectionBodyCrossings = (
+  { group }: { group: TestPointSideGroup },
+  context: TestPointPlacementContext,
+): number => {
+  const groupChipIds = new Set(
+    group.members.map((member) => member.testPointChipId),
+  )
+  let crossingCount = 0
+  for (const member of group.members) {
+    // The straight pin-to-pin segment is the trace proxy used by the layout preview.
+    const segmentStart = getAbsolutePinPosition({
+      inputProblem: context.inputProblem,
+      pinId: member.testPointPinId,
+      placement: context.chipPlacements[member.testPointChipId]!,
+    })
+    const segmentEnd = getAbsolutePinPosition({
+      inputProblem: context.inputProblem,
+      pinId: member.anchorPinId,
+      placement: context.chipPlacements[member.anchorChipId]!,
+    })
+
+    for (const [otherChipId, otherPlacement] of Object.entries(
+      context.chipPlacements,
+    )) {
+      if (
+        otherChipId === member.anchorChipId ||
+        groupChipIds.has(otherChipId)
+      ) {
+        continue
+      }
+      const otherBounds = getPlacementBounds({
+        placement: otherPlacement,
+        size: context.inputProblem.chipMap[otherChipId]!.size,
+      })
+      if (doesSegmentIntersectRect(segmentStart, segmentEnd, otherBounds)) {
+        crossingCount++
+      }
+    }
+  }
+  return crossingCount
+}
+
+const getMaximumTangentSearchSteps = (
+  {
+    group,
+    tangentAxis,
+    searchStep,
+  }: {
+    group: TestPointSideGroup
+    tangentAxis: Axis
+    searchStep: number
+  },
+  context: TestPointPlacementContext,
+): number => {
+  const groupChipIds = new Set(
+    group.members.map((member) => member.testPointChipId),
+  )
+  const groupCenter =
+    group.members.reduce(
+      (sum, member) =>
+        sum + context.chipPlacements[member.testPointChipId]![tangentAxis],
+      0,
+    ) / group.members.length
+  const maximumGroupExtent = Math.max(
+    ...group.members.map((member) => {
+      const placement = context.chipPlacements[member.testPointChipId]!
+      return getRotatedSize(
+        context.inputProblem.chipMap[member.testPointChipId]!.size,
+        placement.ccwRotationDegrees,
+      )[tangentAxis]
+    }),
+  )
+  // Search beyond every body on this axis so a clear candidate is reachable.
+  const maximumSearchDistance =
+    Object.entries(context.chipPlacements).reduce(
+      (maximumDistance, [chipId, placement]) => {
+        if (groupChipIds.has(chipId)) return maximumDistance
+        const chipExtent = getRotatedSize(
+          context.inputProblem.chipMap[chipId]!.size,
+          placement.ccwRotationDegrees,
+        )[tangentAxis]
+        return Math.max(
+          maximumDistance,
+          Math.abs(placement[tangentAxis] - groupCenter) +
+            chipExtent +
+            maximumGroupExtent,
+        )
+      },
+      0,
+    ) + context.inputProblem.partitionGap
+  return (
+    Math.ceil(maximumSearchDistance / searchStep) +
+    TANGENT_SEARCH_BOUNDARY_PADDING_STEPS
+  )
+}
+
+const moveTestPointGroupAlongTangent = (
+  { group }: { group: TestPointSideGroup },
+  context: TestPointPlacementContext,
+): void => {
+  const { tangentAxis } = SIDE_AXES[group.side]
+  // Each candidate is derived from the same placement to avoid accumulating drift.
+  const originalPlacements = new Map(
+    group.members.map((member) => [
+      member.testPointChipId,
+      { ...context.chipPlacements[member.testPointChipId]! },
+    ]),
+  )
+  const searchStep = Math.max(
+    context.inputProblem.partitionGap * TANGENT_SEARCH_PARTITION_GAP_FRACTION,
+    context.inputProblem.chipGap,
+    MINIMUM_COLLISION_SEARCH_STEP,
+  )
+  const maximumSearchSteps = getMaximumTangentSearchSteps(
+    { group, tangentAxis, searchStep },
+    context,
+  )
+  let bestOffset = 0
+  let bestCrossingCount = Number.POSITIVE_INFINITY
+
+  // Test nearest offsets first and stop as soon as a collision-free trace path exists.
+  for (let stepIndex = 0; stepIndex <= maximumSearchSteps; stepIndex++) {
+    const offsets = [0]
+    if (stepIndex > 0) {
+      offsets.length = 0
+      offsets.push(-stepIndex * searchStep, stepIndex * searchStep)
+    }
+    for (const offset of offsets) {
+      for (const member of group.members) {
+        const originalPlacement = originalPlacements.get(
+          member.testPointChipId,
+        )!
+        context.chipPlacements[member.testPointChipId] = {
+          ...originalPlacement,
+          [tangentAxis]: originalPlacement[tangentAxis] + offset,
+        }
+      }
+      if (testPointGroupOverlapsOtherChips({ group }, context)) continue
+
+      const crossingCount = countConnectionBodyCrossings({ group }, context)
+      if (crossingCount < bestCrossingCount) {
+        bestCrossingCount = crossingCount
+        bestOffset = offset
+      }
+      if (crossingCount === 0) break
+    }
+    if (bestCrossingCount === 0) break
+  }
+
+  for (const member of group.members) {
+    const originalPlacement = originalPlacements.get(member.testPointChipId)!
+    context.chipPlacements[member.testPointChipId] = {
+      ...originalPlacement,
+      [tangentAxis]: originalPlacement[tangentAxis] + bestOffset,
+    }
+  }
+}
+
 const getTestPointPlacementSpan = (
   {
     testPointChipIds,
@@ -409,6 +664,7 @@ export class AlignTestPointsSolver extends BaseSolver {
   inputLayout: OutputLayout
   outputLayout: OutputLayout | null = null
   testPointSideGroups: TestPointSideGroup[] = []
+  connectionBodyCrossingCount = 0
 
   constructor(options: {
     inputProblem: InputProblem
@@ -433,6 +689,17 @@ export class AlignTestPointsSolver extends BaseSolver {
     for (const group of this.testPointSideGroups) {
       placeTestPointSideGroup({ group }, placementContext)
     }
+    // Resolve body clearance before optimizing the connection paths.
+    for (const group of this.testPointSideGroups) {
+      moveTestPointGroupOutwardUntilClear({ group }, placementContext)
+      moveTestPointGroupAlongTangent({ group }, placementContext)
+    }
+    this.connectionBodyCrossingCount = this.testPointSideGroups.reduce(
+      (crossingCount, group) =>
+        crossingCount +
+        countConnectionBodyCrossings({ group }, placementContext),
+      0,
+    )
     const anchoredTestPointChipIds = new Set(
       this.testPointSideGroups.flatMap((group) =>
         group.members.map((member) => member.testPointChipId),
