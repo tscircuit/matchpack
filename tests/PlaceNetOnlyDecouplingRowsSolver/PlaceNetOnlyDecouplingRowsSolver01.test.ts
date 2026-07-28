@@ -107,7 +107,7 @@ const inputProblem: InputProblem = {
   partitionGap: 1.2,
 }
 
-test("places a weak decoupling partition after a strong side connection", () => {
+test("places a net-only decoupling row after a direct connection", () => {
   const solver = new LayoutPipelineSolver(inputProblem)
   solver.solve()
 

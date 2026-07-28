@@ -23,7 +23,6 @@ import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { Side } from "lib/types/Side"
-import { getDecouplingMainChipSide } from "./getDecouplingMainChipSide"
 
 export interface DecouplingCapGroup {
   decouplingCapGroupId: string
@@ -250,11 +249,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       group = {
         decouplingCapGroupId: `decap_group_${mainChipId}__${n1}__${n2}`,
         mainChipId,
-        mainChipSide: getDecouplingMainChipSide(
-          this.inputProblem,
-          mainChipId,
-          netPair,
-        ),
+        mainChipSide: this.getMainChipSide(mainChipId, netPair),
         netPair: [n1, n2],
         decouplingCapChipIds: [],
       }
@@ -264,6 +259,37 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     if (!group.decouplingCapChipIds.includes(capChipId)) {
       group.decouplingCapChipIds.push(capChipId)
     }
+  }
+
+  /** Find the side with the most positive-rail pins. */
+  private getMainChipSide(
+    mainChipId: ChipId,
+    netPair: [NetId, NetId],
+  ): Side | null {
+    const mainChip = this.inputProblem.chipMap[mainChipId]
+    if (!mainChip) return null
+
+    const positiveNetIds = netPair.filter(
+      (netId) => this.inputProblem.netMap[netId]?.isPositiveVoltageSource,
+    )
+    const sideCounts = new Map<Side, number>()
+
+    for (const pinId of mainChip.pins) {
+      const pin = this.inputProblem.chipPinMap[pinId]
+      if (!pin) continue
+      const pinNetIds = this.getNetIdsForPin(pinId)
+      if (!positiveNetIds.some((netId) => pinNetIds.has(netId))) continue
+      sideCounts.set(pin.side, (sideCounts.get(pin.side) ?? 0) + 1)
+    }
+
+    let selectedSide: Side | null = null
+    let largestCount = 0
+    for (const [side, count] of sideCounts) {
+      if (count <= largestCount) continue
+      selectedSide = side
+      largestCount = count
+    }
+    return selectedSide
   }
 
   lastChip: Chip | null = null
