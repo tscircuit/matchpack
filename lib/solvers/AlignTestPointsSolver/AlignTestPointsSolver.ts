@@ -1,6 +1,7 @@
 import { getBoundFromCenteredRect, type Point } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
+import { getPinIdToStronglyConnectedPinsObj } from "lib/solvers/LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import type { ChipId, InputProblem, PinId } from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
@@ -88,27 +89,6 @@ const getPinOwnerMap = (inputProblem: InputProblem): Map<PinId, ChipId> => {
     for (const pinId of chip.pins) pinOwnerMap.set(pinId, chip.chipId)
   }
   return pinOwnerMap
-}
-
-const getStronglyConnectedPin = ({
-  inputProblem,
-  pinId,
-}: {
-  inputProblem: InputProblem
-  pinId: PinId
-}): PinId | null => {
-  for (const otherPinId of Object.keys(inputProblem.chipPinMap)) {
-    if (otherPinId === pinId) continue
-    const forwardConnectionId = `${pinId}-${otherPinId}` as const
-    const reverseConnectionId = `${otherPinId}-${pinId}` as const
-    if (
-      inputProblem.pinStrongConnMap[forwardConnectionId] ||
-      inputProblem.pinStrongConnMap[reverseConnectionId]
-    ) {
-      return otherPinId
-    }
-  }
-  return null
 }
 
 const getAnchorPinTangentPosition = (
@@ -208,6 +188,9 @@ const createTestPointSideGroups = (context: {
   inputLayout: OutputLayout
 }): TestPointSideGroup[] => {
   const pinOwnerMap = getPinOwnerMap(context.inputProblem)
+  const pinIdToStronglyConnectedPins = getPinIdToStronglyConnectedPinsObj(
+    context.inputProblem,
+  )
   const groups: TestPointSideGroup[] = []
 
   for (const testPoint of Object.values(context.inputProblem.chipMap)) {
@@ -220,19 +203,16 @@ const createTestPointSideGroups = (context: {
     }
 
     const testPointPinId = testPoint.pins[0]!
-    const anchorPinId = getStronglyConnectedPin({
-      inputProblem: context.inputProblem,
-      pinId: testPointPinId,
-    })
-    if (!anchorPinId) continue
+    const anchorPin = pinIdToStronglyConnectedPins[testPointPinId]?.[0]
+    if (!anchorPin) continue
+    const anchorPinId = anchorPin.pinId
 
     const anchorChipId = pinOwnerMap.get(anchorPinId)
     if (!anchorChipId || anchorChipId === testPoint.chipId) continue
     if (context.inputProblem.chipMap[anchorChipId]?.isTestPoint) continue
 
     const anchorPlacement = context.inputLayout.chipPlacements[anchorChipId]
-    const anchorPin = context.inputProblem.chipPinMap[anchorPinId]
-    if (!anchorPlacement || !anchorPin) continue
+    if (!anchorPlacement) continue
 
     const side = rotateSide(anchorPin.side, anchorPlacement.ccwRotationDegrees)
     let group = groups.find(
