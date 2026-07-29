@@ -19,6 +19,7 @@ export class GroundedLoadPairSolver extends BaseSolver {
   }
 
   override _step() {
+    // Work on a copy so the incoming layout remains unchanged.
     const chipPlacements: Record<string, Placement> = {}
     for (const [chipId, placement] of Object.entries(
       this.params.inputLayout.chipPlacements,
@@ -27,6 +28,7 @@ export class GroundedLoadPairSolver extends BaseSolver {
     }
 
     const groundedLoadPairs = getGroundedLoadPairs(this.params.inputProblem)
+    // Each detected chain is placed once in deterministic discovery order.
     for (const groundedLoadPair of groundedLoadPairs) {
       layoutGroundedLoadPair({
         groundedLoadPair,

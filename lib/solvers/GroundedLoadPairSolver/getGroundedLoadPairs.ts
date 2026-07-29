@@ -1,10 +1,12 @@
 import type {
   Chip,
   ChipId,
+  ChipPin,
   InputProblem,
   NetId,
   PinId,
 } from "../../types/InputProblem"
+import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
 
 export type GroundedLoadPair = {
   upperChip: Chip
@@ -19,31 +21,20 @@ export type GroundedLoadPair = {
 type ConnectivityContext = {
   inputProblem: InputProblem
   pinOwnerMap: Map<PinId, Chip>
+  connectedPinsByPinId: Record<PinId, ChipPin[]>
   pairedChipIds: Set<ChipId>
 }
 
 const TWO_PIN_COMPONENT_PIN_COUNT = 2
 
 const getStronglyConnectedPinIds = ({
-  inputProblem,
+  connectedPinsByPinId,
   pinId,
 }: {
-  inputProblem: InputProblem
+  connectedPinsByPinId: Record<PinId, ChipPin[]>
   pinId: PinId
-}): PinId[] => {
-  const connectedPinIds: PinId[] = []
-  for (const otherPinId of Object.keys(inputProblem.chipPinMap)) {
-    const forwardConnection = `${pinId}-${otherPinId}` as const
-    const reverseConnection = `${otherPinId}-${pinId}` as const
-    if (
-      inputProblem.pinStrongConnMap[forwardConnection] ||
-      inputProblem.pinStrongConnMap[reverseConnection]
-    ) {
-      connectedPinIds.push(otherPinId)
-    }
-  }
-  return connectedPinIds
-}
+}): PinId[] =>
+  (connectedPinsByPinId[pinId] ?? []).map((connectedPin) => connectedPin.pinId)
 
 const getNetIdsForPin = ({
   inputProblem,
@@ -99,10 +90,11 @@ const getChipConnectedPair = (
   upperChip: Chip,
   context: ConnectivityContext,
 ): GroundedLoadPair | null => {
-  const { inputProblem, pinOwnerMap, pairedChipIds } = context
+  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } =
+    context
   for (const upperOuterPinId of upperChip.pins) {
     const mainPinId = getStronglyConnectedPinIds({
-      inputProblem,
+      connectedPinsByPinId,
       pinId: upperOuterPinId,
     }).find((pinId) => {
       const chip = pinOwnerMap.get(pinId)
@@ -117,7 +109,7 @@ const getChipConnectedPair = (
     if (!upperInnerPinId) continue
 
     const lowerChip = getStronglyConnectedPinIds({
-      inputProblem,
+      connectedPinsByPinId,
       pinId: upperInnerPinId,
     })
       .map((pinId) => pinOwnerMap.get(pinId))
@@ -131,7 +123,7 @@ const getChipConnectedPair = (
     if (!lowerChip) continue
 
     const lowerInnerPinId = lowerChip.pins.find((pinId) =>
-      getStronglyConnectedPinIds({ inputProblem, pinId }).some(
+      getStronglyConnectedPinIds({ connectedPinsByPinId, pinId }).some(
         (connectedPinId) =>
           pinOwnerMap.get(connectedPinId)?.chipId === upperChip.chipId,
       ),
@@ -221,9 +213,15 @@ export const getGroundedLoadPairs = (
 
   const groundedLoadPairs: GroundedLoadPair[] = []
   const pairedChipIds = new Set<ChipId>()
-  const context = { inputProblem, pinOwnerMap, pairedChipIds }
+  const connectedPinsByPinId = getPinIdToStronglyConnectedPinsObj(inputProblem)
+  const context = {
+    inputProblem,
+    pinOwnerMap,
+    connectedPinsByPinId,
+    pairedChipIds,
+  }
 
-  // Prefer chip-anchored pairs before considering standalone rail chains.
+  // Chip-anchored chains take priority over standalone rail chains.
   for (const upperChip of Object.values(inputProblem.chipMap)) {
     if (upperChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
     if (upperChip.fixedPosition) continue

@@ -127,6 +127,7 @@ export const layoutGroundedLoadPair = ({
   const lowerPlacement = chipPlacements[groundedLoadPair.lowerChip.chipId]
   if (!upperPlacement || !lowerPlacement) return
 
+  // Orient both two-pin bodies from the source or rail toward ground.
   const upperCcwRotationDegrees = getVerticalRotation({
     chip: groundedLoadPair.upperChip,
     upperPinId: groundedLoadPair.upperOuterPinId,
@@ -178,6 +179,7 @@ export const layoutGroundedLoadPair = ({
 
   const mainPinId = groundedLoadPair.mainPinId
   if (mainPinId) {
+    // Keep a chip-connected chain anchored to its original main-chip pin.
     const mainChip = Object.values(inputProblem.chipMap).find((chip) =>
       chip.pins.includes(mainPinId),
     )
