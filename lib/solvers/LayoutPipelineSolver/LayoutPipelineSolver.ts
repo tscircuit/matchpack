@@ -21,7 +21,6 @@ import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
 import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsSolver/PlaceNetOnlyDecouplingRowsSolver"
-import { PlaceGroundedLoadPairsSolver } from "../PlaceGroundedLoadPairsSolver/PlaceGroundedLoadPairsSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -59,7 +58,6 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
-  placeGroundedLoadPairsSolver?: PlaceGroundedLoadPairsSolver
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
   alignTestPointsSolver?: AlignTestPointsSolver
   placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
@@ -142,23 +140,12 @@ export class LayoutPipelineSolver extends BaseSolver {
       },
     ),
     definePipelineStep(
-      "placeGroundedLoadPairsSolver",
-      PlaceGroundedLoadPairsSolver,
-      () => [
-        {
-          inputProblem: this.inputProblem,
-          packedPartitions: this.packedPartitions!,
-          inputLayout: this.partitionPackingSolver!.finalLayout!,
-        },
-      ],
-    ),
-    definePipelineStep(
       "alignPowerGroundRowsSolver",
       AlignPowerGroundRowsSolver,
       () => [
         {
           inputProblem: this.inputProblem,
-          inputLayout: this.placeGroundedLoadPairsSolver!.outputLayout!,
+          inputLayout: this.partitionPackingSolver!.finalLayout!,
         },
       ],
     ),
@@ -256,9 +243,6 @@ export class LayoutPipelineSolver extends BaseSolver {
     if (this.solved && this.alignPowerGroundRowsSolver?.solved) {
       return this.alignPowerGroundRowsSolver.visualize()
     }
-    if (this.solved && this.placeGroundedLoadPairsSolver?.solved) {
-      return this.placeGroundedLoadPairsSolver.visualize()
-    }
     if (this.solved && this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
     }
@@ -270,8 +254,6 @@ export class LayoutPipelineSolver extends BaseSolver {
     const chipPartitionsViz = this.chipPartitionsSolver?.visualize()
     const packInnerPartitionsViz = this.packInnerPartitionsSolver?.visualize()
     const partitionPackingViz = this.partitionPackingSolver?.visualize()
-    const placeGroundedLoadPairsViz =
-      this.placeGroundedLoadPairsSolver?.visualize()
     const alignPowerGroundRowsViz = this.alignPowerGroundRowsSolver?.visualize()
     const alignTestPointsViz = this.alignTestPointsSolver?.visualize()
     const placeNetOnlyDecouplingRowsViz =
@@ -288,7 +270,6 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
-      placeGroundedLoadPairsViz,
       alignPowerGroundRowsViz,
       placeNetOnlyDecouplingRowsViz,
       alignTestPointsViz,
