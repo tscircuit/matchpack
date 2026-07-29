@@ -1,0 +1,420 @@
+{
+  "chipMap": {
+    "JP2": {
+      "chipId": "JP2",
+      "pins": [
+        "JP2.1",
+        "JP2.2",
+        "JP2.3",
+        "JP2.4",
+        "JP2.5",
+        "JP2.6",
+        "JP2.7",
+        "JP2.8",
+        "JP2.9",
+        "JP2.10",
+        "JP2.11",
+        "JP2.12",
+        "JP2.13"
+      ],
+      "size": {
+        "x": 0.865,
+        "y": 3.5999999999999996
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "availableRotations": [0]
+    },
+    "JP1": {
+      "chipId": "JP1",
+      "pins": [
+        "JP1.1",
+        "JP1.2",
+        "JP1.3",
+        "JP1.4",
+        "JP1.5",
+        "JP1.6",
+        "JP1.7",
+        "JP1.8",
+        "JP1.9",
+        "JP1.10",
+        "JP1.11",
+        "JP1.12",
+        "JP1.13"
+      ],
+      "size": {
+        "x": 0.865,
+        "y": 3.5999999999999996
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "JP2.1": {
+      "pinId": "JP2.1",
+      "offset": {
+        "x": 0.8325,
+        "y": 1.2
+      },
+      "side": "x+"
+    },
+    "JP2.2": {
+      "pinId": "JP2.2",
+      "offset": {
+        "x": 0.8325,
+        "y": 0.9999999999999998
+      },
+      "side": "x+"
+    },
+    "JP2.3": {
+      "pinId": "JP2.3",
+      "offset": {
+        "x": 0.8325,
+        "y": 0.7999999999999998
+      },
+      "side": "x+"
+    },
+    "JP2.4": {
+      "pinId": "JP2.4",
+      "offset": {
+        "x": 0.8325,
+        "y": 0.5999999999999999
+      },
+      "side": "x+"
+    },
+    "JP2.5": {
+      "pinId": "JP2.5",
+      "offset": {
+        "x": 0.8325,
+        "y": 0.3999999999999999
+      },
+      "side": "x+"
+    },
+    "JP2.6": {
+      "pinId": "JP2.6",
+      "offset": {
+        "x": 0.8325,
+        "y": 0.19999999999999996
+      },
+      "side": "x+"
+    },
+    "JP2.7": {
+      "pinId": "JP2.7",
+      "offset": {
+        "x": 0.8325,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "JP2.8": {
+      "pinId": "JP2.8",
+      "offset": {
+        "x": 0.8325,
+        "y": -0.19999999999999996
+      },
+      "side": "x+"
+    },
+    "JP2.9": {
+      "pinId": "JP2.9",
+      "offset": {
+        "x": 0.8325,
+        "y": -0.3999999999999999
+      },
+      "side": "x+"
+    },
+    "JP2.10": {
+      "pinId": "JP2.10",
+      "offset": {
+        "x": 0.8325,
+        "y": -0.5999999999999999
+      },
+      "side": "x+"
+    },
+    "JP2.11": {
+      "pinId": "JP2.11",
+      "offset": {
+        "x": 0.8325,
+        "y": -0.7999999999999999
+      },
+      "side": "x+"
+    },
+    "JP2.12": {
+      "pinId": "JP2.12",
+      "offset": {
+        "x": 0.8325,
+        "y": -1
+      },
+      "side": "x+"
+    },
+    "JP2.13": {
+      "pinId": "JP2.13",
+      "offset": {
+        "x": 0.8325,
+        "y": -1.2
+      },
+      "side": "x+"
+    },
+    "JP1.1": {
+      "pinId": "JP1.1",
+      "offset": {
+        "x": -0.8325,
+        "y": 1.2
+      },
+      "side": "x-"
+    },
+    "JP1.2": {
+      "pinId": "JP1.2",
+      "offset": {
+        "x": -0.8325,
+        "y": 1
+      },
+      "side": "x-"
+    },
+    "JP1.3": {
+      "pinId": "JP1.3",
+      "offset": {
+        "x": -0.8325,
+        "y": 0.7999999999999999
+      },
+      "side": "x-"
+    },
+    "JP1.4": {
+      "pinId": "JP1.4",
+      "offset": {
+        "x": -0.8325,
+        "y": 0.5999999999999999
+      },
+      "side": "x-"
+    },
+    "JP1.5": {
+      "pinId": "JP1.5",
+      "offset": {
+        "x": -0.8325,
+        "y": 0.3999999999999999
+      },
+      "side": "x-"
+    },
+    "JP1.6": {
+      "pinId": "JP1.6",
+      "offset": {
+        "x": -0.8325,
+        "y": 0.19999999999999996
+      },
+      "side": "x-"
+    },
+    "JP1.7": {
+      "pinId": "JP1.7",
+      "offset": {
+        "x": -0.8325,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "JP1.8": {
+      "pinId": "JP1.8",
+      "offset": {
+        "x": -0.8325,
+        "y": -0.19999999999999996
+      },
+      "side": "x-"
+    },
+    "JP1.9": {
+      "pinId": "JP1.9",
+      "offset": {
+        "x": -0.8325,
+        "y": -0.3999999999999999
+      },
+      "side": "x-"
+    },
+    "JP1.10": {
+      "pinId": "JP1.10",
+      "offset": {
+        "x": -0.8325,
+        "y": -0.5999999999999999
+      },
+      "side": "x-"
+    },
+    "JP1.11": {
+      "pinId": "JP1.11",
+      "offset": {
+        "x": -0.8325,
+        "y": -0.7999999999999998
+      },
+      "side": "x-"
+    },
+    "JP1.12": {
+      "pinId": "JP1.12",
+      "offset": {
+        "x": -0.8325,
+        "y": -0.9999999999999998
+      },
+      "side": "x-"
+    },
+    "JP1.13": {
+      "pinId": "JP1.13",
+      "offset": {
+        "x": -0.8325,
+        "y": -1.2
+      },
+      "side": "x-"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net25": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net25",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net24": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net24",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net33": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net33",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net5": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net5",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net6": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net6",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net7": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net7",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net8": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net8",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net10": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net10",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net39": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net39",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net23": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net23",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net22": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net22",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net21": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net21",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net20": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net20",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net19": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net19",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net16": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net16",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net18": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net18",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net17": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net17",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net11": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net11",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "JP2.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net25": true,
+    "JP2.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net24": true,
+    "JP1.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net24": true,
+    "JP2.3-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "JP2.4-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net33": true,
+    "JP1.3-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net33": true,
+    "JP2.5-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "JP2.6-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": true,
+    "JP2.7-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "JP2.8-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net5": true,
+    "JP2.9-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net6": true,
+    "JP2.10-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net7": true,
+    "JP2.11-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net8": true,
+    "JP2.12-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": true,
+    "JP2.13-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net10": true,
+    "JP1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net39": true,
+    "JP1.4-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net23": true,
+    "JP1.5-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "JP1.6-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net22": true,
+    "JP1.7-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net21": true,
+    "JP1.8-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net20": true,
+    "JP1.9-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net19": true,
+    "JP1.10-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net16": true,
+    "JP1.11-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net18": true,
+    "JP1.12-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net17": true,
+    "JP1.13-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net11": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}

@@ -1,0 +1,142 @@
+{
+  "chipMap": {
+    "CONN1": {
+      "chipId": "CONN1",
+      "pins": ["CONN1.1", "CONN1.2", "CONN1.3", "CONN1.4"],
+      "size": {
+        "x": 0.77,
+        "y": 1.7999999999999998
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "availableRotations": [0]
+    },
+    "R10": {
+      "chipId": "R10",
+      "pins": ["R10.1", "R10.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "availableRotations": [270]
+    },
+    "R11": {
+      "chipId": "R11",
+      "pins": ["R11.1", "R11.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "availableRotations": [270]
+    }
+  },
+  "chipPinMap": {
+    "CONN1.1": {
+      "pinId": "CONN1.1",
+      "offset": {
+        "x": -0.785,
+        "y": 0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "CONN1.2": {
+      "pinId": "CONN1.2",
+      "offset": {
+        "x": -0.785,
+        "y": 0.10000000000000003
+      },
+      "side": "x-"
+    },
+    "CONN1.3": {
+      "pinId": "CONN1.3",
+      "offset": {
+        "x": -0.785,
+        "y": -0.09999999999999998
+      },
+      "side": "x-"
+    },
+    "CONN1.4": {
+      "pinId": "CONN1.4",
+      "offset": {
+        "x": -0.785,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "R10.1": {
+      "pinId": "R10.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R10.2": {
+      "pinId": "R10.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R11.1": {
+      "pinId": "R11.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R11.2": {
+      "pinId": "R11.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net33": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net33",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net13": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net13",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net14": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net14",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "CONN1.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net33": true,
+    "CONN1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "R10.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "R11.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "CONN1.3-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net13": true,
+    "R10.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net13": true,
+    "CONN1.4-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net14": true,
+    "R11.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net14": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
