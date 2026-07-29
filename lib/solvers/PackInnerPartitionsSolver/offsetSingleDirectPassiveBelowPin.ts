@@ -44,6 +44,17 @@ export const offsetSingleDirectPassiveBelowPin = (
   const mainPlacement = chipPlacements[mainChip.chipId]
   if (!passivePlacement || !mainPlacement) return
 
+  // Only offset passives whose pins are vertically aligned.
+  const [firstPinOffset, secondPinOffset] = passive.pins.map((pinId) =>
+    rotatePinOffset(
+      problem.chipPinMap[pinId]!.offset,
+      passivePlacement.ccwRotationDegrees,
+    ),
+  )
+  const pinDeltaX = Math.abs(firstPinOffset!.x - secondPinOffset!.x)
+  const pinDeltaY = Math.abs(firstPinOffset!.y - secondPinOffset!.y)
+  if (pinDeltaX >= pinDeltaY) return
+
   const getPinY = (pin: ChipPin, placement: Placement) =>
     placement.y + rotatePinOffset(pin.offset, placement.ccwRotationDegrees).y
   if (
