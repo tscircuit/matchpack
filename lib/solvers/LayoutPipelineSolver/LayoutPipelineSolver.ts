@@ -21,6 +21,7 @@ import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
 import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsSolver/PlaceNetOnlyDecouplingRowsSolver"
+import { PlaceRailConnectedLoadsSolver } from "../PlaceRailConnectedLoadsSolver/PlaceRailConnectedLoadsSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -61,6 +62,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
   alignTestPointsSolver?: AlignTestPointsSolver
   placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
+  placeRailConnectedLoadsSolver?: PlaceRailConnectedLoadsSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -160,10 +162,24 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep(
+      "placeRailConnectedLoadsSolver",
+      PlaceRailConnectedLoadsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          packedPartitions: this.packedPartitions!,
+          inputLayout:
+            this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
+            this.alignPowerGroundRowsSolver!.outputLayout!,
+        },
+      ],
+    ),
     definePipelineStep("alignTestPointsSolver", AlignTestPointsSolver, () => [
       {
         inputProblem: this.inputProblem,
         inputLayout:
+          this.placeRailConnectedLoadsSolver!.outputLayout ??
           this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
           this.alignPowerGroundRowsSolver!.outputLayout ??
           this.partitionPackingSolver!.finalLayout!,
