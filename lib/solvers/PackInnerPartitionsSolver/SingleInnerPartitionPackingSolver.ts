@@ -17,7 +17,7 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
-import { offsetSingleDirectPassiveBelowPin } from "./offsetSingleDirectPassiveBelowPin"
+import { applyVerticalPinClearanceToDirectPassive } from "./offsetSingleDirectPassiveBelowPin"
 
 const PIN_SIZE = 0.1
 
@@ -162,11 +162,11 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     }
 
-    offsetSingleDirectPassiveBelowPin(
-      this.partitionInputProblem,
-      this.pinIdToStronglyConnectedPins,
+    applyVerticalPinClearanceToDirectPassive({
+      problem: this.partitionInputProblem,
+      connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
       chipPlacements,
-    )
+    })
 
     return {
       chipPlacements,
