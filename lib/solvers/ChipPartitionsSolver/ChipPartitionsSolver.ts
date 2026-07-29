@@ -85,8 +85,14 @@ export class ChipPartitionsSolver extends BaseSolver {
             capsOnly.push(capId)
           }
         }
-        // Only add a partition if there are at least two caps present in the inputProblem
-        if (capsOnly.length >= 2) {
+        const singletonIsNetOnly =
+          capsOnly.length === 1 &&
+          !this.chipsHaveStrongConnection(
+            capsOnly[0]!,
+            group.mainChipId,
+            inputProblem,
+          )
+        if (capsOnly.length >= 2 || singletonIsNetOnly) {
           decapGroupPartitions.push(capsOnly)
           // Mark these caps as handled by decoupling-cap partitions
           for (const capId of capsOnly) {
@@ -168,6 +174,25 @@ export class ChipPartitionsSolver extends BaseSolver {
         this.createInputProblemFromPartition(partition, inputProblem),
       ),
     ]
+  }
+
+  private chipsHaveStrongConnection(
+    chipAId: ChipId,
+    chipBId: ChipId,
+    inputProblem: InputProblem,
+  ): boolean {
+    const chipAPins = new Set(inputProblem.chipMap[chipAId]?.pins ?? [])
+    const chipBPins = new Set(inputProblem.chipMap[chipBId]?.pins ?? [])
+    return Object.entries(inputProblem.pinStrongConnMap).some(
+      ([connection, connected]) => {
+        if (!connected) return false
+        const [pinA, pinB] = connection.split("-")
+        return (
+          (chipAPins.has(pinA!) && chipBPins.has(pinB!)) ||
+          (chipAPins.has(pinB!) && chipBPins.has(pinA!))
+        )
+      },
+    )
   }
 
   /**

@@ -15,7 +15,7 @@ import type {
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
-import { getRotatedSize } from "../../utils/rotatePinOffset"
+import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
@@ -136,24 +136,125 @@ const getRowOffset = ({
   chipGap,
   mainBounds,
   rowBounds,
-  neighbor,
+  mainAnchor,
+  rowAnchor,
 }: {
   side: Side
   chipGap: number
   mainBounds: Bounds
   rowBounds: Bounds
-  neighbor: Placement
+  mainAnchor: { x: number; y: number }
+  rowAnchor: { x: number; y: number }
 }) => {
-  const rowCenter = getBoundsCenter(rowBounds)
   const offset = {
-    x: neighbor.x - rowCenter.x,
-    y: neighbor.y - rowCenter.y,
+    x: mainAnchor.x - rowAnchor.x,
+    y: mainAnchor.y - rowAnchor.y,
   }
   if (side === "x+") offset.x = mainBounds.maxX + chipGap - rowBounds.minX
   if (side === "x-") offset.x = mainBounds.minX - chipGap - rowBounds.maxX
   if (side === "y+") offset.y = mainBounds.maxY + chipGap - rowBounds.minY
   if (side === "y-") offset.y = mainBounds.minY - chipGap - rowBounds.maxY
   return offset
+}
+
+const getNetIdsForPin = (
+  pinId: PinId,
+  inputProblem: InputProblem,
+): Set<string> => {
+  const netIds = new Set<string>()
+  for (const [connection, connected] of Object.entries(
+    inputProblem.netConnMap,
+  )) {
+    if (!connected) continue
+    const [connectedPinId, netId] = connection.split("-")
+    if (connectedPinId === pinId && netId) netIds.add(netId)
+  }
+  return netIds
+}
+
+const getAbsolutePinPosition = (
+  pinId: PinId,
+  inputProblem: InputProblem,
+  layout: OutputLayout,
+): { x: number; y: number } | null => {
+  const chip = Object.values(inputProblem.chipMap).find((candidate) =>
+    candidate.pins.includes(pinId),
+  )
+  const pin = inputProblem.chipPinMap[pinId]
+  const placement = chip && layout.chipPlacements[chip.chipId]
+  if (!pin || !placement) return null
+  const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+  return { x: placement.x + offset.x, y: placement.y + offset.y }
+}
+
+const averagePoints = (
+  points: Array<{ x: number; y: number }>,
+): { x: number; y: number } | null => {
+  if (points.length === 0) return null
+  return {
+    x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+    y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+  }
+}
+
+const getSharedNetAnchors = ({
+  mainChipId,
+  side,
+  rowChipIds,
+  inputProblem,
+  layout,
+}: {
+  mainChipId: ChipId
+  side: Side
+  rowChipIds: ChipId[]
+  inputProblem: InputProblem
+  layout: OutputLayout
+}): {
+  mainAnchor: { x: number; y: number }
+  rowAnchor: { x: number; y: number }
+} | null => {
+  const mainChip = inputProblem.chipMap[mainChipId]
+  if (!mainChip) return null
+  const rowPins = rowChipIds.flatMap(
+    (chipId) => inputProblem.chipMap[chipId]?.pins ?? [],
+  )
+  const rowNetIds = new Set(
+    rowPins.flatMap((pinId) => [...getNetIdsForPin(pinId, inputProblem)]),
+  )
+  const sharedNetIds = new Set(
+    mainChip.pins
+      .flatMap((pinId) => [...getNetIdsForPin(pinId, inputProblem)])
+      .filter((netId) => rowNetIds.has(netId)),
+  )
+  const nonGroundNetIds = new Set(
+    [...sharedNetIds].filter((netId) => !inputProblem.netMap[netId]?.isGround),
+  )
+  const relevantNetIds =
+    nonGroundNetIds.size > 0 ? nonGroundNetIds : sharedNetIds
+  const usesRelevantNet = (pinId: PinId) =>
+    [...getNetIdsForPin(pinId, inputProblem)].some((netId) =>
+      relevantNetIds.has(netId),
+    )
+
+  const mainAnchor = averagePoints(
+    mainChip.pins
+      .filter(
+        (pinId) =>
+          inputProblem.chipPinMap[pinId]?.side === side &&
+          usesRelevantNet(pinId),
+      )
+      .flatMap((pinId) => {
+        const point = getAbsolutePinPosition(pinId, inputProblem, layout)
+        return point ? [point] : []
+      }),
+  )
+  const rowAnchor = averagePoints(
+    rowPins.filter(usesRelevantNet).flatMap((pinId) => {
+      const point = getAbsolutePinPosition(pinId, inputProblem, layout)
+      return point ? [point] : []
+    }),
+  )
+  return mainAnchor && rowAnchor ? { mainAnchor, rowAnchor } : null
 }
 
 const placeNetOnlyDecouplingRow = (
@@ -197,14 +298,25 @@ const placeNetOnlyDecouplingRow = (
     boundsContext,
   )
   const rowBounds = getPartitionBounds(rowChipIds, boundsContext)
-  if (!neighbor || !mainBounds || !rowBounds) return
+  if (!mainBounds || !rowBounds) return
+
+  const anchors = neighbor
+    ? { mainAnchor: neighbor, rowAnchor: getBoundsCenter(rowBounds) }
+    : getSharedNetAnchors({
+        mainChipId,
+        side,
+        rowChipIds,
+        inputProblem,
+        layout,
+      })
+  if (!anchors) return
 
   const offset = getRowOffset({
     side,
     chipGap: inputProblem.chipGap,
     mainBounds,
     rowBounds,
-    neighbor,
+    ...anchors,
   })
   const rowToPlacedTransform = translate(offset.x, offset.y)
   const previousPlacements = new Map<ChipId, Placement>()

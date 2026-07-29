@@ -82,3 +82,22 @@ test("uses the positive rail pin when ground and power are on opposite sides", (
     }),
   ])
 })
+
+test("groups a grounded signal-filter capacitor with its main chip", () => {
+  const signalFilterInput = structuredClone(input) as InputProblem
+  const powerNet = Object.values(signalFilterInput.netMap).find(
+    (net) => net.isPositiveVoltageSource,
+  )!
+  powerNet.isPositiveVoltageSource = false
+
+  const solver = new IdentifyDecouplingCapsSolver(signalFilterInput)
+  solver.solve()
+
+  expect(solver.outputDecouplingCapGroups).toEqual([
+    expect.objectContaining({
+      mainChipId: "U1",
+      mainChipSide: "x-",
+      decouplingCapChipIds: ["C1", "C2", "C3"],
+    }),
+  ])
+})

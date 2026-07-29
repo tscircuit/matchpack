@@ -130,3 +130,33 @@ test("places a net-only decoupling row after a direct connection", () => {
   )
   expect(solver.checkForOverlaps(layout)).toEqual([])
 })
+
+test("places a singleton net-only capacitor beside its matching pin", () => {
+  const singletonInput = structuredClone(inputProblem)
+  for (const chipId of ["C1", "C3"]) {
+    const chip = singletonInput.chipMap[chipId]!
+    for (const pinId of chip.pins) {
+      delete singletonInput.chipPinMap[pinId]
+      for (const connection of Object.keys(singletonInput.netConnMap)) {
+        if (connection.startsWith(`${pinId}-`)) {
+          delete singletonInput.netConnMap[connection]
+        }
+      }
+    }
+    delete singletonInput.chipMap[chipId]
+  }
+  singletonInput.pinStrongConnMap = {}
+
+  const solver = new LayoutPipelineSolver(singletonInput)
+  solver.solve()
+
+  const layout = solver.getOutputLayout()
+  const mainRight = layout.chipPlacements.U1!.x + 0.6
+  const capLeft = layout.chipPlacements.C2!.x - 0.42
+  const rotatedSignalPinY = layout.chipPlacements.C2!.y + 0.3
+  const mainPowerPinY = layout.chipPlacements.U1!.y + 0.1
+
+  expect(capLeft - mainRight).toBeCloseTo(singletonInput.chipGap)
+  expect(rotatedSignalPinY).toBeCloseTo(mainPowerPinY)
+  expect(solver.checkForOverlaps(layout)).toEqual([])
+})
