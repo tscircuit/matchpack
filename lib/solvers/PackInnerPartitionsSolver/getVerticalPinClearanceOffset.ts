@@ -6,12 +6,12 @@ import type {
 import type { Placement } from "../../types/OutputLayout"
 import { rotatePinOffset } from "../../utils/rotatePinOffset"
 
-export const VERTICAL_PIN_OFFSET = 0.2
+export const VERTICAL_PIN_CLEARANCE = 0.2
 
 const getPinY = (pin: ChipPin, placement: Placement) =>
   placement.y + rotatePinOffset(pin.offset, placement.ccwRotationDegrees).y
 
-export const getVerticalOffsetToPlacePinBelow = ({
+export const getVerticalPinClearanceOffset = ({
   upperPin,
   upperPlacement,
   lowerPin,
@@ -24,7 +24,7 @@ export const getVerticalOffsetToPlacePinBelow = ({
 }) =>
   getPinY(upperPin, upperPlacement) -
   getPinY(lowerPin, lowerPlacement) -
-  VERTICAL_PIN_OFFSET
+  VERTICAL_PIN_CLEARANCE
 
 // Move equal-height passive pins down to give the trace solver routing space.
 export const applyVerticalPinOffsetToDirectPassive = (
@@ -80,7 +80,7 @@ export const applyVerticalPinOffsetToDirectPassive = (
   )
     return
 
-  passivePlacement.y += getVerticalOffsetToPlacePinBelow({
+  passivePlacement.y += getVerticalPinClearanceOffset({
     upperPin: mainPin,
     upperPlacement: mainPlacement,
     lowerPin: passivePin,

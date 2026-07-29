@@ -16,8 +16,8 @@ import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { BaseSolver } from "../BaseSolver"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-import { applyVerticalPinOffsetToDirectPassive } from "./apply-vertical-pin-offset"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
+import { applyVerticalPinOffsetToDirectPassive } from "./getVerticalPinClearanceOffset"
 
 const PIN_SIZE = 0.1
 

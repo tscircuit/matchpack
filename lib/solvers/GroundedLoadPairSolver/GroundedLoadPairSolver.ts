@@ -4,7 +4,7 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-import { getVerticalOffsetToPlacePinBelow } from "../PackInnerPartitionsSolver/apply-vertical-pin-offset"
+import { getVerticalPinClearanceOffset } from "../PackInnerPartitionsSolver/getVerticalPinClearanceOffset"
 
 type GroundedLoadPair = {
   nearChip: Chip
@@ -161,7 +161,7 @@ export class GroundedLoadPairSolver extends BaseSolver {
       y: chipSidePosition.y - newChipSideOffset.y,
       ccwRotationDegrees: nearRotation,
     }
-    nextNearPlacement.y += getVerticalOffsetToPlacePinBelow({
+    nextNearPlacement.y += getVerticalPinClearanceOffset({
       upperPin: this.params.inputProblem.chipPinMap[pair.mainPinId]!,
       upperPlacement: mainPlacement,
       lowerPin: chipSidePin,
@@ -175,6 +175,53 @@ export class GroundedLoadPairSolver extends BaseSolver {
         farInternalOffset.x,
       y: placements[pair.nearChip.chipId]!.y - centerDistance,
       ccwRotationDegrees: farRotation,
+    }
+    this.movePairBelowCollisions(pair, placements)
+  }
+
+  private movePairBelowCollisions(
+    pair: GroundedLoadPair,
+    placements: Record<string, Placement>,
+  ) {
+    const pairChipIds = new Set([pair.nearChip.chipId, pair.farChip.chipId])
+    const nearPlacement = placements[pair.nearChip.chipId]!
+    const farPlacement = placements[pair.farChip.chipId]!
+    const nearBounds = this.getBounds(pair.nearChip, nearPlacement)
+    const farBounds = this.getBounds(pair.farChip, farPlacement)
+    const pairBounds = {
+      minX: Math.min(nearBounds.minX, farBounds.minX),
+      maxX: Math.max(nearBounds.maxX, farBounds.maxX),
+      maxY: Math.max(nearBounds.maxY, farBounds.maxY),
+    }
+
+    let downwardShift = 0
+    for (const [chipId, placement] of Object.entries(placements)) {
+      if (pairChipIds.has(chipId)) continue
+      const chip = this.params.inputProblem.chipMap[chipId]
+      if (!chip) continue
+      const bounds = this.getBounds(chip, placement)
+      const overlapsX =
+        pairBounds.minX < bounds.maxX + this.params.inputProblem.chipGap &&
+        pairBounds.maxX > bounds.minX - this.params.inputProblem.chipGap
+      if (!overlapsX || bounds.maxY <= pairBounds.maxY) continue
+
+      downwardShift = Math.max(
+        downwardShift,
+        pairBounds.maxY + this.params.inputProblem.chipGap - bounds.minY,
+      )
+    }
+
+    nearPlacement.y -= downwardShift
+    farPlacement.y -= downwardShift
+  }
+
+  private getBounds(chip: Chip, placement: Placement) {
+    const size = getRotatedSize(chip.size, placement.ccwRotationDegrees)
+    return {
+      minX: placement.x - size.x / 2,
+      maxX: placement.x + size.x / 2,
+      minY: placement.y - size.y / 2,
+      maxY: placement.y + size.y / 2,
     }
   }
 

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { applyVerticalPinOffsetToDirectPassive } from "../../lib/solvers/PackInnerPartitionsSolver/apply-vertical-pin-offset"
+import { applyVerticalPinOffsetToDirectPassive } from "../../lib/solvers/PackInnerPartitionsSolver/getVerticalPinClearanceOffset"
 import type {
   ChipPin,
   PartitionInputProblem,
