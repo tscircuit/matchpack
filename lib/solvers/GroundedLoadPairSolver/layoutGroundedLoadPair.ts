@@ -35,6 +35,8 @@ const getVerticalRotation = ({
   if (chip.availableRotations) {
     ccwRotationsDegrees = chip.availableRotations
   }
+
+  // Choose the allowed rotation that puts the source pin above the sink pin.
   let bestCcwRotationDegrees = DEFAULT_CCW_ROTATION_DEGREES
   let bestPinDeltaY = Number.NEGATIVE_INFINITY
   for (const ccwRotationDegrees of ccwRotationsDegrees) {
@@ -92,6 +94,7 @@ const movePairBelowObstacles = ({
   ])
   if (!pairBounds) return
 
+  // Find one downward translation that clears every overlapping chip body.
   let downwardShift = 0
   for (const [chipId, placement] of Object.entries(chipPlacements)) {
     if (chipId === groundedLoadPair.upperChip.chipId) continue
@@ -169,6 +172,8 @@ export const layoutGroundedLoadPair = ({
     lowerPlacement,
   ])
   if (!initialPairBounds) return
+
+  // Preserve the pair's packed center when converting it into a vertical stack.
   const pairCenter = getBoundsCenter(initialPairBounds)
 
   const nextUpperPlacement = {
@@ -213,6 +218,7 @@ export const layoutGroundedLoadPair = ({
   }
 
   chipPlacements[groundedLoadPair.upperChip.chipId] = nextUpperPlacement
+  // Align the connected pins while retaining the requested body-to-body gap.
   chipPlacements[groundedLoadPair.lowerChip.chipId] = {
     x: nextUpperPlacement.x + upperInnerPinOffset.x - lowerInnerPinOffset.x,
     y: nextUpperPlacement.y - centerDistance,

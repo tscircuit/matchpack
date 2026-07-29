@@ -27,6 +27,7 @@ type ConnectivityContext = {
 
 const TWO_PIN_COMPONENT_PIN_COUNT = 2
 
+// Read direct neighbors from the pipeline's canonical connectivity map.
 const getStronglyConnectedPinIds = ({
   connectedPinsByPinId,
   pinId,
@@ -90,6 +91,7 @@ const getChipConnectedPair = (
   upperChip: Chip,
   context: ConnectivityContext,
 ): GroundedLoadPair | null => {
+  // Match main chip -> two-pin component -> two-pin component -> ground.
   const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } =
     context
   for (const upperOuterPinId of upperChip.pins) {
@@ -154,6 +156,7 @@ const getRailConnectedPair = (
   upperChip: Chip,
   context: ConnectivityContext,
 ): GroundedLoadPair | null => {
+  // Match positive rail -> two-pin component -> private net -> component -> ground.
   const { inputProblem, pinOwnerMap, pairedChipIds } = context
   const upperOuterPinId = upperChip.pins.find((pinId) =>
     pinConnectsToPositiveVoltage({ inputProblem, pinId }),
@@ -175,6 +178,7 @@ const getRailConnectedPair = (
   if (!internalNetId) return null
 
   const internalPinIds = getPinIdsForNet({ inputProblem, netId: internalNetId })
+  // A private two-pin net prevents grouping a branched circuit as one load chain.
   if (internalPinIds.length !== TWO_PIN_COMPONENT_PIN_COUNT) return null
   const lowerInnerPinId = internalPinIds.find(
     (pinId) => pinId !== upperInnerPinId,
