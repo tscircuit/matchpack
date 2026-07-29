@@ -1,10 +1,15 @@
 import { expect, test } from "bun:test"
-import { offsetSingleDirectPassiveBelowPin } from "../../lib/solvers/PackInnerPartitionsSolver/offsetSingleDirectPassiveBelowPin"
+import {
+  applyVerticalPinClearanceToDirectPassive,
+  getVerticalPinClearanceOffset,
+} from "../../lib/solvers/PackInnerPartitionsSolver/offsetSingleDirectPassiveBelowPin"
 import type {
   ChipPin,
   PartitionInputProblem,
 } from "../../lib/types/InputProblem"
 import type { Placement } from "../../lib/types/OutputLayout"
+
+const VERTICAL_PIN_CLEARANCE = 0.2
 
 const createProblem = (): {
   problem: PartitionInputProblem
@@ -72,15 +77,20 @@ test.each([0, 180])(
   "offsets an aligned vertical direct passive at %d degrees",
   (ccwRotationDegrees) => {
     const { problem, connectedPinsByPinId } = createProblem()
-    const passiveY = ccwRotationDegrees === 0 ? -0.5 : 0.5
+    let passiveY = 0.5
+    if (ccwRotationDegrees === 0) passiveY = -0.5
     const placements: Record<string, Placement> = {
       U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
       R1: { x: 1, y: passiveY, ccwRotationDegrees },
     }
 
-    offsetSingleDirectPassiveBelowPin(problem, connectedPinsByPinId, placements)
+    applyVerticalPinClearanceToDirectPassive({
+      problem,
+      connectedPinsByPinId,
+      chipPlacements: placements,
+    })
 
-    expect(placements.R1!.y).toBeCloseTo(passiveY - 0.2)
+    expect(placements.R1!.y).toBeCloseTo(passiveY - VERTICAL_PIN_CLEARANCE)
   },
 )
 
@@ -93,8 +103,34 @@ test.each([90, 270])(
       R1: { x: 1, y: 0, ccwRotationDegrees },
     }
 
-    offsetSingleDirectPassiveBelowPin(problem, connectedPinsByPinId, placements)
+    applyVerticalPinClearanceToDirectPassive({
+      problem,
+      connectedPinsByPinId,
+      chipPlacements: placements,
+    })
 
     expect(placements.R1!.y).toBe(0)
   },
 )
+
+test("returns the offset needed for vertical pin clearance", () => {
+  const upperPin: ChipPin = {
+    pinId: "U1.1",
+    offset: { x: 0, y: 0 },
+    side: "y-",
+  }
+  const lowerPin: ChipPin = {
+    pinId: "R1.1",
+    offset: { x: 0, y: 0.5 },
+    side: "y+",
+  }
+
+  const offset = getVerticalPinClearanceOffset({
+    upperPin,
+    upperPlacement: { x: 0, y: 0, ccwRotationDegrees: 0 },
+    lowerPin,
+    lowerPlacement: { x: 0, y: -0.5, ccwRotationDegrees: 0 },
+  })
+
+  expect(offset).toBeCloseTo(-VERTICAL_PIN_CLEARANCE)
+})

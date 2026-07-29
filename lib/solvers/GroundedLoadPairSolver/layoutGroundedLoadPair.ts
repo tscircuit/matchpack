@@ -6,8 +6,8 @@ import {
 import type { Chip, InputProblem, PinId } from "../../types/InputProblem"
 import type { Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
+import { getVerticalPinClearanceOffset } from "../PackInnerPartitionsSolver/offsetSingleDirectPassiveBelowPin"
 import type { GroundedLoadPair } from "./getGroundedLoadPairs"
-import { getVerticalPinClearanceOffset } from "./getVerticalPinClearanceOffset"
 
 const DEFAULT_CCW_ROTATIONS_DEGREES: NonNullable<Chip["availableRotations"]> = [
   0, 90, 180, 270,
