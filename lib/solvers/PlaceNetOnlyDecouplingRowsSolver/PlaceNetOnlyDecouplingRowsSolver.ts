@@ -313,7 +313,7 @@ const placeNetOnlyDecouplingRow = (
 
   const offset = getRowOffset({
     side,
-    gap: inputProblem.decouplingCapsGap ?? inputProblem.chipGap,
+    gap: inputProblem.partitionGap,
     mainBounds,
     rowBounds,
     ...anchors,
