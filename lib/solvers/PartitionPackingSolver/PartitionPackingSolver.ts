@@ -10,6 +10,7 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
+import { offsetGroundedLoadPairsBelowPin } from "./offsetGroundedLoadPairsBelowPin"
 
 export interface PartitionPackingSolverInput {
   packedPartitions: PackedPartition[]
@@ -312,6 +313,12 @@ export class PartitionPackingSolver extends BaseSolver {
         }
       }
     }
+
+    offsetGroundedLoadPairsBelowPin(
+      this.inputProblem,
+      this.packedPartitions,
+      newChipPlacements,
+    )
 
     return {
       chipPlacements: newChipPlacements,

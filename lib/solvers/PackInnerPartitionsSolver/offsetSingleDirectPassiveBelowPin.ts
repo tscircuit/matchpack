@@ -6,7 +6,7 @@ import type {
 import type { Placement } from "../../types/OutputLayout"
 import { rotatePinOffset } from "../../utils/rotatePinOffset"
 
-const VERTICAL_OFFSET = 0.2
+export const DIRECT_PASSIVE_VERTICAL_OFFSET = 0.2
 
 // Move equal-height passive pins down to give the trace solver routing space.
 export const offsetSingleDirectPassiveBelowPin = (
@@ -64,5 +64,5 @@ export const offsetSingleDirectPassiveBelowPin = (
   )
     return
 
-  passivePlacement.y -= VERTICAL_OFFSET
+  passivePlacement.y -= DIRECT_PASSIVE_VERTICAL_OFFSET
 }
