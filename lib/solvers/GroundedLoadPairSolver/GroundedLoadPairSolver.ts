@@ -4,6 +4,7 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import { getVerticalOffsetToPlacePinBelow } from "../PackInnerPartitionsSolver/apply-vertical-pin-offset"
 
 type GroundedLoadPair = {
   nearChip: Chip
@@ -14,8 +15,6 @@ type GroundedLoadPair = {
   farInternalPinId: PinId
   groundPinId: PinId
 }
-
-const PIN_OFFSET = 0.2
 
 export class GroundedLoadPairSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
@@ -157,18 +156,18 @@ export class GroundedLoadPairSolver extends BaseSolver {
       farRotation,
     )
 
-    placements[pair.nearChip.chipId] = {
+    const nextNearPlacement = {
       x: chipSidePosition.x - newChipSideOffset.x,
-      y:
-        mainPlacement.y +
-        rotatePinOffset(
-          this.params.inputProblem.chipPinMap[pair.mainPinId]!.offset,
-          mainPlacement.ccwRotationDegrees,
-        ).y -
-        newChipSideOffset.y -
-        PIN_OFFSET,
+      y: chipSidePosition.y - newChipSideOffset.y,
       ccwRotationDegrees: nearRotation,
     }
+    nextNearPlacement.y += getVerticalOffsetToPlacePinBelow({
+      upperPin: this.params.inputProblem.chipPinMap[pair.mainPinId]!,
+      upperPlacement: mainPlacement,
+      lowerPin: chipSidePin,
+      lowerPlacement: nextNearPlacement,
+    })
+    placements[pair.nearChip.chipId] = nextNearPlacement
     placements[pair.farChip.chipId] = {
       x:
         placements[pair.nearChip.chipId]!.x +

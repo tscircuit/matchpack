@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { offsetSingleDirectPassiveBelowPin } from "../../lib/solvers/PackInnerPartitionsSolver/offsetSingleDirectPassiveBelowPin"
+import { applyVerticalPinOffsetToDirectPassive } from "../../lib/solvers/PackInnerPartitionsSolver/apply-vertical-pin-offset"
 import type {
   ChipPin,
   PartitionInputProblem,
@@ -78,7 +78,11 @@ test.each([0, 180])(
       R1: { x: 1, y: passiveY, ccwRotationDegrees },
     }
 
-    offsetSingleDirectPassiveBelowPin(problem, connectedPinsByPinId, placements)
+    applyVerticalPinOffsetToDirectPassive(
+      problem,
+      connectedPinsByPinId,
+      placements,
+    )
 
     expect(placements.R1!.y).toBeCloseTo(passiveY - 0.2)
   },
@@ -93,7 +97,11 @@ test.each([90, 270])(
       R1: { x: 1, y: 0, ccwRotationDegrees },
     }
 
-    offsetSingleDirectPassiveBelowPin(problem, connectedPinsByPinId, placements)
+    applyVerticalPinOffsetToDirectPassive(
+      problem,
+      connectedPinsByPinId,
+      placements,
+    )
 
     expect(placements.R1!.y).toBe(0)
   },
