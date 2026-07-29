@@ -29,6 +29,10 @@ import { findSameSidePassiveGroups } from "./findSameSidePassiveGroups"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import {
+  canLayoutGroundedLoadPair,
+  GroundedLoadPairSolver,
+} from "./GroundedLoadPairSolver"
 
 export type PackedPartition = {
   inputProblem: InputProblem
@@ -41,6 +45,7 @@ type InnerPartitionSolver =
   | SingleInnerPartitionPackingSolver
   | ParallelAlignedPassiveSolver
   | DecouplingCapRowSolver
+  | GroundedLoadPairSolver
 
 /**
  * A partition-layout strategy, modelled on LayoutPipelineSolver's PipelineStep: a
@@ -73,6 +78,18 @@ function definePartitionSolverStrategy<
 }
 
 const PARTITION_SOLVER_STRATEGIES = [
+  definePartitionSolverStrategy(
+    "groundedLoadPairSolver",
+    GroundedLoadPairSolver,
+    canLayoutGroundedLoadPair,
+    (instance) => [
+      {
+        partitionInputProblem: instance.partitions[
+          instance.currentPartitionIndex
+        ]! as PartitionInputProblem,
+      },
+    ],
+  ),
   definePartitionSolverStrategy(
     "crystalCircuitLayoutSolver",
     CrystalCircuitLayoutSolver,
