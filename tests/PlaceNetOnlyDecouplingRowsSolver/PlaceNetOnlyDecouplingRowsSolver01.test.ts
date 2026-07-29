@@ -122,7 +122,7 @@ test("places a net-only decoupling row after a direct connection", () => {
   )
 
   expect(weakPartitionLeft - mainPartitionRight).toBeCloseTo(
-    inputProblem.chipGap,
+    inputProblem.decouplingCapsGap!,
   )
   expect(layout.chipPlacements.C2!.y).toBeCloseTo(layout.chipPlacements.C1!.y)
   expect(layout.chipPlacements.C2!.x).toBeGreaterThan(
@@ -156,7 +156,7 @@ test("places a singleton net-only capacitor beside its matching pin", () => {
   const rotatedSignalPinY = layout.chipPlacements.C2!.y + 0.3
   const mainPowerPinY = layout.chipPlacements.U1!.y + 0.1
 
-  expect(capLeft - mainRight).toBeCloseTo(singletonInput.chipGap)
+  expect(capLeft - mainRight).toBeCloseTo(singletonInput.decouplingCapsGap!)
   expect(rotatedSignalPinY).toBeCloseTo(mainPowerPinY)
   expect(solver.checkForOverlaps(layout)).toEqual([])
 })

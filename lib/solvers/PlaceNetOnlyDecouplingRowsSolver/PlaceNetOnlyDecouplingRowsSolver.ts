@@ -133,14 +133,14 @@ const movedChipsOverlap = (
 
 const getRowOffset = ({
   side,
-  chipGap,
+  gap,
   mainBounds,
   rowBounds,
   mainAnchor,
   rowAnchor,
 }: {
   side: Side
-  chipGap: number
+  gap: number
   mainBounds: Bounds
   rowBounds: Bounds
   mainAnchor: { x: number; y: number }
@@ -150,10 +150,10 @@ const getRowOffset = ({
     x: mainAnchor.x - rowAnchor.x,
     y: mainAnchor.y - rowAnchor.y,
   }
-  if (side === "x+") offset.x = mainBounds.maxX + chipGap - rowBounds.minX
-  if (side === "x-") offset.x = mainBounds.minX - chipGap - rowBounds.maxX
-  if (side === "y+") offset.y = mainBounds.maxY + chipGap - rowBounds.minY
-  if (side === "y-") offset.y = mainBounds.minY - chipGap - rowBounds.maxY
+  if (side === "x+") offset.x = mainBounds.maxX + gap - rowBounds.minX
+  if (side === "x-") offset.x = mainBounds.minX - gap - rowBounds.maxX
+  if (side === "y+") offset.y = mainBounds.maxY + gap - rowBounds.minY
+  if (side === "y-") offset.y = mainBounds.minY - gap - rowBounds.maxY
   return offset
 }
 
@@ -313,7 +313,7 @@ const placeNetOnlyDecouplingRow = (
 
   const offset = getRowOffset({
     side,
-    chipGap: inputProblem.chipGap,
+    gap: inputProblem.decouplingCapsGap ?? inputProblem.chipGap,
     mainBounds,
     rowBounds,
     ...anchors,
