@@ -1,0 +1,148 @@
+{
+  "chipMap": {
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.388910699999999
+      },
+      "availableRotations": [270]
+    },
+    "C1": {
+      "chipId": "C1",
+      "pins": ["C1.1", "C1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.84
+      },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "no": {
+      "chipId": "no",
+      "pins": ["no.1", "no.2", "no.3", "no.4", "no.5", "no.6", "no.7", "no.8"],
+      "size": {
+        "x": 1.6,
+        "y": 1.7999999999999998
+      },
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "R1.1": {
+      "pinId": "R1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R1.2": {
+      "pinId": "R1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C1.1": {
+      "pinId": "C1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C1.2": {
+      "pinId": "C1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "no.1": {
+      "pinId": "no.1",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": 0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "no.2": {
+      "pinId": "no.2",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": 0.10000000000000003
+      },
+      "side": "x-"
+    },
+    "no.3": {
+      "pinId": "no.3",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": -0.09999999999999998
+      },
+      "side": "x-"
+    },
+    "no.4": {
+      "pinId": "no.4",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "no.5": {
+      "pinId": "no.5",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": -0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "no.6": {
+      "pinId": "no.6",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": -0.10000000000000003
+      },
+      "side": "x+"
+    },
+    "no.7": {
+      "pinId": "no.7",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": 0.09999999999999998
+      },
+      "side": "x+"
+    },
+    "no.8": {
+      "pinId": "no.8",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": 0.30000000000000004
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "C1.2-R1.1": true,
+    "R1.1-C1.2": true,
+    "no.1-C1.1": true,
+    "C1.1-no.1": true
+  },
+  "netConnMap": {
+    "R1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}

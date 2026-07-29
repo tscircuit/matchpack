@@ -1,0 +1,203 @@
+{
+  "chipMap": {
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.388910699999999
+      },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D1": {
+      "chipId": "D1",
+      "pins": ["D1.1", "D1.2"],
+      "size": {
+        "x": 1.04,
+        "y": 0.54
+      },
+      "availableRotations": [270]
+    },
+    "R2": {
+      "chipId": "R2",
+      "pins": ["R2.1", "R2.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.388910699999999
+      },
+      "availableRotations": [270]
+    },
+    "C1": {
+      "chipId": "C1",
+      "pins": ["C1.1", "C1.2"],
+      "size": {
+        "x": 1.1,
+        "y": 0.84
+      },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "U1": {
+      "chipId": "U1",
+      "pins": ["U1.1", "U1.2", "U1.3", "U1.4", "U1.5", "U1.6", "U1.7", "U1.8"],
+      "size": {
+        "x": 1.6,
+        "y": 1.7999999999999998
+      },
+      "availableRotations": [0]
+    }
+  },
+  "chipPinMap": {
+    "R1.1": {
+      "pinId": "R1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R1.2": {
+      "pinId": "R1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D1.1": {
+      "pinId": "D1.1",
+      "offset": {
+        "x": -0.52,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D1.2": {
+      "pinId": "D1.2",
+      "offset": {
+        "x": 0.52,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R2.1": {
+      "pinId": "R2.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R2.2": {
+      "pinId": "R2.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C1.1": {
+      "pinId": "C1.1",
+      "offset": {
+        "x": -0.55,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C1.2": {
+      "pinId": "C1.2",
+      "offset": {
+        "x": 0.55,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": 0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": 0.10000000000000003
+      },
+      "side": "x-"
+    },
+    "U1.3": {
+      "pinId": "U1.3",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": -0.09999999999999998
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": -0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "U1.6": {
+      "pinId": "U1.6",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": -0.10000000000000003
+      },
+      "side": "x+"
+    },
+    "U1.7": {
+      "pinId": "U1.7",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": 0.09999999999999998
+      },
+      "side": "x+"
+    },
+    "U1.8": {
+      "pinId": "U1.8",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": 0.30000000000000004
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "U1.1-R1.1": true,
+    "R1.1-U1.1": true,
+    "R1.2-D1.1": true,
+    "D1.1-R1.2": true,
+    "C1.2-R2.1": true,
+    "R2.1-C1.2": true,
+    "U1.8-C1.1": true,
+    "C1.1-U1.8": true
+  },
+  "netConnMap": {
+    "D1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "R2.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
