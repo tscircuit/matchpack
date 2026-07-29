@@ -1,0 +1,65 @@
+{
+  "chipMap": {
+    "D2": {
+      "chipId": "D2",
+      "pins": ["D2.1", "D2.2"],
+      "size": { "x": 1.1, "y": 0.54 },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": { "x": 1.1, "y": 0.388910699999999 },
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "D2.1": {
+      "pinId": "D2.1",
+      "offset": { "x": -0.55, "y": 0 },
+      "side": "x-"
+    },
+    "D2.2": {
+      "pinId": "D2.2",
+      "offset": { "x": 0.55, "y": 0 },
+      "side": "x+"
+    },
+    "R1.1": {
+      "pinId": "R1.1",
+      "offset": { "x": -0.55, "y": 0 },
+      "side": "x-"
+    },
+    "R1.2": {
+      "pinId": "R1.2",
+      "offset": { "x": 0.55, "y": 0 },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "V3V3": {
+      "netId": "V3V3",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "PWR_LED_K": {
+      "netId": "PWR_LED_K",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "GND": {
+      "netId": "GND",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "D2.1-V3V3": true,
+    "D2.2-PWR_LED_K": true,
+    "R1.1-PWR_LED_K": true,
+    "R1.2-GND": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
