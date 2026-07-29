@@ -17,7 +17,6 @@ import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualiz
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import type { CrystalCircuitGroup } from "../IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver"
-import { findGroundedLoadPairPartitions } from "./findGroundedLoadPairPartitions"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -49,7 +48,6 @@ export class ChipPartitionsSolver extends BaseSolver {
    * Creates partitions by:
    * - Keeping each detected crystal and its load components in one partition
    * - Separating each decoupling capacitor group into its own partition (caps only, excluding the main chip)
-   * - Isolating chip-connected two-component chains that terminate at ground
    * - Partitioning remaining chips by connected components through strong pin connections
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
@@ -98,23 +96,9 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
-    // 3) Keep each chip -> two-pin -> two-pin -> GND chain as a pair.
-    const excludedPairChipIds = new Set([
-      ...crystalChipIdSet,
-      ...decapChipIdSet,
-    ])
-    const groundedLoadPairPartitions = findGroundedLoadPairPartitions(
-      inputProblem,
-      excludedPairChipIds,
-    )
-    const groundedLoadPairChipIds = new Set(groundedLoadPairPartitions.flat())
-
-    // 4) Build adjacency graph for chips not claimed by a special partition.
+    // 3) Build adjacency graph for chips not claimed by a special partition.
     const nonDecapChipIds = chipIds.filter(
-      (id) =>
-        !decapChipIdSet.has(id) &&
-        !crystalChipIdSet.has(id) &&
-        !groundedLoadPairChipIds.has(id),
+      (id) => !decapChipIdSet.has(id) && !crystalChipIdSet.has(id),
     )
     const adjacencyMap = new Map<ChipId, Set<ChipId>>()
 
@@ -140,8 +124,6 @@ export class ChipPartitionsSolver extends BaseSolver {
         owner1 &&
         owner2 &&
         owner1 !== owner2 &&
-        adjacencyMap.has(owner1) &&
-        adjacencyMap.has(owner2) &&
         !decapChipIdSet.has(owner1) &&
         !decapChipIdSet.has(owner2) &&
         !crystalChipIdSet.has(owner1) &&
@@ -152,7 +134,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       }
     }
 
-    // 5) Find connected components among ordinary chips using DFS
+    // 4) Find connected components among ordinary chips using DFS
     const visited = new Set<ChipId>()
     const nonDecapPartitions: ChipId[][] = []
 
@@ -182,11 +164,6 @@ export class ChipPartitionsSolver extends BaseSolver {
           decouplingMainChipSide: decouplingCapGroup?.mainChipSide,
         })
       }),
-      ...groundedLoadPairPartitions.map((partition) =>
-        this.createInputProblemFromPartition(partition, inputProblem, {
-          partitionType: "grounded_load_pair",
-        }),
-      ),
       ...nonDecapPartitions.map((partition) =>
         this.createInputProblemFromPartition(partition, inputProblem),
       ),

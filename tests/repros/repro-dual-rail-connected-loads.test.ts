@@ -9,16 +9,11 @@ test("dual rail-connected diode and RC loads from Core", async () => {
   solver.solve()
 
   const layout = solver.getOutputLayout()
-  const groundedPairs = solver
-    .chipPartitions!.filter(
-      (partition) => partition.partitionType === "grounded_load_pair",
-    )
-    .map((partition) => Object.keys(partition.chipMap))
-
-  expect(groundedPairs).toEqual([
+  const groundedPairs = [
     ["R1", "D1"],
     ["C1", "R2"],
-  ])
+  ] as const
+  expect(solver.chipPartitions).toHaveLength(1)
   for (const [nearChipId, farChipId] of groundedPairs) {
     const near = layout.chipPlacements[nearChipId!]!
     const far = layout.chipPlacements[farChipId!]!
