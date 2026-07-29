@@ -9,7 +9,7 @@ import { getVerticalPinClearanceOffset } from "../PackInnerPartitionsSolver/getV
 type GroundedLoadPair = {
   nearChip: Chip
   farChip: Chip
-  mainPinId: PinId
+  mainPinId?: PinId
   chipSidePinId: PinId
   nearInternalPinId: PinId
   farInternalPinId: PinId
@@ -109,6 +109,72 @@ export class GroundedLoadPairSolver extends BaseSolver {
         break
       }
     }
+    pairs.push(...this.findRailPairs(pairedChipIds, pinOwner))
+    return pairs
+  }
+
+  private findRailPairs(
+    pairedChipIds: Set<string>,
+    pinOwner: Map<PinId, Chip>,
+  ): GroundedLoadPair[] {
+    const pairs: GroundedLoadPair[] = []
+    for (const nearChip of Object.values(this.params.inputProblem.chipMap)) {
+      if (
+        nearChip.pins.length !== 2 ||
+        nearChip.fixedPosition ||
+        pairedChipIds.has(nearChip.chipId)
+      ) {
+        continue
+      }
+
+      const chipSidePinId = nearChip.pins.find((pinId) =>
+        this.isPositiveVoltagePin(pinId),
+      )
+      if (!chipSidePinId) continue
+
+      const nearInternalPinId = nearChip.pins.find(
+        (pinId) => pinId !== chipSidePinId,
+      )!
+      const internalNetId = this.netIdsForPin(nearInternalPinId).find(
+        (netId) => {
+          const net = this.params.inputProblem.netMap[netId]
+          return !net?.isGround && !net?.isPositiveVoltageSource
+        },
+      )
+      if (!internalNetId) continue
+
+      const internalPins = this.pinsOnNet(internalNetId)
+      if (internalPins.length !== 2) continue
+      const farInternalPinId = internalPins.find(
+        (pinId) => pinId !== nearInternalPinId,
+      )
+      if (!farInternalPinId) continue
+      const farChip = pinOwner.get(farInternalPinId)
+      if (!farChip) continue
+      if (
+        farChip.pins.length !== 2 ||
+        farChip.fixedPosition ||
+        pairedChipIds.has(farChip.chipId)
+      ) {
+        continue
+      }
+
+      const groundPinId = farChip.pins.find(
+        (pinId) => pinId !== farInternalPinId && this.isGroundPin(pinId),
+      )
+      if (!groundPinId) continue
+
+      pairs.push({
+        nearChip,
+        farChip,
+        chipSidePinId,
+        nearInternalPinId,
+        farInternalPinId,
+        groundPinId,
+      })
+      pairedChipIds.add(nearChip.chipId)
+      pairedChipIds.add(farChip.chipId)
+    }
     return pairs
   }
 
@@ -117,21 +183,16 @@ export class GroundedLoadPairSolver extends BaseSolver {
     placements: Record<string, Placement>,
   ) {
     const nearPlacement = placements[pair.nearChip.chipId]
-    const mainChip = Object.values(this.params.inputProblem.chipMap).find(
-      (chip) => chip.pins.includes(pair.mainPinId),
-    )
+    const mainChip = pair.mainPinId
+      ? Object.values(this.params.inputProblem.chipMap).find((chip) =>
+          chip.pins.includes(pair.mainPinId!),
+        )
+      : undefined
     const mainPlacement = mainChip ? placements[mainChip.chipId] : undefined
-    if (!nearPlacement || !mainPlacement) return
+    const farPlacement = placements[pair.farChip.chipId]
+    if (!nearPlacement || !farPlacement) return
 
     const chipSidePin = this.params.inputProblem.chipPinMap[pair.chipSidePinId]!
-    const oldChipSideOffset = rotatePinOffset(
-      chipSidePin.offset,
-      nearPlacement.ccwRotationDegrees,
-    )
-    const chipSidePosition = {
-      x: nearPlacement.x + oldChipSideOffset.x,
-      y: nearPlacement.y + oldChipSideOffset.y,
-    }
     const nearRotation = this.chooseRotation(
       pair.nearChip,
       pair.chipSidePinId,
@@ -156,24 +217,40 @@ export class GroundedLoadPairSolver extends BaseSolver {
       farRotation,
     )
 
+    const pairCenter = {
+      x: (nearPlacement.x + farPlacement.x) / 2,
+      y: (nearPlacement.y + farPlacement.y) / 2,
+    }
     const nextNearPlacement = {
-      x: chipSidePosition.x - newChipSideOffset.x,
-      y: chipSidePosition.y - newChipSideOffset.y,
+      x: pairCenter.x - nearInternalOffset.x,
+      y: pairCenter.y + centerDistance / 2,
       ccwRotationDegrees: nearRotation,
     }
-    nextNearPlacement.y += getVerticalPinClearanceOffset({
-      upperPin: this.params.inputProblem.chipPinMap[pair.mainPinId]!,
-      upperPlacement: mainPlacement,
-      lowerPin: chipSidePin,
-      lowerPlacement: nextNearPlacement,
-    })
+    if (pair.mainPinId && mainPlacement) {
+      const oldChipSideOffset = rotatePinOffset(
+        chipSidePin.offset,
+        nearPlacement.ccwRotationDegrees,
+      )
+      const chipSidePosition = {
+        x: nearPlacement.x + oldChipSideOffset.x,
+        y: nearPlacement.y + oldChipSideOffset.y,
+      }
+      nextNearPlacement.x = chipSidePosition.x - newChipSideOffset.x
+      nextNearPlacement.y = chipSidePosition.y - newChipSideOffset.y
+      nextNearPlacement.y += getVerticalPinClearanceOffset({
+        upperPin: this.params.inputProblem.chipPinMap[pair.mainPinId]!,
+        upperPlacement: mainPlacement,
+        lowerPin: chipSidePin,
+        lowerPlacement: nextNearPlacement,
+      })
+    }
     placements[pair.nearChip.chipId] = nextNearPlacement
     placements[pair.farChip.chipId] = {
       x:
         placements[pair.nearChip.chipId]!.x +
         nearInternalOffset.x -
         farInternalOffset.x,
-      y: placements[pair.nearChip.chipId]!.y - centerDistance,
+      y: nextNearPlacement.y - centerDistance,
       ccwRotationDegrees: farRotation,
     }
     this.movePairBelowCollisions(pair, placements)
@@ -260,6 +337,32 @@ export class GroundedLoadPairSolver extends BaseSolver {
         return this.params.inputProblem.netMap[netId]?.isGround === true
       },
     )
+  }
+
+  private isPositiveVoltagePin(pinId: PinId) {
+    return this.netIdsForPin(pinId).some(
+      (netId) =>
+        this.params.inputProblem.netMap[netId]?.isPositiveVoltageSource ===
+        true,
+    )
+  }
+
+  private netIdsForPin(pinId: PinId) {
+    return Object.entries(this.params.inputProblem.netConnMap)
+      .filter(
+        ([connection, connected]) =>
+          connected && connection.startsWith(`${pinId}-`),
+      )
+      .map(([connection]) => connection.slice(pinId.length + 1))
+  }
+
+  private pinsOnNet(netId: string) {
+    const suffix = `-${netId}`
+    return Object.entries(this.params.inputProblem.netConnMap)
+      .filter(
+        ([connection, connected]) => connected && connection.endsWith(suffix),
+      )
+      .map(([connection]) => connection.slice(0, -suffix.length) as PinId)
   }
 
   override visualize(): GraphicsObject {
