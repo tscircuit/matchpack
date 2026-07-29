@@ -8,11 +8,14 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 type GroundedLoadPair = {
   nearChip: Chip
   farChip: Chip
+  mainPinId: PinId
   chipSidePinId: PinId
   nearInternalPinId: PinId
   farInternalPinId: PinId
   groundPinId: PinId
 }
+
+const PIN_OFFSET = 0.2
 
 export class GroundedLoadPairSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
@@ -61,10 +64,11 @@ export class GroundedLoadPairSolver extends BaseSolver {
       }
 
       for (const chipSidePinId of nearChip.pins) {
-        const mainChip = this.connectedPins(chipSidePinId)
-          .map((pinId) => pinOwner.get(pinId))
-          .find((chip) => chip && chip.pins.length > 2 && !chip.isCrystal)
-        if (!mainChip) continue
+        const mainPinId = this.connectedPins(chipSidePinId).find((pinId) => {
+          const chip = pinOwner.get(pinId)
+          return chip && chip.pins.length > 2 && !chip.isCrystal
+        })
+        if (!mainPinId) continue
 
         const nearInternalPinId = nearChip.pins.find(
           (pinId) => pinId !== chipSidePinId,
@@ -95,6 +99,7 @@ export class GroundedLoadPairSolver extends BaseSolver {
         pairs.push({
           nearChip,
           farChip,
+          mainPinId,
           chipSidePinId,
           nearInternalPinId,
           farInternalPinId,
@@ -113,7 +118,11 @@ export class GroundedLoadPairSolver extends BaseSolver {
     placements: Record<string, Placement>,
   ) {
     const nearPlacement = placements[pair.nearChip.chipId]
-    if (!nearPlacement) return
+    const mainChip = Object.values(this.params.inputProblem.chipMap).find(
+      (chip) => chip.pins.includes(pair.mainPinId),
+    )
+    const mainPlacement = mainChip ? placements[mainChip.chipId] : undefined
+    if (!nearPlacement || !mainPlacement) return
 
     const chipSidePin = this.params.inputProblem.chipPinMap[pair.chipSidePinId]!
     const oldChipSideOffset = rotatePinOffset(
@@ -150,7 +159,14 @@ export class GroundedLoadPairSolver extends BaseSolver {
 
     placements[pair.nearChip.chipId] = {
       x: chipSidePosition.x - newChipSideOffset.x,
-      y: chipSidePosition.y - newChipSideOffset.y,
+      y:
+        mainPlacement.y +
+        rotatePinOffset(
+          this.params.inputProblem.chipPinMap[pair.mainPinId]!.offset,
+          mainPlacement.ccwRotationDegrees,
+        ).y -
+        newChipSideOffset.y -
+        PIN_OFFSET,
       ccwRotationDegrees: nearRotation,
     }
     placements[pair.farChip.chipId] = {
