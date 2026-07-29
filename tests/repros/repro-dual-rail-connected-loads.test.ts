@@ -27,6 +27,10 @@ test("dual rail-connected diode and RC loads from Core", async () => {
     expect(near.x).toBe(far.x)
     expect(near.y).toBeGreaterThan(far.y)
   }
+  expect(layout.chipPlacements.R1!.x).toBeLessThan(layout.chipPlacements.U1!.x)
+  expect(layout.chipPlacements.C1!.x).toBeGreaterThan(
+    layout.chipPlacements.U1!.x,
+  )
   expect(solver.checkForOverlaps(layout)).toHaveLength(0)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)

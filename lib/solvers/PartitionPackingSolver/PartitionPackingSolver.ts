@@ -234,6 +234,11 @@ export class PartitionPackingSolver extends BaseSolver {
           const absolutePinY = chipPlacement.y + rotatedPinOffset.y
           const networkId =
             pinToNetworkMap.get(pinId) ?? `${pinId}_disconnected`
+          const isGroundedLoadPairGround =
+            packedPartition.inputProblem.partitionType ===
+              "grounded_load_pair" &&
+            packedPartition.inputProblem.netMap[networkId]?.isGround === true
+          if (isGroundedLoadPairGround) continue
 
           // Only add one pad per network to avoid overlapping
           if (!addedNetworks.has(networkId)) {

@@ -35,7 +35,7 @@ import {
 } from "./GroundedLoadPairSolver"
 
 export type PackedPartition = {
-  inputProblem: InputProblem
+  inputProblem: PartitionInputProblem
   layout: OutputLayout
 }
 

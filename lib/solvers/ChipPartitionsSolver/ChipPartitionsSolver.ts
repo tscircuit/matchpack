@@ -189,7 +189,9 @@ export class ChipPartitionsSolver extends BaseSolver {
         }),
       ),
       ...nonDecapPartitions.map((partition) =>
-        this.createInputProblemFromPartition(partition, inputProblem),
+        this.createInputProblemFromPartition(partition, inputProblem, {
+          preserveExternalStrongConnections: true,
+        }),
       ),
     ]
   }
