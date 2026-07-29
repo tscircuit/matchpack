@@ -6,28 +6,10 @@ import type {
 import type { Placement } from "../../types/OutputLayout"
 import { rotatePinOffset } from "../../utils/rotatePinOffset"
 
-export const VERTICAL_PIN_CLEARANCE = 0.2
-
-const getPinY = (pin: ChipPin, placement: Placement) =>
-  placement.y + rotatePinOffset(pin.offset, placement.ccwRotationDegrees).y
-
-export const getVerticalPinClearanceOffset = ({
-  upperPin,
-  upperPlacement,
-  lowerPin,
-  lowerPlacement,
-}: {
-  upperPin: ChipPin
-  upperPlacement: Placement
-  lowerPin: ChipPin
-  lowerPlacement: Placement
-}) =>
-  getPinY(upperPin, upperPlacement) -
-  getPinY(lowerPin, lowerPlacement) -
-  VERTICAL_PIN_CLEARANCE
+const VERTICAL_OFFSET = 0.2
 
 // Move equal-height passive pins down to give the trace solver routing space.
-export const applyVerticalPinOffsetToDirectPassive = (
+export const offsetSingleDirectPassiveBelowPin = (
   problem: PartitionInputProblem,
   connectedPinsByPinId: Record<PinId, ChipPin[]>,
   chipPlacements: Record<string, Placement>,
@@ -73,6 +55,8 @@ export const applyVerticalPinOffsetToDirectPassive = (
   const pinDeltaY = Math.abs(firstPinOffset!.y - secondPinOffset!.y)
   if (pinDeltaX >= pinDeltaY) return
 
+  const getPinY = (pin: ChipPin, placement: Placement) =>
+    placement.y + rotatePinOffset(pin.offset, placement.ccwRotationDegrees).y
   if (
     Math.abs(
       getPinY(passivePin, passivePlacement) - getPinY(mainPin, mainPlacement),
@@ -80,10 +64,5 @@ export const applyVerticalPinOffsetToDirectPassive = (
   )
     return
 
-  passivePlacement.y += getVerticalPinClearanceOffset({
-    upperPin: mainPin,
-    upperPlacement: mainPlacement,
-    lowerPin: passivePin,
-    lowerPlacement: passivePlacement,
-  })
+  passivePlacement.y -= VERTICAL_OFFSET
 }

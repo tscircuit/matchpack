@@ -3,21 +3,21 @@
  * Uses a packing algorithm to arrange chips and their connections within the partition.
  */
 
-import { type PackInput, PackSolver2 } from "calculate-packing"
 import type { GraphicsObject } from "graphics-debug"
-import type {
-  ChipPin,
-  InputProblem,
-  PartitionInputProblem,
-  PinId,
-} from "../../types/InputProblem"
-import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
+import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
-import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import type { OutputLayout, Placement } from "../../types/OutputLayout"
+import type {
+  InputProblem,
+  PinId,
+  ChipPin,
+  PartitionInputProblem,
+} from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
+import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
-import { applyVerticalPinOffsetToDirectPassive } from "./getVerticalPinClearanceOffset"
+import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
+import { offsetSingleDirectPassiveBelowPin } from "./offsetSingleDirectPassiveBelowPin"
 
 const PIN_SIZE = 0.1
 
@@ -162,7 +162,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     }
 
-    applyVerticalPinOffsetToDirectPassive(
+    offsetSingleDirectPassiveBelowPin(
       this.partitionInputProblem,
       this.pinIdToStronglyConnectedPins,
       chipPlacements,
