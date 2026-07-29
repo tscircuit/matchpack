@@ -10,7 +10,6 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
-import { offsetGroundedLoadPairsBelowPin } from "./offsetGroundedLoadPairsBelowPin"
 
 export interface PartitionPackingSolverInput {
   packedPartitions: PackedPartition[]
@@ -235,11 +234,6 @@ export class PartitionPackingSolver extends BaseSolver {
           const absolutePinY = chipPlacement.y + rotatedPinOffset.y
           const networkId =
             pinToNetworkMap.get(pinId) ?? `${pinId}_disconnected`
-          const isGroundedLoadPairGround =
-            packedPartition.inputProblem.partitionType ===
-              "grounded_load_pair" &&
-            packedPartition.inputProblem.netMap[networkId]?.isGround === true
-          if (isGroundedLoadPairGround) continue
 
           // Only add one pad per network to avoid overlapping
           if (!addedNetworks.has(networkId)) {
@@ -313,12 +307,6 @@ export class PartitionPackingSolver extends BaseSolver {
         }
       }
     }
-
-    offsetGroundedLoadPairsBelowPin(
-      this.inputProblem,
-      this.packedPartitions,
-      newChipPlacements,
-    )
 
     return {
       chipPlacements: newChipPlacements,

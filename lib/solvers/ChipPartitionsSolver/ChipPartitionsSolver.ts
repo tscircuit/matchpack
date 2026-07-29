@@ -185,13 +185,10 @@ export class ChipPartitionsSolver extends BaseSolver {
       ...groundedLoadPairPartitions.map((partition) =>
         this.createInputProblemFromPartition(partition, inputProblem, {
           partitionType: "grounded_load_pair",
-          preserveExternalStrongConnections: true,
         }),
       ),
       ...nonDecapPartitions.map((partition) =>
-        this.createInputProblemFromPartition(partition, inputProblem, {
-          preserveExternalStrongConnections: true,
-        }),
+        this.createInputProblemFromPartition(partition, inputProblem),
       ),
     ]
   }
@@ -258,7 +255,6 @@ export class ChipPartitionsSolver extends BaseSolver {
       decouplingMainChipId?: PartitionInputProblem["decouplingMainChipId"]
       decouplingMainChipSide?: PartitionInputProblem["decouplingMainChipSide"]
       crystalCircuitGroup?: CrystalCircuitGroup
-      preserveExternalStrongConnections?: boolean
     },
   ): PartitionInputProblem {
     const chipIds = partition
@@ -294,11 +290,7 @@ export class ChipPartitionsSolver extends BaseSolver {
       originalProblem.pinStrongConnMap,
     )) {
       const [pin1Id, pin2Id] = connKey.split("-")
-      if (
-        (relevantPinIds.has(pin1Id!) && relevantPinIds.has(pin2Id!)) ||
-        (opts?.preserveExternalStrongConnections &&
-          (relevantPinIds.has(pin1Id!) || relevantPinIds.has(pin2Id!)))
-      ) {
+      if (relevantPinIds.has(pin1Id!) && relevantPinIds.has(pin2Id!)) {
         pinStrongConnMap[connKey] = isConnected
       }
     }
