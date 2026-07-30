@@ -22,6 +22,7 @@ import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
 import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsSolver/PlaceNetOnlyDecouplingRowsSolver"
 import { GroundedLoadPairSolver } from "../GroundedLoadPairSolver/GroundedLoadPairSolver"
+import { OffsetSchematicTraceConnectionsSolver } from "../OffsetSchematicTraceConnectionsSolver/OffsetSchematicTraceConnectionsSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -60,6 +61,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
   groundedLoadPairSolver?: GroundedLoadPairSolver
+  offsetSchematicTraceConnectionsSolver?: OffsetSchematicTraceConnectionsSolver
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
   alignTestPointsSolver?: AlignTestPointsSolver
   placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
@@ -170,10 +172,25 @@ export class LayoutPipelineSolver extends BaseSolver {
           this.alignPowerGroundRowsSolver!.outputLayout!,
       },
     ]),
+    definePipelineStep(
+      "offsetSchematicTraceConnectionsSolver",
+      OffsetSchematicTraceConnectionsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          inputLayout:
+            this.groundedLoadPairSolver!.outputLayout ??
+            this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
+            this.alignPowerGroundRowsSolver!.outputLayout ??
+            this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+    ),
     definePipelineStep("alignTestPointsSolver", AlignTestPointsSolver, () => [
       {
         inputProblem: this.inputProblem,
         inputLayout:
+          this.offsetSchematicTraceConnectionsSolver!.outputLayout ??
           this.groundedLoadPairSolver!.outputLayout ??
           this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
           this.alignPowerGroundRowsSolver!.outputLayout ??
