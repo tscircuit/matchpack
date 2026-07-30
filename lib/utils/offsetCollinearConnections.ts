@@ -209,7 +209,7 @@ export const applyDirectPassiveTraceClearance = ({
   }
 }
 
-export const offsetCollinearGroundedResistorLoads = ({
+export const offsetChipAnchoredGroundedLoadConnections = ({
   inputProblem,
   chipPlacements,
 }: {

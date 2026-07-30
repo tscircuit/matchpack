@@ -5,7 +5,7 @@ import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { getGroundedLoadPairs } from "./getGroundedLoadPairs"
 import { layoutGroundedLoadPair } from "./layoutGroundedLoadPair"
-import { offsetCollinearGroundedResistorLoads } from "../../utils/offsetCollinearConnections"
+import { offsetChipAnchoredGroundedLoadConnections } from "../../utils/offsetCollinearConnections"
 
 export class GroundedLoadPairSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
@@ -37,7 +37,7 @@ export class GroundedLoadPairSolver extends BaseSolver {
         inputProblem: this.params.inputProblem,
       })
     }
-    offsetCollinearGroundedResistorLoads({
+    offsetChipAnchoredGroundedLoadConnections({
       inputProblem: this.params.inputProblem,
       chipPlacements,
     })
