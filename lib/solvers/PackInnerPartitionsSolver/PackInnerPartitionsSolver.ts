@@ -25,6 +25,10 @@ import {
   canLayoutCrystalCircuit,
   CrystalCircuitLayoutSolver,
 } from "./CrystalCircuitLayoutSolver"
+import {
+  canLayoutParallelSeriesBranches,
+  ParallelSeriesBranchSolver,
+} from "./ParallelSeriesBranchSolver"
 import { findSameSidePassiveGroups } from "./findSameSidePassiveGroups"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
@@ -40,6 +44,7 @@ type InnerPartitionSolver =
   | CrystalCircuitLayoutSolver
   | SingleInnerPartitionPackingSolver
   | ParallelAlignedPassiveSolver
+  | ParallelSeriesBranchSolver
   | DecouplingCapRowSolver
 
 /**
@@ -101,6 +106,19 @@ const PARTITION_SOLVER_STRATEGIES = [
     "parallelAlignedPassiveSolver",
     ParallelAlignedPassiveSolver,
     (partition) => findSameSidePassiveGroups(partition).length > 0,
+    (instance) => [
+      {
+        partitionInputProblem: instance.partitions[
+          instance.currentPartitionIndex
+        ]! as PartitionInputProblem,
+        pinIdToStronglyConnectedPins: instance.pinIdToStronglyConnectedPins,
+      },
+    ],
+  ),
+  definePartitionSolverStrategy(
+    "parallelSeriesBranchSolver",
+    ParallelSeriesBranchSolver,
+    canLayoutParallelSeriesBranches,
     (instance) => [
       {
         partitionInputProblem: instance.partitions[
