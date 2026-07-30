@@ -6,7 +6,7 @@ import type {
   InputProblem,
   PinId,
 } from "../../types/InputProblem"
-import type { OutputLayout, Placement } from "../../types/OutputLayout"
+import type { Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { getGroundedLoadPairs } from "../GroundedLoadPairSolver/getGroundedLoadPairs"
 import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
@@ -146,7 +146,7 @@ const tryOffsetChip = ({
   }
 }
 
-const offsetMainChipConnections = ({
+export const offsetCollinearMainChipConnections = ({
   inputProblem,
   chipPlacements,
 }: {
@@ -224,7 +224,7 @@ const offsetMainChipConnections = ({
   }
 }
 
-const offsetGroundedResistorLoads = ({
+export const offsetCollinearGroundedResistorLoads = ({
   inputProblem,
   chipPlacements,
 }: {
@@ -255,28 +255,5 @@ const offsetGroundedResistorLoads = ({
       chipPlacements,
       inputProblem,
     })
-  }
-}
-
-export const offsetCollinearConnections = ({
-  inputProblem,
-  inputLayout,
-}: {
-  inputProblem: InputProblem
-  inputLayout: OutputLayout
-}): OutputLayout => {
-  const chipPlacements = Object.fromEntries(
-    Object.entries(inputLayout.chipPlacements).map(([chipId, placement]) => [
-      chipId,
-      { ...placement },
-    ]),
-  )
-
-  offsetMainChipConnections({ inputProblem, chipPlacements })
-  offsetGroundedResistorLoads({ inputProblem, chipPlacements })
-
-  return {
-    chipPlacements,
-    groupPlacements: { ...inputLayout.groupPlacements },
   }
 }
