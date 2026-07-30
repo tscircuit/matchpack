@@ -5,10 +5,10 @@ import type {
   ChipPin,
   InputProblem,
   PinId,
-} from "../../types/InputProblem"
-import type { Placement } from "../../types/OutputLayout"
-import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
-import { getGroundedLoadPairs } from "../GroundedLoadPairSolver/getGroundedLoadPairs"
+} from "../types/InputProblem"
+import type { Placement } from "../types/OutputLayout"
+import { getRotatedSize, rotatePinOffset } from "../utils/rotatePinOffset"
+import { getGroundedLoadPairs } from "./GroundedLoadPairSolver/getGroundedLoadPairs"
 
 const TRACE_CLEARANCE = 0.2
 const ALIGNMENT_TOLERANCE = 1e-6

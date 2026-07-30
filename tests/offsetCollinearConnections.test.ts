@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test"
-import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
-import type { InputProblem, PinId } from "../../lib/types/InputProblem"
-import type { OutputLayout } from "../../lib/types/OutputLayout"
-import { rotatePinOffset } from "../../lib/utils/rotatePinOffset"
-import chipPortInput from "../assets/chip-port-without-portarrangement.input.json"
-import repro44Input from "../assets/repro44-e2e-pack-and-schematic.input.json"
+import { LayoutPipelineSolver } from "../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import type { InputProblem, PinId } from "../lib/types/InputProblem"
+import type { OutputLayout } from "../lib/types/OutputLayout"
+import { rotatePinOffset } from "../lib/utils/rotatePinOffset"
+import chipPortInput from "./assets/chip-port-without-portarrangement.input.json"
+import repro44Input from "./assets/repro44-e2e-pack-and-schematic.input.json"
 
 const getAbsolutePinPosition = (
   inputProblem: InputProblem,

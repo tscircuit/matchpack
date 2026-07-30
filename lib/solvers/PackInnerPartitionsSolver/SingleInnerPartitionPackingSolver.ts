@@ -17,7 +17,7 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 import { createFilteredNetworkMapping } from "../../utils/networkFiltering"
 import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
-import { applyDirectPassiveTraceClearance } from "./offsetCollinearConnections"
+import { applyDirectPassiveTraceClearance } from "../offsetCollinearConnections"
 
 const PIN_SIZE = 0.1
 
