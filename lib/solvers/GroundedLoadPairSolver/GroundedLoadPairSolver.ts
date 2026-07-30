@@ -5,7 +5,7 @@ import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { getGroundedLoadPairs } from "./getGroundedLoadPairs"
 import { layoutGroundedLoadPair } from "./layoutGroundedLoadPair"
-import { offsetCollinearGroundedResistorLoads } from "../offsetCollinearConnections"
+import { offsetCollinearGroundedResistorLoads } from "../../utils/offsetCollinearConnections"
 
 export class GroundedLoadPairSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
