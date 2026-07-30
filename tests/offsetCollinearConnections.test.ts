@@ -47,7 +47,7 @@ test("offsets only chip-anchored collinear connections", () => {
 
   const u1Pin5 = getAbsolutePinPosition(inputProblem, outputLayout, "U1.5")
   const c2Pin1 = getAbsolutePinPosition(inputProblem, outputLayout, "C2.1")
-  expect(c2Pin1.y - u1Pin5.y).toBeCloseTo(0)
+  expect(c2Pin1.y - u1Pin5.y).toBeCloseTo(-0.2)
 
   const u1Pin6 = getAbsolutePinPosition(inputProblem, outputLayout, "U1.6")
   const c1Pin1 = getAbsolutePinPosition(inputProblem, outputLayout, "C1.1")
