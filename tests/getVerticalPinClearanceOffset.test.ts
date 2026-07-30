@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
-import { getVerticalPinClearanceOffset } from "../../lib/solvers/PackInnerPartitionsSolver/getVerticalPinClearanceOffset"
-import type { ChipPin } from "../../lib/types/InputProblem"
+import { getVerticalPinClearanceOffset } from "../lib/utils/getVerticalPinClearanceOffset"
+import type { ChipPin } from "../lib/types/InputProblem"
 
 const VERTICAL_PIN_CLEARANCE = 0.2
 

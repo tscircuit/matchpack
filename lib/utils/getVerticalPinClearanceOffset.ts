@@ -1,6 +1,6 @@
-import type { ChipPin } from "../../types/InputProblem"
-import type { Placement } from "../../types/OutputLayout"
-import { rotatePinOffset } from "../../utils/rotatePinOffset"
+import type { ChipPin } from "../types/InputProblem"
+import type { Placement } from "../types/OutputLayout"
+import { rotatePinOffset } from "./rotatePinOffset"
 
 const VERTICAL_PIN_CLEARANCE = 0.2
 
