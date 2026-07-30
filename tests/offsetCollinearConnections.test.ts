@@ -5,6 +5,7 @@ import type { OutputLayout } from "../lib/types/OutputLayout"
 import { rotatePinOffset } from "../lib/utils/rotatePinOffset"
 import chipPortInput from "./assets/chip-port-without-portarrangement.input.json"
 import repro44Input from "./assets/repro44-e2e-pack-and-schematic.input.json"
+import bootResetInput from "./assets/schematic-section-rp2040-boot-reset.input.json"
 
 const getAbsolutePinPosition = (
   inputProblem: InputProblem,
@@ -40,13 +41,13 @@ test("offsets vertical direct connections to the left", () => {
   expect(diodePin.x - mainPin.x).toBeCloseTo(-0.2)
 })
 
-test("offsets grounded horizontal and vertical connections", () => {
+test("offsets only chip-anchored collinear connections", () => {
   const inputProblem = repro44Input as InputProblem
   const outputLayout = solve(inputProblem)
 
   const u1Pin5 = getAbsolutePinPosition(inputProblem, outputLayout, "U1.5")
   const c2Pin1 = getAbsolutePinPosition(inputProblem, outputLayout, "C2.1")
-  expect(c2Pin1.y - u1Pin5.y).toBeCloseTo(-0.2)
+  expect(c2Pin1.y - u1Pin5.y).toBeCloseTo(0)
 
   const u1Pin6 = getAbsolutePinPosition(inputProblem, outputLayout, "U1.6")
   const c1Pin1 = getAbsolutePinPosition(inputProblem, outputLayout, "C1.1")
@@ -57,4 +58,13 @@ test("offsets grounded horizontal and vertical connections", () => {
   expect(r3Pin2.x - d1Pin1.x).toBeCloseTo(-0.2)
 
   expect(outputLayout.chipPlacements.R2!.x).toBeCloseTo(0.9)
+})
+
+test("keeps a standalone rail-to-ground chain in one line", () => {
+  const inputProblem = bootResetInput as InputProblem
+  const outputLayout = solve(inputProblem)
+  const resistorPin = getAbsolutePinPosition(inputProblem, outputLayout, "R2.2")
+  const switchPin = getAbsolutePinPosition(inputProblem, outputLayout, "SW3.1")
+
+  expect(resistorPin.x).toBeCloseTo(switchPin.x)
 })

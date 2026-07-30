@@ -33,17 +33,6 @@ const getPinOwnerMap = (inputProblem: InputProblem) => {
   return pinOwnerMap
 }
 
-const pinConnectsToGround = (
-  inputProblem: InputProblem,
-  pinId: PinId,
-): boolean => {
-  for (const [netId, net] of Object.entries(inputProblem.netMap)) {
-    if (!net.isGround) continue
-    if (inputProblem.netConnMap[`${pinId}-${netId}`]) return true
-  }
-  return false
-}
-
 const chipPinsAreVerticallyOriented = ({
   chip,
   inputProblem,
@@ -202,16 +191,11 @@ export const applyDirectPassiveTraceClearance = ({
           continue
         }
 
-        const otherPinId = connectedChip.pins.find(
-          (pinId) => pinId !== connectedPin.pinId,
-        )
         const isSingleVerticalPassive =
           chipCount === TWO_PIN_COMPONENT_PIN_COUNT &&
           pinsAreVerticallyOriented &&
           (connectedChip.isCapacitor || connectedChip.isResistor)
-        const isGroundedLoad =
-          otherPinId && pinConnectsToGround(inputProblem, otherPinId)
-        if (pinsShareY && (isSingleVerticalPassive || isGroundedLoad)) {
+        if (pinsShareY && isSingleVerticalPassive) {
           tryOffsetChip({
             chipId: connectedChip.chipId,
             dx: 0,
@@ -233,6 +217,7 @@ export const offsetCollinearGroundedResistorLoads = ({
   chipPlacements: Record<ChipId, Placement>
 }): void => {
   for (const groundedLoadPair of getGroundedLoadPairs(inputProblem)) {
+    if (!groundedLoadPair.mainPinId) continue
     if (!groundedLoadPair.upperChip.isResistor) continue
 
     const upperPin = inputProblem.chipPinMap[groundedLoadPair.upperInnerPinId]
