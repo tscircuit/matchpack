@@ -9,7 +9,6 @@ import type {
 import type { Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { getGroundedLoadPairs } from "../GroundedLoadPairSolver/getGroundedLoadPairs"
-import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
 
 const TRACE_CLEARANCE = 0.2
 const ALIGNMENT_TOLERANCE = 1e-6
@@ -146,15 +145,17 @@ const tryOffsetChip = ({
   }
 }
 
-export const offsetCollinearMainChipConnections = ({
+export const applyDirectPassiveTraceClearance = ({
   inputProblem,
+  connectedPinsByPinId,
   chipPlacements,
 }: {
   inputProblem: InputProblem
+  connectedPinsByPinId: Record<PinId, ChipPin[]>
   chipPlacements: Record<ChipId, Placement>
 }): void => {
   const pinOwnerMap = getPinOwnerMap(inputProblem)
-  const connectedPinsByPinId = getPinIdToStronglyConnectedPinsObj(inputProblem)
+  const chipCount = Object.keys(inputProblem.chipMap).length
 
   for (const mainChip of Object.values(inputProblem.chipMap)) {
     if (mainChip.pins.length <= TWO_PIN_COMPONENT_PIN_COUNT) continue
@@ -184,15 +185,13 @@ export const offsetCollinearMainChipConnections = ({
         const pinsShareY =
           Math.abs(mainPinPosition.y - connectedPinPosition.y) <=
           ALIGNMENT_TOLERANCE
+        const pinsAreVerticallyOriented = chipPinsAreVerticallyOriented({
+          chip: connectedChip,
+          inputProblem,
+          placement: connectedPlacement,
+        })
 
-        if (
-          pinsShareX &&
-          chipPinsAreVerticallyOriented({
-            chip: connectedChip,
-            inputProblem,
-            placement: connectedPlacement,
-          })
-        ) {
+        if (pinsShareX && pinsAreVerticallyOriented) {
           tryOffsetChip({
             chipId: connectedChip.chipId,
             dx: -TRACE_CLEARANCE,
@@ -206,11 +205,13 @@ export const offsetCollinearMainChipConnections = ({
         const otherPinId = connectedChip.pins.find(
           (pinId) => pinId !== connectedPin.pinId,
         )
-        if (
-          pinsShareY &&
-          otherPinId &&
-          pinConnectsToGround(inputProblem, otherPinId)
-        ) {
+        const isSingleVerticalPassive =
+          chipCount === TWO_PIN_COMPONENT_PIN_COUNT &&
+          pinsAreVerticallyOriented &&
+          (connectedChip.isCapacitor || connectedChip.isResistor)
+        const isGroundedLoad =
+          otherPinId && pinConnectsToGround(inputProblem, otherPinId)
+        if (pinsShareY && (isSingleVerticalPassive || isGroundedLoad)) {
           tryOffsetChip({
             chipId: connectedChip.chipId,
             dx: 0,
