@@ -1,0 +1,302 @@
+{
+  "chipMap": {
+    "U1": {
+      "chipId": "U1",
+      "pins": [
+        "U1.1",
+        "U1.2",
+        "U1.4",
+        "U1.5",
+        "U1.6",
+        "U1.7",
+        "U1.8",
+        "U1.9",
+        "U1.10",
+        "U1.12",
+        "U1.13",
+        "U1.14",
+        "U1.15",
+        "U1.16"
+      ],
+      "size": {
+        "x": 3.1,
+        "y": 5.1000000000000005
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "availableRotations": [0]
+    },
+    "R4": {
+      "chipId": "R4",
+      "pins": ["R4.1", "R4.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D1": {
+      "chipId": "D1",
+      "pins": ["D1.1", "D1.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.18
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "R5": {
+      "chipId": "R5",
+      "pins": ["R5.1", "R5.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D2": {
+      "chipId": "D2",
+      "pins": ["D2.1", "D2.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.18
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": -0.7000000000000001
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": -0.9
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.85
+      },
+      "side": "x+"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.2499999999999999
+      },
+      "side": "x+"
+    },
+    "U1.6": {
+      "pinId": "U1.6",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.44999999999999996
+      },
+      "side": "x+"
+    },
+    "U1.7": {
+      "pinId": "U1.7",
+      "offset": {
+        "x": -0.44999999999999996,
+        "y": 2.55
+      },
+      "side": "y+"
+    },
+    "U1.8": {
+      "pinId": "U1.8",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": 0.7
+      },
+      "side": "x-"
+    },
+    "U1.9": {
+      "pinId": "U1.9",
+      "offset": {
+        "x": 0.44999999999999996,
+        "y": 2.55
+      },
+      "side": "y+"
+    },
+    "U1.10": {
+      "pinId": "U1.10",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": 0.85
+      },
+      "side": "x+"
+    },
+    "U1.12": {
+      "pinId": "U1.12",
+      "offset": {
+        "x": 0,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "U1.13": {
+      "pinId": "U1.13",
+      "offset": {
+        "x": -1.9500000000000002,
+        "y": 0.9
+      },
+      "side": "x-"
+    },
+    "U1.14": {
+      "pinId": "U1.14",
+      "offset": {
+        "x": 1.9500000000000002,
+        "y": -0.6499999999999999
+      },
+      "side": "x+"
+    },
+    "U1.15": {
+      "pinId": "U1.15",
+      "offset": {
+        "x": -0.65,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "U1.16": {
+      "pinId": "U1.16",
+      "offset": {
+        "x": 0.65,
+        "y": -2.55
+      },
+      "side": "y-"
+    },
+    "R4.1": {
+      "pinId": "R4.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R4.2": {
+      "pinId": "R4.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D1.1": {
+      "pinId": "D1.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D1.2": {
+      "pinId": "D1.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R5.1": {
+      "pinId": "R5.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R5.2": {
+      "pinId": "R5.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D2.1": {
+      "pinId": "D2.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D2.2": {
+      "pinId": "D2.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "charger_upper_connectivity_net2": {
+      "netId": "charger_upper_connectivity_net2",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "charger_upper_connectivity_net0": {
+      "netId": "charger_upper_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "charger_upper_connectivity_net1": {
+      "netId": "charger_upper_connectivity_net1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "charger_upper_connectivity_net3": {
+      "netId": "charger_upper_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "charger_upper_connectivity_net4": {
+      "netId": "charger_upper_connectivity_net4",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "U1.5-charger_upper_connectivity_net2": true,
+    "U1.10-charger_upper_connectivity_net2": true,
+    "R4.1-charger_upper_connectivity_net2": true,
+    "R5.1-charger_upper_connectivity_net2": true,
+    "U1.7-charger_upper_connectivity_net0": true,
+    "D1.2-charger_upper_connectivity_net0": true,
+    "U1.9-charger_upper_connectivity_net1": true,
+    "D2.2-charger_upper_connectivity_net1": true,
+    "R4.2-charger_upper_connectivity_net3": true,
+    "D1.1-charger_upper_connectivity_net3": true,
+    "R5.2-charger_upper_connectivity_net4": true,
+    "D2.1-charger_upper_connectivity_net4": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
