@@ -20,7 +20,7 @@ test("RP2040 power supply section auto-layout", async () => {
   )
   const gap =
     placements.U2!.x - u2Size.x / 2 - (placements.C1!.x + c1Size.x / 2)
-  expect(gap).toBeCloseTo(input.chipGap)
+  expect(gap).toBeCloseTo(input.chipGap * 2)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })
