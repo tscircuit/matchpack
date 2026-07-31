@@ -9,6 +9,7 @@ import type {
 import type { Placement } from "../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "./rotatePinOffset"
 import { getGroundedLoadPairs } from "../solvers/GroundedLoadPairSolver/getGroundedLoadPairs"
+import { createPinOwnerMap } from "./createPinOwnerMap"
 
 const TRACE_CLEARANCE = 0.2
 const ALIGNMENT_TOLERANCE = 1e-6
@@ -23,14 +24,6 @@ const getAbsolutePinPosition = (
     x: placement.x + offset.x,
     y: placement.y + offset.y,
   }
-}
-
-const getPinOwnerMap = (inputProblem: InputProblem) => {
-  const pinOwnerMap = new Map<PinId, Chip>()
-  for (const chip of Object.values(inputProblem.chipMap)) {
-    for (const pinId of chip.pins) pinOwnerMap.set(pinId, chip)
-  }
-  return pinOwnerMap
 }
 
 const pinConnectsToGround = (
@@ -154,7 +147,7 @@ export const applyDirectPassiveTraceClearance = ({
   connectedPinsByPinId: Record<PinId, ChipPin[]>
   chipPlacements: Record<ChipId, Placement>
 }): void => {
-  const pinOwnerMap = getPinOwnerMap(inputProblem)
+  const pinOwnerMap = createPinOwnerMap(inputProblem)
   const chipCount = Object.keys(inputProblem.chipMap).length
 
   for (const mainChip of Object.values(inputProblem.chipMap)) {

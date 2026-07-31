@@ -16,6 +16,7 @@ import type {
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
 import { getRotatedSize } from "../../utils/rotatePinOffset"
+import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
@@ -76,6 +77,7 @@ const getDirectNeighbor = (
       (pinId) => inputProblem.chipPinMap[pinId]?.side === side,
     ),
   )
+  const pinOwnerMap = createPinOwnerMap(mainPartition.inputProblem)
   for (const [connection, connected] of Object.entries(
     inputProblem.pinStrongConnMap,
   )) {
@@ -87,9 +89,8 @@ const getDirectNeighbor = (
         ? pinA
         : null
     if (!neighborPin) continue
-    const neighbor = Object.values(mainPartition.inputProblem.chipMap).find(
-      (chip) => chip.chipId !== mainChipId && chip.pins.includes(neighborPin),
-    )
+    const neighbor = pinOwnerMap.get(neighborPin)
+    if (neighbor?.chipId === mainChipId) continue
     if (neighbor) return neighbor.chipId
   }
   return null

@@ -7,10 +7,12 @@ import type {
   PinId,
 } from "../../types/InputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
+import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 
 export type GroundedLoadPair = {
   upperChip: Chip
   lowerChip: Chip
+  mainChipId?: ChipId
   mainPinId?: PinId
   upperOuterPinId: PinId
   upperInnerPinId: PinId
@@ -104,6 +106,8 @@ const getChipConnectedPair = (
       return chip.pins.length > TWO_PIN_COMPONENT_PIN_COUNT && !chip.isCrystal
     })
     if (!mainPinId) continue
+    const mainChip = pinOwnerMap.get(mainPinId)
+    if (!mainChip) continue
 
     const upperInnerPinId = upperChip.pins.find(
       (pinId) => pinId !== upperOuterPinId,
@@ -142,6 +146,7 @@ const getChipConnectedPair = (
     return {
       upperChip,
       lowerChip,
+      mainChipId: mainChip.chipId,
       mainPinId,
       upperOuterPinId,
       upperInnerPinId,
@@ -210,11 +215,7 @@ const getRailConnectedPair = (
 export const getGroundedLoadPairs = (
   inputProblem: InputProblem,
 ): GroundedLoadPair[] => {
-  const pinOwnerMap = new Map<PinId, Chip>()
-  for (const chip of Object.values(inputProblem.chipMap)) {
-    for (const pinId of chip.pins) pinOwnerMap.set(pinId, chip)
-  }
-
+  const pinOwnerMap = createPinOwnerMap(inputProblem)
   const groundedLoadPairs: GroundedLoadPair[] = []
   const pairedChipIds = new Set<ChipId>()
   const connectedPinsByPinId = getPinIdToStronglyConnectedPinsObj(inputProblem)
