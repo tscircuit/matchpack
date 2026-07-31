@@ -185,11 +185,9 @@ export const layoutGroundedLoadPair = ({
   const mainPinId = groundedLoadPair.mainPinId
   if (mainPinId) {
     // Keep a chip-connected chain anchored to its original main-chip pin.
-    const mainChip = Object.values(inputProblem.chipMap).find((chip) =>
-      chip.pins.includes(mainPinId),
-    )
-    if (!mainChip) return
-    const mainPlacement = chipPlacements[mainChip.chipId]
+    const mainChipId = groundedLoadPair.mainChipId
+    if (!mainChipId) return
+    const mainPlacement = chipPlacements[mainChipId]
     if (!mainPlacement) return
 
     const upperOuterPin =

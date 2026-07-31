@@ -12,6 +12,7 @@ import type { ChipId, InputProblem, PinId } from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
+import { createPinOwnerMap } from "lib/utils/create-pin-owner-map"
 
 type Axis = "x" | "y"
 
@@ -118,14 +119,6 @@ const placementsOverlap = ({
   return boundsAreaOverlap(boundsA, boundsB) > 0
 }
 
-const getPinOwnerMap = (inputProblem: InputProblem): Map<PinId, ChipId> => {
-  const pinOwnerMap = new Map<PinId, ChipId>()
-  for (const chip of Object.values(inputProblem.chipMap)) {
-    for (const pinId of chip.pins) pinOwnerMap.set(pinId, chip.chipId)
-  }
-  return pinOwnerMap
-}
-
 const getAnchorPinTangentPosition = (
   {
     anchorChipId,
@@ -222,7 +215,7 @@ const createTestPointSideGroups = (context: {
   inputProblem: InputProblem
   inputLayout: OutputLayout
 }): TestPointSideGroup[] => {
-  const pinOwnerMap = getPinOwnerMap(context.inputProblem)
+  const pinOwnerMap = createPinOwnerMap(context.inputProblem)
   const pinIdToStronglyConnectedPins = getPinIdToStronglyConnectedPinsObj(
     context.inputProblem,
   )
@@ -242,7 +235,7 @@ const createTestPointSideGroups = (context: {
     if (!anchorPin) continue
     const anchorPinId = anchorPin.pinId
 
-    const anchorChipId = pinOwnerMap.get(anchorPinId)
+    const anchorChipId = pinOwnerMap.get(anchorPinId)?.chipId
     if (!anchorChipId || anchorChipId === testPoint.chipId) continue
     if (context.inputProblem.chipMap[anchorChipId]?.isTestPoint) continue
 

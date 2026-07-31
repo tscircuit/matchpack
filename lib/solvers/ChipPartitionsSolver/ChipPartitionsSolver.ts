@@ -17,6 +17,7 @@ import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualiz
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import type { CrystalCircuitGroup } from "../IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver"
+import { createPinOwnerMap } from "lib/utils/create-pin-owner-map"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -101,6 +102,8 @@ export class ChipPartitionsSolver extends BaseSolver {
       (id) => !decapChipIdSet.has(id) && !crystalChipIdSet.has(id),
     )
     const adjacencyMap = new Map<ChipId, Set<ChipId>>()
+    // Index pin ownership once so each strong edge uses direct endpoint lookups.
+    const pinOwnerMap = createPinOwnerMap(inputProblem)
 
     // Initialize adjacency map for non-decap chips
     for (const chipId of nonDecapChipIds) {
@@ -115,9 +118,8 @@ export class ChipPartitionsSolver extends BaseSolver {
 
       const [pin1Id, pin2Id] = connKey.split("-")
 
-      // Find which chips own these pins
-      const owner1 = this.findPinOwner(pin1Id!, inputProblem)
-      const owner2 = this.findPinOwner(pin2Id!, inputProblem)
+      const owner1 = pinOwnerMap.get(pin1Id!)?.chipId
+      const owner2 = pinOwnerMap.get(pin2Id!)?.chipId
 
       // Only connect non-decap chips
       if (
@@ -168,27 +170,6 @@ export class ChipPartitionsSolver extends BaseSolver {
         this.createInputProblemFromPartition(partition, inputProblem),
       ),
     ]
-  }
-
-  /**
-   * Finds the owner chip of a given pin
-   */
-  private findPinOwner(
-    pinId: PinId,
-    inputProblem: InputProblem,
-  ): ChipId | null {
-    // Check if it's a chip pin
-    const chipPin = inputProblem.chipPinMap[pinId]
-    if (chipPin) {
-      // Find the chip that owns this pin
-      for (const [chipId, chip] of Object.entries(inputProblem.chipMap)) {
-        if (chip.pins.includes(pinId)) {
-          return chipId
-        }
-      }
-    }
-
-    return null
   }
 
   /**
