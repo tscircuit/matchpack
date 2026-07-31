@@ -272,17 +272,13 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const positiveNetIds = netPair.filter(
       (netId) => this.inputProblem.netMap[netId]?.isPositiveVoltageSource,
     )
-    const supplyNetIds =
-      positiveNetIds.length > 0
-        ? positiveNetIds
-        : netPair.filter((netId) => !this.inputProblem.netMap[netId]?.isGround)
     const sideCounts = new Map<Side, number>()
 
     for (const pinId of mainChip.pins) {
       const pin = this.inputProblem.chipPinMap[pinId]
       if (!pin) continue
       const pinNetIds = this.getNetIdsForPin(pinId)
-      if (!supplyNetIds.some((netId) => pinNetIds.has(netId))) continue
+      if (!positiveNetIds.some((netId) => pinNetIds.has(netId))) continue
       sideCounts.set(pin.side, (sideCounts.get(pin.side) ?? 0) + 1)
     }
 
@@ -320,13 +316,14 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const netPair = this.getNormalizedNetPair(currentChip)
     if (!netPair) return
 
-    // The supply net may not be explicitly marked as positive (for example RAW
-    // regulator inputs), but one side must still be a ground rail.
+    // Ensure the net pair corresponds to a true decoupling capacitor:
+    // one net must be ground and the other a positive voltage source
     const [n1, n2] = netPair
     const net1 = this.inputProblem.netMap[n1]
     const net2 = this.inputProblem.netMap[n2]
     const isDecouplingNetPair =
-      Boolean(net1?.isGround) !== Boolean(net2?.isGround)
+      (net1?.isGround && net2?.isPositiveVoltageSource) ||
+      (net2?.isGround && net1?.isPositiveVoltageSource)
     if (!isDecouplingNetPair) return
 
     // Require a chip for the cap to decouple, found by pin-to-pin connection or,
