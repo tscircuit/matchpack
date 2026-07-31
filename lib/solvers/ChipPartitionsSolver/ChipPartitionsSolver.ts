@@ -17,7 +17,7 @@ import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualiz
 import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBasicInputProblemLayout"
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import type { CrystalCircuitGroup } from "../IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver"
-import { createPinOwnerMap } from "lib/utils/create-pin-owner-map"
+import { createPinOwnerMap } from "lib/utils/createPinOwnerMap"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem

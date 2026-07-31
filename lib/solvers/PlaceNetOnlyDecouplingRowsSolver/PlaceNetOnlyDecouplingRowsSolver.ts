@@ -16,7 +16,7 @@ import type {
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
 import { getRotatedSize } from "../../utils/rotatePinOffset"
-import { createPinOwnerMap } from "../../utils/create-pin-owner-map"
+import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"

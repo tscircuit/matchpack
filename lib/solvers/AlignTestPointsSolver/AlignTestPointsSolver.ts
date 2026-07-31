@@ -12,7 +12,7 @@ import type { ChipId, InputProblem, PinId } from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
-import { createPinOwnerMap } from "lib/utils/create-pin-owner-map"
+import { createPinOwnerMap } from "lib/utils/createPinOwnerMap"
 
 type Axis = "x" | "y"
 

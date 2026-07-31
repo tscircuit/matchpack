@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import type { InputProblem } from "../lib/types/InputProblem"
-import { createPinOwnerMap } from "../lib/utils/create-pin-owner-map"
+import { createPinOwnerMap } from "../lib/utils/createPinOwnerMap"
 
 test("createPinOwnerMap indexes each pin by its owning chip", () => {
   const inputProblem: InputProblem = {

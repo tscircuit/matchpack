@@ -9,7 +9,7 @@ import type {
 import type { Placement } from "../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "./rotatePinOffset"
 import { getGroundedLoadPairs } from "../solvers/GroundedLoadPairSolver/getGroundedLoadPairs"
-import { createPinOwnerMap } from "./create-pin-owner-map"
+import { createPinOwnerMap } from "./createPinOwnerMap"
 
 const TRACE_CLEARANCE = 0.2
 const ALIGNMENT_TOLERANCE = 1e-6

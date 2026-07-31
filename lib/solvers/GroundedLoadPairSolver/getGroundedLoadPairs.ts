@@ -7,7 +7,7 @@ import type {
   PinId,
 } from "../../types/InputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
-import { createPinOwnerMap } from "../../utils/create-pin-owner-map"
+import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 
 export type GroundedLoadPair = {
   upperChip: Chip
