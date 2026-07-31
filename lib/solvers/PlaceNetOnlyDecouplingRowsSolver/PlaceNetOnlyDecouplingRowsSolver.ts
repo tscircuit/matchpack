@@ -190,7 +190,9 @@ const placeNetOnlyDecouplingRow = (
     { mainPartition, mainChipId, side },
     inputProblem,
   )
-  const neighbor = neighborId && layout.chipPlacements[neighborId]
+  const neighbor =
+    (neighborId && layout.chipPlacements[neighborId]) ??
+    layout.chipPlacements[mainChipId]
   const rowChipIds = Object.keys(partition.chipMap)
   const boundsContext = { inputProblem, layout }
   const mainBounds = getPartitionBounds(

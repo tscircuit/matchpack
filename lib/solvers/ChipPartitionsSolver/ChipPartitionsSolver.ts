@@ -53,6 +53,7 @@ export class ChipPartitionsSolver extends BaseSolver {
    */
   private createPartitions(inputProblem: InputProblem): InputProblem[] {
     const chipIds = Object.keys(inputProblem.chipMap)
+    const pinOwnerMap = createPinOwnerMap(inputProblem)
 
     // 1) Build crystal-circuit partitions. These take precedence over generic
     // decoupling-cap detection and connected-component partitioning.
@@ -86,8 +87,21 @@ export class ChipPartitionsSolver extends BaseSolver {
             capsOnly.push(capId)
           }
         }
-        // Only add a partition if there are at least two caps present in the inputProblem
-        if (capsOnly.length >= 2) {
+        const hasStrongConnection = Object.entries(
+          inputProblem.pinStrongConnMap,
+        ).some(([connection, connected]) => {
+          if (!connected) return false
+          const [pinA, pinB] = connection.split("-")
+          return [pinA, pinB].some((pinId) =>
+            capsOnly.includes(pinOwnerMap.get(pinId!)?.chipId ?? ""),
+          )
+        })
+        // A strongly connected singleton stays with its main partition; a
+        // rail-only singleton needs its own partition for side placement.
+        if (
+          capsOnly.length >= 2 ||
+          (capsOnly.length === 1 && !hasStrongConnection)
+        ) {
           decapGroupPartitions.push(capsOnly)
           // Mark these caps as handled by decoupling-cap partitions
           for (const capId of capsOnly) {
@@ -103,8 +117,6 @@ export class ChipPartitionsSolver extends BaseSolver {
     )
     const adjacencyMap = new Map<ChipId, Set<ChipId>>()
     // Index pin ownership once so each strong edge uses direct endpoint lookups.
-    const pinOwnerMap = createPinOwnerMap(inputProblem)
-
     // Initialize adjacency map for non-decap chips
     for (const chipId of nonDecapChipIds) {
       adjacencyMap.set(chipId, new Set())
