@@ -87,20 +87,23 @@ export class ChipPartitionsSolver extends BaseSolver {
             capsOnly.push(capId)
           }
         }
-        const hasStrongConnection = Object.entries(
+        const hasStrongConnectionToMainChip = Object.entries(
           inputProblem.pinStrongConnMap,
         ).some(([connection, connected]) => {
           if (!connected) return false
           const [pinA, pinB] = connection.split("-")
-          return [pinA, pinB].some((pinId) =>
-            capsOnly.includes(pinOwnerMap.get(pinId!)?.chipId ?? ""),
+          const ownerA = pinOwnerMap.get(pinA!)?.chipId
+          const ownerB = pinOwnerMap.get(pinB!)?.chipId
+          return (
+            (capsOnly.includes(ownerA ?? "") && ownerB === group.mainChipId) ||
+            (capsOnly.includes(ownerB ?? "") && ownerA === group.mainChipId)
           )
         })
         // A strongly connected singleton stays with its main partition; a
         // rail-only singleton needs its own partition for side placement.
         if (
           capsOnly.length >= 2 ||
-          (capsOnly.length === 1 && !hasStrongConnection)
+          (capsOnly.length === 1 && !hasStrongConnectionToMainChip)
         ) {
           decapGroupPartitions.push(capsOnly)
           // Mark these caps as handled by decoupling-cap partitions

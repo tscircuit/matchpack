@@ -122,7 +122,7 @@ test("places a net-only decoupling row after a direct connection", () => {
   )
 
   expect(weakPartitionLeft - mainPartitionRight).toBeCloseTo(
-    inputProblem.chipGap,
+    inputProblem.chipGap * 2,
   )
   expect(layout.chipPlacements.C2!.y).toBeCloseTo(layout.chipPlacements.C1!.y)
   expect(layout.chipPlacements.C2!.x).toBeGreaterThan(

@@ -204,7 +204,7 @@ const placeNetOnlyDecouplingRow = (
 
   const offset = getRowOffset({
     side,
-    chipGap: neighborId ? inputProblem.chipGap : inputProblem.chipGap * 2,
+    chipGap: inputProblem.chipGap * 2,
     mainBounds,
     rowBounds,
     neighbor,
