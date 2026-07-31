@@ -204,7 +204,7 @@ const placeNetOnlyDecouplingRow = (
 
   const offset = getRowOffset({
     side,
-    chipGap: neighborId ? inputProblem.chipGap : inputProblem.chipGap * 2,
+    chipGap: inputProblem.chipGap,
     mainBounds,
     rowBounds,
     neighbor,
@@ -225,28 +225,6 @@ const placeNetOnlyDecouplingRow = (
   if (movedChipsOverlap(rowChipIds, boundsContext)) {
     for (const [chipId, placement] of previousPlacements) {
       layout.chipPlacements[chipId] = placement
-    }
-
-    if (!neighborId) {
-      const fallbackOffset = getRowOffset({
-        side,
-        chipGap: inputProblem.chipGap,
-        mainBounds,
-        rowBounds,
-        neighbor,
-      })
-      const fallbackTransform = translate(fallbackOffset.x, fallbackOffset.y)
-      for (const [chipId, placement] of previousPlacements) {
-        layout.chipPlacements[chipId] = {
-          ...placement,
-          ...applyToPoint(fallbackTransform, placement),
-        }
-      }
-      if (movedChipsOverlap(rowChipIds, boundsContext)) {
-        for (const [chipId, placement] of previousPlacements) {
-          layout.chipPlacements[chipId] = placement
-        }
-      }
     }
   }
 }
