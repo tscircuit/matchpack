@@ -38,6 +38,8 @@ export type Net = {
   netId: NetId
   isGround?: boolean
   isPositiveVoltageSource?: boolean
+  /** Whether this net carries power without being a voltage source itself. */
+  isPowerNet?: boolean
 }
 
 export type InputProblem = {

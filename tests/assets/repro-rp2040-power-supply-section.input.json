@@ -260,7 +260,8 @@
     "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
       "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
       "isGround": false,
-      "isPositiveVoltageSource": false
+      "isPositiveVoltageSource": false,
+      "isPowerNet": true
     },
     "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": {
       "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3",
