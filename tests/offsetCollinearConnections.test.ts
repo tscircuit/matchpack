@@ -6,6 +6,7 @@ import { rotatePinOffset } from "../lib/utils/rotatePinOffset"
 import chipPortInput from "./assets/chip-port-without-portarrangement.input.json"
 import repro44Input from "./assets/repro44-e2e-pack-and-schematic.input.json"
 import bootResetInput from "./assets/schematic-section-rp2040-boot-reset.input.json"
+import polarizedCapacitorInput from "./assets/polarized-capacitor-auto-layout.input.json"
 
 const getAbsolutePinPosition = (
   inputProblem: InputProblem,
@@ -67,4 +68,16 @@ test("keeps a standalone rail-to-ground chain in one line", () => {
   const switchPin = getAbsolutePinPosition(inputProblem, outputLayout, "SW3.1")
 
   expect(resistorPin.x).toBeCloseTo(switchPin.x)
+})
+
+test("preserves direct trace clearance after reflowing a passive row", () => {
+  const inputProblem = polarizedCapacitorInput as InputProblem
+  const outputLayout = solve(inputProblem)
+  const mainPin = getAbsolutePinPosition(inputProblem, outputLayout, "U1.1")
+  const c1Pin = getAbsolutePinPosition(inputProblem, outputLayout, "C1.1")
+  const c2Pin = getAbsolutePinPosition(inputProblem, outputLayout, "C2.1")
+
+  expect(c1Pin.y - mainPin.y).toBeCloseTo(-0.2)
+  expect(c2Pin.y - mainPin.y).toBeCloseTo(-0.2)
+  expect(c1Pin.y).toBeCloseTo(c2Pin.y)
 })
