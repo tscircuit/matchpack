@@ -12,7 +12,8 @@ import type {
   PartitionInputProblem,
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import { getRotatedSize } from "../../utils/rotatePinOffset"
+import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
+import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
 export type PlaceRailConnectedLoadsOptions = {
@@ -55,6 +56,55 @@ const getPartitionBounds = (
       ]
     }),
   )
+
+const getInternalConnectionCenter = (
+  { partition }: { partition: PackedPartition },
+  context: PlacementContext,
+): { x: number; y: number } | null => {
+  const partitionPinIds = Object.keys(partition.inputProblem.chipPinMap)
+  const pinOwnerMap = createPinOwnerMap(partition.inputProblem)
+  const connectionPoints: Array<{ x: number; y: number }> = []
+
+  for (let pinAIndex = 0; pinAIndex < partitionPinIds.length; pinAIndex++) {
+    const pinAId = partitionPinIds[pinAIndex]!
+    for (
+      let pinBIndex = pinAIndex + 1;
+      pinBIndex < partitionPinIds.length;
+      pinBIndex++
+    ) {
+      const pinBId = partitionPinIds[pinBIndex]!
+      if (
+        !partition.inputProblem.pinStrongConnMap[`${pinAId}-${pinBId}`] &&
+        !partition.inputProblem.pinStrongConnMap[`${pinBId}-${pinAId}`]
+      ) {
+        continue
+      }
+
+      for (const pinId of [pinAId, pinBId]) {
+        const pin = context.inputProblem.chipPinMap[pinId]
+        const chip = pinOwnerMap.get(pinId)
+        if (!chip) continue
+        const placement = context.layout.chipPlacements[chip.chipId]
+        if (!pin || !placement) continue
+        const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+        connectionPoints.push({
+          x: placement.x + offset.x,
+          y: placement.y + offset.y,
+        })
+      }
+    }
+  }
+
+  if (connectionPoints.length === 0) return null
+  return {
+    x:
+      connectionPoints.reduce((sum, point) => sum + point.x, 0) /
+      connectionPoints.length,
+    y:
+      connectionPoints.reduce((sum, point) => sum + point.y, 0) /
+      connectionPoints.length,
+  }
+}
 
 const getRailNetIds = (
   { partition }: { partition: PackedPartition },
@@ -161,7 +211,9 @@ export const placeRailConnectedLoads = (
       if (!loadBounds) continue
 
       // Capacitors anchor the row; rail-connected loads follow on its right.
-      const loadCenter = getBoundsCenter(loadBounds)
+      const loadCenter =
+        getInternalConnectionCenter({ partition: loadPartition }, context) ??
+        getBoundsCenter(loadBounds)
       const previousPlacements = movePartition(
         {
           chipIds: loadChipIds,
