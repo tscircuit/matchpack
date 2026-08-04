@@ -23,22 +23,18 @@ test("power section schematic auto-layout", async () => {
   )
   expect(placements.R1!.x).toBeCloseTo(placements.LED1!.x)
   expect(placements.R1!.y - placements.LED1!.y).toBeCloseTo(1.54)
-  const r1ConnectionOffset = rotatePinOffset(
-    inputProblem.chipPinMap["R1.2"]!.offset,
+  const r1RailPinOffset = rotatePinOffset(
+    inputProblem.chipPinMap["R1.1"]!.offset,
     placements.R1!.ccwRotationDegrees,
   )
-  const ledConnectionOffset = rotatePinOffset(
-    inputProblem.chipPinMap["LED1.1"]!.offset,
-    placements.LED1!.ccwRotationDegrees,
+  const c4RailPinOffset = rotatePinOffset(
+    inputProblem.chipPinMap["C4.1"]!.offset,
+    placements.C4!.ccwRotationDegrees,
   )
-  const loadConnectionCenterY =
-    (placements.R1!.y +
-      r1ConnectionOffset.y +
-      placements.LED1!.y +
-      ledConnectionOffset.y) /
-    2
 
-  expect(loadConnectionCenterY).toBeCloseTo(placements.C3!.y)
+  expect(placements.R1!.y + r1RailPinOffset.y).toBeCloseTo(
+    placements.C4!.y + c4RailPinOffset.y,
+  )
   expect(solver.checkForOverlaps(solver.getOutputLayout())).toHaveLength(0)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)

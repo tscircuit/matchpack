@@ -57,53 +57,34 @@ const getPartitionBounds = (
     }),
   )
 
-const getInternalConnectionCenter = (
-  { partition }: { partition: PackedPartition },
+const getUpperRailPinY = (
+  {
+    partition,
+    railNetIds,
+  }: { partition: PackedPartition; railNetIds: Set<NetId> },
   context: PlacementContext,
-): { x: number; y: number } | null => {
-  const partitionPinIds = Object.keys(partition.inputProblem.chipPinMap)
+): number | null => {
   const pinOwnerMap = createPinOwnerMap(partition.inputProblem)
-  const connectionPoints: Array<{ x: number; y: number }> = []
+  let upperRailPinY: number | null = null
 
-  for (let pinAIndex = 0; pinAIndex < partitionPinIds.length; pinAIndex++) {
-    const pinAId = partitionPinIds[pinAIndex]!
-    for (
-      let pinBIndex = pinAIndex + 1;
-      pinBIndex < partitionPinIds.length;
-      pinBIndex++
-    ) {
-      const pinBId = partitionPinIds[pinBIndex]!
-      if (
-        !partition.inputProblem.pinStrongConnMap[`${pinAId}-${pinBId}`] &&
-        !partition.inputProblem.pinStrongConnMap[`${pinBId}-${pinAId}`]
-      ) {
-        continue
-      }
-
-      for (const pinId of [pinAId, pinBId]) {
-        const pin = context.inputProblem.chipPinMap[pinId]
-        const chip = pinOwnerMap.get(pinId)
-        if (!chip) continue
-        const placement = context.layout.chipPlacements[chip.chipId]
-        if (!pin || !placement) continue
-        const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
-        connectionPoints.push({
-          x: placement.x + offset.x,
-          y: placement.y + offset.y,
-        })
-      }
+  for (const pinId of Object.keys(partition.inputProblem.chipPinMap)) {
+    const isRailPin = [...railNetIds].some(
+      (netId) => context.inputProblem.netConnMap[`${pinId}-${netId}`],
+    )
+    if (!isRailPin) continue
+    const pin = context.inputProblem.chipPinMap[pinId]
+    const chip = pinOwnerMap.get(pinId)
+    if (!pin || !chip) continue
+    const placement = context.layout.chipPlacements[chip.chipId]
+    if (!placement) continue
+    const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+    const absolutePinY = placement.y + offset.y
+    if (upperRailPinY === null || absolutePinY > upperRailPinY) {
+      upperRailPinY = absolutePinY
     }
   }
 
-  if (connectionPoints.length === 0) return null
-  return {
-    x:
-      connectionPoints.reduce((sum, point) => sum + point.x, 0) /
-      connectionPoints.length,
-    y:
-      connectionPoints.reduce((sum, point) => sum + point.y, 0) /
-      connectionPoints.length,
-  }
+  return upperRailPinY
 }
 
 const getRailNetIds = (
@@ -198,7 +179,14 @@ export const placeRailConnectedLoads = (
       context,
     )
     if (!initialCapacitorBounds) continue
-    const capacitorCenter = getBoundsCenter(initialCapacitorBounds)
+    let capacitorRowY = getBoundsCenter(initialCapacitorBounds).y
+    const upperCapacitorRailPinY = getUpperRailPinY(
+      { partition: capacitorPartition, railNetIds: capacitorRails },
+      context,
+    )
+    if (upperCapacitorRailPinY !== null) {
+      capacitorRowY = upperCapacitorRailPinY
+    }
     let rowRightEdge = initialCapacitorBounds.maxX
 
     for (const loadPartition of loadPartitions) {
@@ -211,15 +199,18 @@ export const placeRailConnectedLoads = (
       if (!loadBounds) continue
 
       // Capacitors anchor the row; rail-connected loads follow on its right.
-      const loadCenter =
-        getInternalConnectionCenter({ partition: loadPartition }, context) ??
-        getBoundsCenter(loadBounds)
+      let loadAlignmentY = getBoundsCenter(loadBounds).y
+      const upperLoadRailPinY = getUpperRailPinY(
+        { partition: loadPartition, railNetIds: loadRails },
+        context,
+      )
+      if (upperLoadRailPinY !== null) loadAlignmentY = upperLoadRailPinY
       const previousPlacements = movePartition(
         {
           chipIds: loadChipIds,
           offset: {
             x: rowRightEdge + inputProblem.partitionGap - loadBounds.minX,
-            y: capacitorCenter.y - loadCenter.y,
+            y: capacitorRowY - loadAlignmentY,
           },
         },
         context,
