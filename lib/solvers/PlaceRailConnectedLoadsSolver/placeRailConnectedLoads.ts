@@ -57,14 +57,14 @@ const getPartitionBounds = (
   )
 
 // The upper rail pin is the visual continuation point for a horizontal row.
-const getUpperRailPinY = (
+const getUpperRailPin = (
   {
     partition,
     railNetIds,
   }: { partition: PackedPartition; railNetIds: Set<NetId> },
   context: PlacementContext,
-): number | null => {
-  let upperRailPinY: number | null = null
+): { chipId: ChipId; y: number } | null => {
+  let upperRailPin: { chipId: ChipId; y: number } | null = null
 
   for (const chip of Object.values(partition.inputProblem.chipMap)) {
     const placement = context.layout.chipPlacements[chip.chipId]
@@ -79,13 +79,13 @@ const getUpperRailPinY = (
       if (!pin) continue
       const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
       const pinY = placement.y + offset.y
-      if (upperRailPinY === null || pinY > upperRailPinY) {
-        upperRailPinY = pinY
+      if (upperRailPin === null || pinY > upperRailPin.y) {
+        upperRailPin = { chipId: chip.chipId, y: pinY }
       }
     }
   }
 
-  return upperRailPinY
+  return upperRailPin
 }
 
 const getRailNetIds = (
@@ -184,11 +184,11 @@ export const placeRailConnectedLoads = (
       context,
     )
     if (!initialCapacitorBounds) continue
-    const capacitorRailPinY = getUpperRailPinY(
+    const capacitorRailPin = getUpperRailPin(
       { partition: capacitorPartition, railNetIds: capacitorRails },
       context,
     )
-    if (capacitorRailPinY === null) continue
+    if (!capacitorRailPin) continue
     let rowRightEdge = initialCapacitorBounds.maxX
 
     for (const loadPartition of loadPartitions) {
@@ -200,11 +200,16 @@ export const placeRailConnectedLoads = (
       const loadBounds = getPartitionBounds({ chipIds: loadChipIds }, context)
       if (!loadBounds) continue
 
-      const loadRailPinY = getUpperRailPinY(
+      const loadRailPin = getUpperRailPin(
         { partition: loadPartition, railNetIds: loadRails },
         context,
       )
-      if (loadRailPinY === null) continue
+      if (!loadRailPin) continue
+      const loadAnchorBounds = getChipBounds(
+        { chipId: loadRailPin.chipId },
+        context,
+      )
+      if (!loadAnchorBounds) continue
 
       // Keep C4 fixed and align the load's upper rail pin with the cap row.
       // Every chip receives the same offset, preserving the partition shape.
@@ -212,8 +217,11 @@ export const placeRailConnectedLoads = (
         {
           chipIds: loadChipIds,
           offset: {
-            x: rowRightEdge + inputProblem.partitionGap - loadBounds.minX,
-            y: capacitorRailPinY - loadRailPinY,
+            x:
+              rowRightEdge +
+              (inputProblem.decouplingCapsGap ?? inputProblem.chipGap) -
+              loadAnchorBounds.minX,
+            y: capacitorRailPin.y - loadRailPin.y,
           },
         },
         context,
