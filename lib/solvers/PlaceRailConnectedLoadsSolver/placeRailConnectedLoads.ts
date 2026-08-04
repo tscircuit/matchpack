@@ -211,16 +211,13 @@ export const placeRailConnectedLoads = (
       )
       if (!loadAnchorBounds) continue
 
-      // Keep C4 fixed and align the load's upper rail pin with the cap row.
+      // Align the load's upper rail pin with the capacitor row.
       // Every chip receives the same offset, preserving the partition shape.
       const previousPlacements = movePartition(
         {
           chipIds: loadChipIds,
           offset: {
-            x:
-              rowRightEdge +
-              (inputProblem.decouplingCapsGap ?? inputProblem.chipGap) -
-              loadAnchorBounds.minX,
+            x: rowRightEdge + inputProblem.partitionGap - loadAnchorBounds.minX,
             y: capacitorRailPin.y - loadRailPin.y,
           },
         },

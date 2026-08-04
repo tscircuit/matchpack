@@ -14,7 +14,7 @@ test("power section schematic auto-layout", async () => {
   const loadLeftEdge = placements.R1!.x - inputProblem.chipMap.R1!.size.y / 2
 
   expect(loadLeftEdge - capacitorRightEdge).toBeCloseTo(
-    inputProblem.decouplingCapsGap,
+    inputProblem.partitionGap,
   )
   expect(placements.R1!.x).toBeCloseTo(placements.LED1!.x)
   expect(placements.R1!.y - placements.LED1!.y).toBeCloseTo(1.54)
