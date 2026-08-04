@@ -1,7 +1,6 @@
 import {
   doBoundsOverlap,
   getBoundFromCenteredRect,
-  getBoundsCenter,
   getBoundsFromPoints,
   type Bounds,
 } from "@tscircuit/math-utils"
@@ -12,7 +11,6 @@ import type {
   PartitionInputProblem,
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
@@ -27,6 +25,7 @@ type PlacementContext = {
   layout: OutputLayout
 }
 
+// Bounds must use the placed rotation so collision checks match the snapshot.
 const getChipBounds = (
   { chipId }: { chipId: ChipId },
   context: PlacementContext,
@@ -57,6 +56,7 @@ const getPartitionBounds = (
     }),
   )
 
+// The upper rail pin is the visual continuation point for a horizontal row.
 const getUpperRailPinY = (
   {
     partition,
@@ -64,23 +64,24 @@ const getUpperRailPinY = (
   }: { partition: PackedPartition; railNetIds: Set<NetId> },
   context: PlacementContext,
 ): number | null => {
-  const pinOwnerMap = createPinOwnerMap(partition.inputProblem)
   let upperRailPinY: number | null = null
 
-  for (const pinId of Object.keys(partition.inputProblem.chipPinMap)) {
-    const isRailPin = [...railNetIds].some(
-      (netId) => context.inputProblem.netConnMap[`${pinId}-${netId}`],
-    )
-    if (!isRailPin) continue
-    const pin = context.inputProblem.chipPinMap[pinId]
-    const chip = pinOwnerMap.get(pinId)
-    if (!pin || !chip) continue
+  for (const chip of Object.values(partition.inputProblem.chipMap)) {
     const placement = context.layout.chipPlacements[chip.chipId]
     if (!placement) continue
-    const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
-    const absolutePinY = placement.y + offset.y
-    if (upperRailPinY === null || absolutePinY > upperRailPinY) {
-      upperRailPinY = absolutePinY
+
+    for (const pinId of chip.pins) {
+      const isRailPin = [...railNetIds].some(
+        (netId) => context.inputProblem.netConnMap[`${pinId}-${netId}`],
+      )
+      if (!isRailPin) continue
+      const pin = context.inputProblem.chipPinMap[pinId]
+      if (!pin) continue
+      const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+      const pinY = placement.y + offset.y
+      if (upperRailPinY === null || pinY > upperRailPinY) {
+        upperRailPinY = pinY
+      }
     }
   }
 
@@ -101,6 +102,7 @@ const getRailNetIds = (
   return railNetIds
 }
 
+// Loads are multi-part rail chains, not capacitors or fixed components.
 const isTwoPinLoadPartition = (partition: PackedPartition): boolean => {
   const chips = Object.values(partition.inputProblem.chipMap)
   return (
@@ -121,6 +123,7 @@ const movePartition = (
   { chipIds, offset }: { chipIds: ChipId[]; offset: { x: number; y: number } },
   { layout }: PlacementContext,
 ): Map<ChipId, Placement> => {
+  // Save every placement so a rejected rigid translation can be rolled back.
   const previousPlacements = new Map<ChipId, Placement>()
   for (const chipId of chipIds) {
     const placement = layout.chipPlacements[chipId]
@@ -139,6 +142,7 @@ const movedPartitionOverlaps = (
   { movedChipIds }: { movedChipIds: ChipId[] },
   context: PlacementContext,
 ): boolean => {
+  // Internal contacts are allowed; only chips outside the partition can block it.
   const movedChipIdSet = new Set(movedChipIds)
   return movedChipIds.some((movedChipId) => {
     const movedBounds = getChipBounds({ chipId: movedChipId }, context)
@@ -166,6 +170,7 @@ export const placeRailConnectedLoads = (
   const loadPartitions = packedPartitions.filter(isTwoPinLoadPartition)
   const placedLoadPartitions = new Set<PackedPartition>()
 
+  // Decoupling rows are stable anchors; only matching load partitions move.
   for (const capacitorPartition of capacitorPartitions) {
     const capacitorRails = getRailNetIds(
       { partition: capacitorPartition },
@@ -179,14 +184,11 @@ export const placeRailConnectedLoads = (
       context,
     )
     if (!initialCapacitorBounds) continue
-    let capacitorRowY = getBoundsCenter(initialCapacitorBounds).y
-    const upperCapacitorRailPinY = getUpperRailPinY(
+    const capacitorRailPinY = getUpperRailPinY(
       { partition: capacitorPartition, railNetIds: capacitorRails },
       context,
     )
-    if (upperCapacitorRailPinY !== null) {
-      capacitorRowY = upperCapacitorRailPinY
-    }
+    if (capacitorRailPinY === null) continue
     let rowRightEdge = initialCapacitorBounds.maxX
 
     for (const loadPartition of loadPartitions) {
@@ -198,25 +200,27 @@ export const placeRailConnectedLoads = (
       const loadBounds = getPartitionBounds({ chipIds: loadChipIds }, context)
       if (!loadBounds) continue
 
-      // Capacitors anchor the row; rail-connected loads follow on its right.
-      let loadAlignmentY = getBoundsCenter(loadBounds).y
-      const upperLoadRailPinY = getUpperRailPinY(
+      const loadRailPinY = getUpperRailPinY(
         { partition: loadPartition, railNetIds: loadRails },
         context,
       )
-      if (upperLoadRailPinY !== null) loadAlignmentY = upperLoadRailPinY
+      if (loadRailPinY === null) continue
+
+      // Keep C4 fixed and align the load's upper rail pin with the cap row.
+      // Every chip receives the same offset, preserving the partition shape.
       const previousPlacements = movePartition(
         {
           chipIds: loadChipIds,
           offset: {
             x: rowRightEdge + inputProblem.partitionGap - loadBounds.minX,
-            y: capacitorRowY - loadAlignmentY,
+            y: capacitorRailPinY - loadRailPinY,
           },
         },
         context,
       )
 
       if (movedPartitionOverlaps({ movedChipIds: loadChipIds }, context)) {
+        // A readability adjustment must never introduce a body collision.
         for (const [chipId, placement] of previousPlacements) {
           layout.chipPlacements[chipId] = placement
         }
