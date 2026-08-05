@@ -108,31 +108,38 @@ const placementHasClearance = ({
   return true
 }
 
-const tryOffsetChip = ({
-  chipId,
+const tryOffsetChips = ({
+  chipIds,
   dx,
   dy,
   chipPlacements,
   inputProblem,
 }: {
-  chipId: ChipId
+  chipIds: ChipId[]
   dx: number
   dy: number
   chipPlacements: Record<ChipId, Placement>
   inputProblem: InputProblem
 }): void => {
-  const placement = chipPlacements[chipId]
-  if (!placement) return
+  const placements = chipIds
+    .map((chipId) => chipPlacements[chipId])
+    .filter((placement): placement is Placement => Boolean(placement))
+  if (placements.length !== chipIds.length) return
 
-  placement.x += dx
-  placement.y += dy
-  if (
-    !placementHasClearance({
+  for (const placement of placements) {
+    placement.x += dx
+    placement.y += dy
+  }
+  const allChipsHaveClearance = chipIds.every((chipId) =>
+    placementHasClearance({
       chipId,
       chipPlacements,
       inputProblem,
-    })
-  ) {
+    }),
+  )
+  if (allChipsHaveClearance) return
+
+  for (const placement of placements) {
     placement.x -= dx
     placement.y -= dy
   }
@@ -142,10 +149,12 @@ export const applyDirectPassiveTraceClearance = ({
   inputProblem,
   connectedPinsByPinId,
   chipPlacements,
+  rigidChipGroups = [],
 }: {
   inputProblem: InputProblem
   connectedPinsByPinId: Record<PinId, ChipPin[]>
   chipPlacements: Record<ChipId, Placement>
+  rigidChipGroups?: ChipId[][]
 }): void => {
   const pinOwnerMap = createPinOwnerMap(inputProblem)
   const chipCount = Object.keys(inputProblem.chipMap).length
@@ -183,10 +192,16 @@ export const applyDirectPassiveTraceClearance = ({
           inputProblem,
           placement: connectedPlacement,
         })
+        const rigidChipGroup = rigidChipGroups.find((chipIds) =>
+          chipIds.includes(connectedChip.chipId),
+        )
+        const chipIdsToOffset = rigidChipGroup ?? [connectedChip.chipId]
 
         if (pinsShareX && pinsAreVerticallyOriented) {
-          tryOffsetChip({
-            chipId: connectedChip.chipId,
+          // A rigid row keeps its intentional vertical anchor trace straight.
+          if (rigidChipGroup) continue
+          tryOffsetChips({
+            chipIds: [connectedChip.chipId],
             dx: -TRACE_CLEARANCE,
             dy: 0,
             chipPlacements,
@@ -205,8 +220,8 @@ export const applyDirectPassiveTraceClearance = ({
         const isGroundedLoad =
           otherPinId && pinConnectsToGround(inputProblem, otherPinId)
         if (pinsShareY && (isSingleVerticalPassive || isGroundedLoad)) {
-          tryOffsetChip({
-            chipId: connectedChip.chipId,
+          tryOffsetChips({
+            chipIds: chipIdsToOffset,
             dx: 0,
             dy: -TRACE_CLEARANCE,
             chipPlacements,
@@ -243,8 +258,8 @@ export const offsetChipAnchoredGroundedLoadConnections = ({
       continue
     }
 
-    tryOffsetChip({
-      chipId: groundedLoadPair.upperChip.chipId,
+    tryOffsetChips({
+      chipIds: [groundedLoadPair.upperChip.chipId],
       dx: -TRACE_CLEARANCE,
       dy: 0,
       chipPlacements,

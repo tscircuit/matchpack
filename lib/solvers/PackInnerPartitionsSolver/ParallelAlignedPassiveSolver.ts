@@ -41,6 +41,7 @@ import {
   getBoundsCenter,
   getBoundsFromPoints,
 } from "@tscircuit/math-utils"
+import { applyDirectPassiveTraceClearance } from "../../utils/offsetCollinearConnections"
 
 const CLEARANCE_EPSILON = 1e-6
 const MAX_RESOLVE_ITERATIONS = 16
@@ -106,11 +107,18 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     for (const [chipId, placement] of Object.entries(base.chipPlacements)) {
       placements[chipId] = { ...placement }
     }
-    for (const passiveGroup of findSameSidePassiveGroups(
-      this.partitionInputProblem,
-    )) {
+    const passiveGroups = findSameSidePassiveGroups(this.partitionInputProblem)
+    for (const passiveGroup of passiveGroups) {
       this.reflowPassiveGroup(placements, passiveGroup)
     }
+    applyDirectPassiveTraceClearance({
+      inputProblem: this.partitionInputProblem,
+      connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
+      chipPlacements: placements,
+      rigidChipGroups: passiveGroups.map(
+        (passiveGroup) => passiveGroup.passiveChipIds,
+      ),
+    })
     return { chipPlacements: placements, groupPlacements: base.groupPlacements }
   }
 
