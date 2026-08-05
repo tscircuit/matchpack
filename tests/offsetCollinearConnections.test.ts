@@ -8,6 +8,7 @@ import repro44Input from "./assets/repro44-e2e-pack-and-schematic.input.json"
 import bootResetInput from "./assets/schematic-section-rp2040-boot-reset.input.json"
 import polarizedCapacitorInput from "./assets/polarized-capacitor-auto-layout.input.json"
 import bq24074RightResistorsInput from "./assets/repro-bq24074-right-resistors.input.json"
+import bq24074BottomResistorsInput from "./assets/repro-bq24074-bottom-resistors.input.json"
 
 const getAbsolutePinPosition = (
   inputProblem: InputProblem,
@@ -93,4 +94,13 @@ test("offsets a reflowed passive row as a rigid group", () => {
   expect(r3Pin.y - mainPin.y).toBeCloseTo(-0.2)
   expect(outputLayout.chipPlacements.R1!.y).toBeCloseTo(rowY)
   expect(outputLayout.chipPlacements.R2!.y).toBeCloseTo(rowY)
+})
+
+test("preserves a straight vertical connection to a reflowed bottom row", () => {
+  const inputProblem = bq24074BottomResistorsInput as InputProblem
+  const outputLayout = solve(inputProblem)
+  const mainPin = getAbsolutePinPosition(inputProblem, outputLayout, "U1.12")
+  const r2Pin = getAbsolutePinPosition(inputProblem, outputLayout, "R2.1")
+
+  expect(r2Pin.x).toBeCloseTo(mainPin.x)
 })

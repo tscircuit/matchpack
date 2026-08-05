@@ -198,8 +198,10 @@ export const applyDirectPassiveTraceClearance = ({
         const chipIdsToOffset = rigidChipGroup ?? [connectedChip.chipId]
 
         if (pinsShareX && pinsAreVerticallyOriented) {
+          // A rigid row keeps its intentional vertical anchor trace straight.
+          if (rigidChipGroup) continue
           tryOffsetChips({
-            chipIds: chipIdsToOffset,
+            chipIds: [connectedChip.chipId],
             dx: -TRACE_CLEARANCE,
             dy: 0,
             chipPlacements,
