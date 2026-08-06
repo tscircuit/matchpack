@@ -124,14 +124,6 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
   ): void {
     if (chipIds.length < 2) return
 
-    let gap = this.inputProblem.partitionGap
-    const allCapacitors = chipIds.every(
-      (chipId) => this.inputProblem.chipMap[chipId]?.isCapacitor,
-    )
-    if (allCapacitors) {
-      gap = this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
-    }
-
     let cursorX = 0
     const rowY =
       chipIds.reduce(
@@ -144,7 +136,18 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
         0,
       ) / chipIds.length
 
-    for (const chipId of chipIds) {
+    for (const [index, chipId] of chipIds.entries()) {
+      const previousChipId = chipIds[index - 1]
+      if (previousChipId) {
+        const previousChip = this.inputProblem.chipMap[previousChipId]!
+        const chip = this.inputProblem.chipMap[chipId]!
+        let gap = this.inputProblem.partitionGap
+        if (previousChip.isCapacitor && chip.isCapacitor) {
+          gap = this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
+        }
+        cursorX += gap
+      }
+
       const chip = this.inputProblem.chipMap[chipId]!
       const originalPlacement = this.inputLayout.chipPlacements[chipId]!
       const isRotated =
@@ -162,10 +165,10 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
         ccwRotationDegrees: originalPlacement.ccwRotationDegrees,
       }
 
-      cursorX += width + gap
+      cursorX += width
     }
 
-    const rowWidth = cursorX - gap
+    const rowWidth = cursorX
     for (const chipId of chipIds) {
       chipPlacements[chipId]!.x += rowCenterX - rowWidth / 2
     }

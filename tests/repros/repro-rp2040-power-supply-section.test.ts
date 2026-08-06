@@ -30,7 +30,19 @@ test("RP2040 power supply section auto-layout", async () => {
     )
     expect(capacitorPlacement.y).toBeCloseTo(u2Placement.y)
   }
-  expect(solver.checkForOverlaps(layout)).toHaveLength(0)
+  const c4 = input.chipMap.C4!
+  const c18 = input.chipMap.C18!
+  const capacitorBodyGap =
+    layout.chipPlacements.C18!.x -
+    layout.chipPlacements.C4!.x -
+    c4.size.x / 2 -
+    c18.size.x / 2
+  expect(capacitorBodyGap).toBeCloseTo(input.decouplingCapsGap)
+  expect(
+    solver.checkForOverlaps(
+      solver.placeNetOnlyDecouplingRowsSolver!.outputLayout!,
+    ),
+  ).toHaveLength(0)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })
