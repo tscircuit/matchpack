@@ -3,6 +3,7 @@ import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getP
 
 /** Every series element must have one entry pin and one exit pin. */
 const TWO_PIN_COMPONENT_PIN_COUNT = 2
+const MIN_SHARED_NET_SERIES_PATH_COMPONENT_COUNT = 4
 
 export type SeriesBranchComponent = {
   chipId: ChipId
@@ -22,6 +23,7 @@ type ChipConnection = {
   selfPinId: PinId
   otherPinId: PinId
   otherChipId: ChipId
+  isNetConnection: boolean
 }
 
 const buildConnectionsByChip = (
@@ -45,10 +47,42 @@ const buildConnectionsByChip = (
         selfPinId: pinId,
         otherPinId: connectedPin.pinId,
         otherChipId,
+        isNetConnection: false,
       })
       connectionsByChip.set(chipId, connections)
     }
   }
+
+  for (const netId of Object.keys(inputProblem.netMap)) {
+    const pinIds = Object.keys(inputProblem.chipPinMap).filter(
+      (pinId) => inputProblem.netConnMap[`${pinId}-${netId}`],
+    )
+    if (pinIds.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    const firstPinId = pinIds[0]!
+    const secondPinId = pinIds[1]!
+    const firstChipId = pinOwnerMap.get(firstPinId)
+    const secondChipId = pinOwnerMap.get(secondPinId)
+    if (!firstChipId || !secondChipId || firstChipId === secondChipId) continue
+
+    const firstConnections = connectionsByChip.get(firstChipId) ?? []
+    firstConnections.push({
+      selfPinId: firstPinId,
+      otherPinId: secondPinId,
+      otherChipId: secondChipId,
+      isNetConnection: true,
+    })
+    connectionsByChip.set(firstChipId, firstConnections)
+
+    const secondConnections = connectionsByChip.get(secondChipId) ?? []
+    secondConnections.push({
+      selfPinId: secondPinId,
+      otherPinId: firstPinId,
+      otherChipId: firstChipId,
+      isNetConnection: true,
+    })
+    connectionsByChip.set(secondChipId, secondConnections)
+  }
+
   return connectionsByChip
 }
 
@@ -143,6 +177,15 @@ const getOrderedSeriesComponents = ({
     ) {
       return null
     }
+    const splitIndex = pathChipIds.length / 2
+    if (
+      (previousConnection.isNetConnection || nextConnection.isNetConnection) &&
+      pathChipIds.length < MIN_SHARED_NET_SERIES_PATH_COMPONENT_COUNT
+    ) {
+      return null
+    }
+    if (previousConnection.isNetConnection && index !== splitIndex) return null
+    if (nextConnection.isNetConnection && index !== splitIndex - 1) return null
     if (index === 0 && previousConnection.otherPinId !== mainPinIds[0]) {
       return null
     }
