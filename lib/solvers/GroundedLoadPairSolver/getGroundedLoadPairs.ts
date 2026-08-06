@@ -92,11 +92,10 @@ const pinConnectsToPositiveVoltage = ({
 
 const getChipConnectedPair = (
   upperChip: Chip,
-  context: ConnectivityContext,
+  ctx: ConnectivityContext,
 ): GroundedLoadPair | null => {
   // Match main chip -> two-pin component -> two-pin component -> ground.
-  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } =
-    context
+  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } = ctx
   for (const upperOuterPinId of upperChip.pins) {
     const mainPinId = getStronglyConnectedPinIds({
       connectedPinsByPinId,
@@ -160,10 +159,10 @@ const getChipConnectedPair = (
 
 const getRailConnectedPair = (
   upperChip: Chip,
-  context: ConnectivityContext,
+  ctx: ConnectivityContext,
 ): GroundedLoadPair | null => {
   // Match positive rail -> two-pin component -> private net -> component -> ground.
-  const { inputProblem, pinOwnerMap, pairedChipIds } = context
+  const { inputProblem, pinOwnerMap, pairedChipIds } = ctx
   const upperOuterPinId = upperChip.pins.find((pinId) =>
     pinConnectsToPositiveVoltage({ inputProblem, pinId }),
   )
@@ -215,10 +214,9 @@ const getRailConnectedPair = (
 
 const getSignalConnectedPair = (
   upperChip: Chip,
-  context: ConnectivityContext,
+  ctx: ConnectivityContext,
 ): GroundedLoadPair | null => {
-  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } =
-    context
+  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } = ctx
   for (const upperOuterPinId of upperChip.pins) {
     const hasStandaloneSignalNet = getNetIdsForPin({
       inputProblem,
@@ -276,7 +274,7 @@ export const getGroundedLoadPairs = (
   const groundedLoadPairs: GroundedLoadPair[] = []
   const pairedChipIds = new Set<ChipId>()
   const connectedPinsByPinId = getPinIdToStronglyConnectedPinsObj(inputProblem)
-  const context = {
+  const ctx = {
     inputProblem,
     pinOwnerMap,
     connectedPinsByPinId,
@@ -289,7 +287,7 @@ export const getGroundedLoadPairs = (
     if (upperChip.fixedPosition) continue
     if (pairedChipIds.has(upperChip.chipId)) continue
 
-    const groundedLoadPair = getChipConnectedPair(upperChip, context)
+    const groundedLoadPair = getChipConnectedPair(upperChip, ctx)
     if (!groundedLoadPair) continue
     groundedLoadPairs.push(groundedLoadPair)
     pairedChipIds.add(groundedLoadPair.upperChip.chipId)
@@ -301,7 +299,7 @@ export const getGroundedLoadPairs = (
     if (upperChip.fixedPosition) continue
     if (pairedChipIds.has(upperChip.chipId)) continue
 
-    const groundedLoadPair = getSignalConnectedPair(upperChip, context)
+    const groundedLoadPair = getSignalConnectedPair(upperChip, ctx)
     if (!groundedLoadPair) continue
     groundedLoadPairs.push(groundedLoadPair)
     pairedChipIds.add(groundedLoadPair.upperChip.chipId)
@@ -313,7 +311,7 @@ export const getGroundedLoadPairs = (
     if (upperChip.fixedPosition) continue
     if (pairedChipIds.has(upperChip.chipId)) continue
 
-    const groundedLoadPair = getRailConnectedPair(upperChip, context)
+    const groundedLoadPair = getRailConnectedPair(upperChip, ctx)
     if (!groundedLoadPair) continue
     groundedLoadPairs.push(groundedLoadPair)
     pairedChipIds.add(groundedLoadPair.upperChip.chipId)
