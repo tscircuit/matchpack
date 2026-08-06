@@ -246,9 +246,7 @@ const placeNetOnlyDecouplingRow = (
   }
 
   let mainToRowGap = inputProblem.chipGap
-  if (!neighborId) {
-    mainToRowGap = inputProblem.decouplingCapsGap ?? inputProblem.chipGap
-  }
+  if (!neighborId) mainToRowGap = inputProblem.partitionGap
   const offset = getRowOffset({
     side,
     chipGap: mainToRowGap,
