@@ -1,9 +1,9 @@
 import {
+  type Bounds,
   doBoundsOverlap,
   getBoundFromCenteredRect,
   getBoundsCenter,
   getBoundsFromPoints,
-  type Bounds,
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { applyToPoint, translate } from "transformation-matrix"
@@ -15,12 +15,13 @@ import type {
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
+import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { getVerticalPinClearanceOffset } from "../../utils/getVerticalPinClearanceOffset"
 import { getRotatedSize } from "../../utils/rotatePinOffset"
-import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
+import { getPositiveRailPin } from "./getPositiveRailPin"
 
 type SolverOptions = {
   inputProblem: InputProblem
@@ -59,25 +60,6 @@ const getPartitionBounds = (
     ]
   })
   return getBoundsFromPoints(corners)
-}
-
-const getPositiveRailPin = (
-  { chipId, side }: { chipId: ChipId; side?: Side },
-  inputProblem: InputProblem,
-) => {
-  const chip = inputProblem.chipMap[chipId]
-  return chip?.pins
-    .filter((pinId) => !side || inputProblem.chipPinMap[pinId]?.side === side)
-    .map((pinId) => inputProblem.chipPinMap[pinId])
-    .find(
-      (pin) =>
-        pin &&
-        Object.values(inputProblem.netMap).some(
-          (net) =>
-            net.isPositiveVoltageSource &&
-            inputProblem.netConnMap[`${pin.pinId}-${net.netId}`],
-        ),
-    )
 }
 
 const getDirectNeighbor = (
@@ -232,6 +214,7 @@ const placeNetOnlyDecouplingRow = (
     const rowPlacement = rowChipId && layout.chipPlacements[rowChipId]
     if (!mainRailPin || !rowRailPin || !rowPlacement) return
 
+    // Align the shared rail pins while leaving space for a readable trace.
     neighbor = {
       ...neighbor,
       y:

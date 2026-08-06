@@ -3,6 +3,7 @@ import { BaseSolver } from "lib/solvers/BaseSolver"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
 import type { Chip, ChipId, InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
+import { getGapBetweenAlignedChips } from "./getGapBetweenAlignedChips"
 
 type AlignmentGroup = {
   chipIds: ChipId[]
@@ -139,13 +140,10 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     for (const [index, chipId] of chipIds.entries()) {
       const previousChipId = chipIds[index - 1]
       if (previousChipId) {
-        const previousChip = this.inputProblem.chipMap[previousChipId]!
-        const chip = this.inputProblem.chipMap[chipId]!
-        let gap = this.inputProblem.partitionGap
-        if (previousChip.isCapacitor && chip.isCapacitor) {
-          gap = this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
-        }
-        cursorX += gap
+        cursorX += getGapBetweenAlignedChips(
+          { firstChipId: previousChipId, secondChipId: chipId },
+          this.inputProblem,
+        )
       }
 
       const chip = this.inputProblem.chipMap[chipId]!
