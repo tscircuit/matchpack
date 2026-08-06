@@ -46,7 +46,7 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [270]
+      "availableRotations": [0, 90, 180, 270]
     },
     "R4": {
       "chipId": "R4",
@@ -72,7 +72,7 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [270]
+      "availableRotations": [0, 90, 180, 270]
     }
   },
   "chipPinMap": {
