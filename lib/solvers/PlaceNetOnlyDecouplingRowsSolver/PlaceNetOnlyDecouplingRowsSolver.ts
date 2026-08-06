@@ -15,7 +15,7 @@ import type {
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
-import { getRotatedSize } from "../../utils/rotatePinOffset"
+import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
@@ -58,6 +58,25 @@ const getPartitionBounds = (
     ]
   })
   return getBoundsFromPoints(corners)
+}
+
+const getPositiveRailPin = (
+  { chipId, side }: { chipId: ChipId; side?: Side },
+  inputProblem: InputProblem,
+) => {
+  const chip = inputProblem.chipMap[chipId]
+  return chip?.pins
+    .filter((pinId) => !side || inputProblem.chipPinMap[pinId]?.side === side)
+    .map((pinId) => inputProblem.chipPinMap[pinId])
+    .find(
+      (pin) =>
+        pin &&
+        Object.values(inputProblem.netMap).some(
+          (net) =>
+            net.isPositiveVoltageSource &&
+            inputProblem.netConnMap[`${pin.pinId}-${net.netId}`],
+        ),
+    )
 }
 
 const getDirectNeighbor = (
@@ -200,6 +219,32 @@ const placeNetOnlyDecouplingRow = (
   )
   const rowBounds = getPartitionBounds(rowChipIds, boundsContext)
   if (!neighbor || !mainBounds || !rowBounds) return
+
+  if (!neighborId) {
+    const rowChipId = rowChipIds[0]
+    const mainRailPin = getPositiveRailPin(
+      { chipId: mainChipId, side },
+      inputProblem,
+    )
+    const rowRailPin =
+      rowChipId && getPositiveRailPin({ chipId: rowChipId }, inputProblem)
+    const rowPlacement = rowChipId && layout.chipPlacements[rowChipId]
+    if (!mainRailPin || !rowRailPin || !rowPlacement) return
+
+    const mainRailPinOffset = rotatePinOffset(
+      mainRailPin.offset,
+      neighbor.ccwRotationDegrees,
+    )
+    const rowRailPinOffset = rotatePinOffset(
+      rowRailPin.offset,
+      rowPlacement.ccwRotationDegrees,
+    )
+    neighbor = {
+      ...neighbor,
+      x: neighbor.x + mainRailPinOffset.x - rowRailPinOffset.x,
+      y: neighbor.y + mainRailPinOffset.y - rowRailPinOffset.y,
+    }
+  }
 
   let mainToRowGap = inputProblem.chipGap
   if (!neighborId) mainToRowGap = inputProblem.partitionGap
