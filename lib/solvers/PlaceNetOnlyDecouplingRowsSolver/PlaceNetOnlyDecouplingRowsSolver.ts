@@ -15,7 +15,8 @@ import type {
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
-import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
+import { getVerticalPinClearanceOffset } from "../../utils/getVerticalPinClearanceOffset"
+import { getRotatedSize } from "../../utils/rotatePinOffset"
 import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
@@ -231,18 +232,16 @@ const placeNetOnlyDecouplingRow = (
     const rowPlacement = rowChipId && layout.chipPlacements[rowChipId]
     if (!mainRailPin || !rowRailPin || !rowPlacement) return
 
-    const mainRailPinOffset = rotatePinOffset(
-      mainRailPin.offset,
-      neighbor.ccwRotationDegrees,
-    )
-    const rowRailPinOffset = rotatePinOffset(
-      rowRailPin.offset,
-      rowPlacement.ccwRotationDegrees,
-    )
     neighbor = {
       ...neighbor,
-      x: neighbor.x + mainRailPinOffset.x - rowRailPinOffset.x,
-      y: neighbor.y + mainRailPinOffset.y - rowRailPinOffset.y,
+      y:
+        neighbor.y +
+        getVerticalPinClearanceOffset({
+          upperPin: mainRailPin,
+          upperPlacement: neighbor,
+          lowerPin: rowRailPin,
+          lowerPlacement: { ...rowPlacement, y: neighbor.y },
+        }),
     }
   }
 

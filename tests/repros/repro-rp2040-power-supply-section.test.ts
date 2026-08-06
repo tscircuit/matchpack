@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { getBoundFromCenteredRect } from "@tscircuit/math-utils"
 import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "../../lib/types/InputProblem"
-import { rotatePinOffset } from "../../lib/utils/rotatePinOffset"
+import { getVerticalPinClearanceOffset } from "../../lib/utils/getVerticalPinClearanceOffset"
 import input from "../assets/repro-rp2040-power-supply-section.input.json"
 
 // Captured from @tscircuit/core 0.0.1539 with @tscircuit/matchpack 0.0.55.
@@ -29,17 +29,14 @@ test("RP2040 power supply section auto-layout", async () => {
     expect(capacitorBounds.minX).toBeGreaterThanOrEqual(
       u2Bounds.maxX + input.partitionGap,
     )
-    const u2RailPinOffset = rotatePinOffset(
-      input.chipPinMap["U2.5"]!.offset,
-      u2Placement.ccwRotationDegrees,
-    )
-    const capacitorRailPinOffset = rotatePinOffset(
-      input.chipPinMap[`${capacitorId}.1`]!.offset,
-      capacitorPlacement.ccwRotationDegrees,
-    )
-    expect(capacitorPlacement.y + capacitorRailPinOffset.y).toBeCloseTo(
-      u2Placement.y + u2RailPinOffset.y,
-    )
+    expect(
+      getVerticalPinClearanceOffset({
+        upperPin: input.chipPinMap["U2.5"]!,
+        upperPlacement: u2Placement,
+        lowerPin: input.chipPinMap[`${capacitorId}.1`]!,
+        lowerPlacement: capacitorPlacement,
+      }),
+    ).toBeCloseTo(0)
   }
   const c4 = input.chipMap.C4!
   const c18 = input.chipMap.C18!
