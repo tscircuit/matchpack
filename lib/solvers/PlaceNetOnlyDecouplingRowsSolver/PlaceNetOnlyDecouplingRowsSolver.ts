@@ -143,7 +143,7 @@ const getRowOffset = ({
   chipGap: number
   mainBounds: Bounds
   rowBounds: Bounds
-  neighbor: Pick<Placement, "x" | "y">
+  neighbor: Placement
 }) => {
   const rowCenter = getBoundsCenter(rowBounds)
   const offset = {
@@ -190,6 +190,8 @@ const placeNetOnlyDecouplingRow = (
     { mainPartition, mainChipId, side },
     inputProblem,
   )
+  let neighbor = layout.chipPlacements[mainChipId]
+  if (neighborId) neighbor = layout.chipPlacements[neighborId]
   const rowChipIds = Object.keys(partition.chipMap)
   const boundsContext = { inputProblem, layout }
   const mainBounds = getPartitionBounds(
@@ -197,21 +199,14 @@ const placeNetOnlyDecouplingRow = (
     boundsContext,
   )
   const rowBounds = getPartitionBounds(rowChipIds, boundsContext)
-  if (!mainBounds || !rowBounds) return
-
-  let rowAlignmentAnchor = getBoundsCenter(rowBounds)
-  if (neighborId) {
-    const neighbor = layout.chipPlacements[neighborId]
-    if (!neighbor) return
-    rowAlignmentAnchor = neighbor
-  }
+  if (!neighbor || !mainBounds || !rowBounds) return
 
   const offset = getRowOffset({
     side,
     chipGap: inputProblem.chipGap,
     mainBounds,
     rowBounds,
-    neighbor: rowAlignmentAnchor,
+    neighbor,
   })
   const rowToPlacedTransform = translate(offset.x, offset.y)
   const previousPlacements = new Map<ChipId, Placement>()

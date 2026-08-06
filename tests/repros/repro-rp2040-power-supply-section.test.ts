@@ -28,9 +28,7 @@ test("RP2040 power supply section auto-layout", async () => {
     expect(capacitorBounds.minX).toBeGreaterThanOrEqual(
       u2Bounds.maxX + input.chipGap,
     )
-    expect(capacitorBounds.minY).toBeGreaterThanOrEqual(
-      u2Bounds.maxY + input.chipGap,
-    )
+    expect(capacitorPlacement.y).toBeCloseTo(u2Placement.y)
   }
   expect(solver.checkForOverlaps(layout)).toHaveLength(0)
 
