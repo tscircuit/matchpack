@@ -18,6 +18,7 @@ export type GroundedLoadPair = {
   upperInnerPinId: PinId
   lowerInnerPinId: PinId
   groundPinId: PinId
+  isStandaloneSignalChain?: boolean
 }
 
 type ConnectivityContext = {
@@ -212,6 +213,62 @@ const getRailConnectedPair = (
   }
 }
 
+const getSignalConnectedPair = (
+  upperChip: Chip,
+  context: ConnectivityContext,
+): GroundedLoadPair | null => {
+  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } =
+    context
+  for (const upperOuterPinId of upperChip.pins) {
+    const hasStandaloneSignalNet = getNetIdsForPin({
+      inputProblem,
+      pinId: upperOuterPinId,
+    }).some((netId) => {
+      const net = inputProblem.netMap[netId]
+      if (net?.isGround || net?.isPositiveVoltageSource) return false
+      return getPinIdsForNet({ inputProblem, netId }).length === 1
+    })
+    if (!hasStandaloneSignalNet) continue
+
+    const upperInnerPinId = upperChip.pins.find(
+      (pinId) => pinId !== upperOuterPinId,
+    )
+    if (!upperInnerPinId) continue
+
+    const lowerInnerPinId = getStronglyConnectedPinIds({
+      connectedPinsByPinId,
+      pinId: upperInnerPinId,
+    }).find((pinId) => {
+      const chip = pinOwnerMap.get(pinId)
+      if (!chip) return false
+      if (chip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return false
+      if (chip.fixedPosition) return false
+      return !pairedChipIds.has(chip.chipId)
+    })
+    if (!lowerInnerPinId) continue
+
+    const lowerChip = pinOwnerMap.get(lowerInnerPinId)
+    if (!lowerChip) continue
+    const groundPinId = lowerChip.pins.find(
+      (pinId) =>
+        pinId !== lowerInnerPinId &&
+        pinConnectsToGround({ inputProblem, pinId }),
+    )
+    if (!groundPinId) continue
+
+    return {
+      upperChip,
+      lowerChip,
+      upperOuterPinId,
+      upperInnerPinId,
+      lowerInnerPinId,
+      groundPinId,
+      isStandaloneSignalChain: true,
+    }
+  }
+  return null
+}
+
 export const getGroundedLoadPairs = (
   inputProblem: InputProblem,
 ): GroundedLoadPair[] => {
@@ -233,6 +290,18 @@ export const getGroundedLoadPairs = (
     if (pairedChipIds.has(upperChip.chipId)) continue
 
     const groundedLoadPair = getChipConnectedPair(upperChip, context)
+    if (!groundedLoadPair) continue
+    groundedLoadPairs.push(groundedLoadPair)
+    pairedChipIds.add(groundedLoadPair.upperChip.chipId)
+    pairedChipIds.add(groundedLoadPair.lowerChip.chipId)
+  }
+
+  for (const upperChip of Object.values(inputProblem.chipMap)) {
+    if (upperChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    if (upperChip.fixedPosition) continue
+    if (pairedChipIds.has(upperChip.chipId)) continue
+
+    const groundedLoadPair = getSignalConnectedPair(upperChip, context)
     if (!groundedLoadPair) continue
     groundedLoadPairs.push(groundedLoadPair)
     pairedChipIds.add(groundedLoadPair.upperChip.chipId)
