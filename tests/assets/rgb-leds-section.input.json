@@ -1,0 +1,586 @@
+{
+  "chipMap": {
+    "Q1": {
+      "chipId": "Q1",
+      "pins": ["Q1.1", "Q1.2", "Q1.3"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 1.2000000000000002
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "R_LV": {
+      "chipId": "R_LV",
+      "pins": ["R_LV.1", "R_LV.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R_HV": {
+      "chipId": "R_HV",
+      "pins": ["R_HV.1", "R_HV.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R_DATA": {
+      "chipId": "R_DATA",
+      "pins": ["R_DATA.1", "R_DATA.2"],
+      "size": {
+        "x": 0.72,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "LED1": {
+      "chipId": "LED1",
+      "pins": ["LED1.1", "LED1.2", "LED1.3", "LED1.4"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 1.4
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "LED2": {
+      "chipId": "LED2",
+      "pins": ["LED2.1", "LED2.2", "LED2.3", "LED2.4"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 1.4
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "LED3": {
+      "chipId": "LED3",
+      "pins": ["LED3.1", "LED3.2", "LED3.3", "LED3.4"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 1.4
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "LED4": {
+      "chipId": "LED4",
+      "pins": ["LED4.1", "LED4.2", "LED4.3", "LED4.4"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 1.4
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "LED5": {
+      "chipId": "LED5",
+      "pins": ["LED5.1", "LED5.2", "LED5.3", "LED5.4"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 1.4
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "C_LED1": {
+      "chipId": "C_LED1",
+      "pins": ["C_LED1.1", "C_LED1.2"],
+      "size": {
+        "x": 0.72,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_LED2": {
+      "chipId": "C_LED2",
+      "pins": ["C_LED2.1", "C_LED2.2"],
+      "size": {
+        "x": 0.72,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_LED3": {
+      "chipId": "C_LED3",
+      "pins": ["C_LED3.1", "C_LED3.2"],
+      "size": {
+        "x": 0.72,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_LED4": {
+      "chipId": "C_LED4",
+      "pins": ["C_LED4.1", "C_LED4.2"],
+      "size": {
+        "x": 0.72,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_LED5": {
+      "chipId": "C_LED5",
+      "pins": ["C_LED5.1", "C_LED5.2"],
+      "size": {
+        "x": 0.72,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "TP_RGB_OUT": {
+      "chipId": "TP_RGB_OUT",
+      "pins": ["TP_RGB_OUT.1"],
+      "size": {
+        "x": 1.4874999999999998,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "Q1.1": {
+      "pinId": "Q1.1",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "Q1.2": {
+      "pinId": "Q1.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "Q1.3": {
+      "pinId": "Q1.3",
+      "offset": {
+        "x": 1,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_LV.1": {
+      "pinId": "R_LV.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_LV.2": {
+      "pinId": "R_LV.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_HV.1": {
+      "pinId": "R_HV.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_HV.2": {
+      "pinId": "R_HV.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_DATA.1": {
+      "pinId": "R_DATA.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_DATA.2": {
+      "pinId": "R_DATA.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "LED1.1": {
+      "pinId": "LED1.1",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "LED1.2": {
+      "pinId": "LED1.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "LED1.3": {
+      "pinId": "LED1.3",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "LED1.4": {
+      "pinId": "LED1.4",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "LED2.1": {
+      "pinId": "LED2.1",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "LED2.2": {
+      "pinId": "LED2.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "LED2.3": {
+      "pinId": "LED2.3",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "LED2.4": {
+      "pinId": "LED2.4",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "LED3.1": {
+      "pinId": "LED3.1",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "LED3.2": {
+      "pinId": "LED3.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "LED3.3": {
+      "pinId": "LED3.3",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "LED3.4": {
+      "pinId": "LED3.4",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "LED4.1": {
+      "pinId": "LED4.1",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "LED4.2": {
+      "pinId": "LED4.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "LED4.3": {
+      "pinId": "LED4.3",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "LED4.4": {
+      "pinId": "LED4.4",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "LED5.1": {
+      "pinId": "LED5.1",
+      "offset": {
+        "x": -1,
+        "y": 0.1
+      },
+      "side": "x-"
+    },
+    "LED5.2": {
+      "pinId": "LED5.2",
+      "offset": {
+        "x": -1,
+        "y": -0.1
+      },
+      "side": "x-"
+    },
+    "LED5.3": {
+      "pinId": "LED5.3",
+      "offset": {
+        "x": 1,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "LED5.4": {
+      "pinId": "LED5.4",
+      "offset": {
+        "x": 1,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "C_LED1.1": {
+      "pinId": "C_LED1.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_LED1.2": {
+      "pinId": "C_LED1.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_LED2.1": {
+      "pinId": "C_LED2.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_LED2.2": {
+      "pinId": "C_LED2.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_LED3.1": {
+      "pinId": "C_LED3.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_LED3.2": {
+      "pinId": "C_LED3.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_LED4.1": {
+      "pinId": "C_LED4.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_LED4.2": {
+      "pinId": "C_LED4.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_LED5.1": {
+      "pinId": "C_LED5.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_LED5.2": {
+      "pinId": "C_LED5.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "TP_RGB_OUT.1": {
+      "pinId": "TP_RGB_OUT.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    }
+  },
+  "netMap": {
+    "RgbLedsSection_connectivity_net1": {
+      "netId": "RgbLedsSection_connectivity_net1",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "RgbLedsSection_connectivity_net3": {
+      "netId": "RgbLedsSection_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "RgbLedsSection_connectivity_net5": {
+      "netId": "RgbLedsSection_connectivity_net5",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "Q1.2-R_LV.1": true,
+    "R_LV.1-Q1.2": true,
+    "Q1.3-R_HV.1": true,
+    "R_HV.1-Q1.3": true,
+    "Q1.3-R_DATA.1": true,
+    "R_DATA.1-Q1.3": true,
+    "R_DATA.2-LED1.1": true,
+    "LED1.1-R_DATA.2": true,
+    "LED1.3-LED2.1": true,
+    "LED2.1-LED1.3": true,
+    "LED2.3-LED3.1": true,
+    "LED3.1-LED2.3": true,
+    "LED3.3-LED4.1": true,
+    "LED4.1-LED3.3": true,
+    "LED4.3-LED5.1": true,
+    "LED5.1-LED4.3": true,
+    "LED5.3-TP_RGB_OUT.1": true,
+    "TP_RGB_OUT.1-LED5.3": true
+  },
+  "netConnMap": {
+    "Q1.1-RgbLedsSection_connectivity_net1": true,
+    "R_LV.2-RgbLedsSection_connectivity_net1": true,
+    "R_HV.2-RgbLedsSection_connectivity_net3": true,
+    "LED1.2-RgbLedsSection_connectivity_net3": true,
+    "LED2.2-RgbLedsSection_connectivity_net3": true,
+    "LED3.2-RgbLedsSection_connectivity_net3": true,
+    "LED4.2-RgbLedsSection_connectivity_net3": true,
+    "LED5.2-RgbLedsSection_connectivity_net3": true,
+    "C_LED1.1-RgbLedsSection_connectivity_net3": true,
+    "C_LED2.1-RgbLedsSection_connectivity_net3": true,
+    "C_LED3.1-RgbLedsSection_connectivity_net3": true,
+    "C_LED4.1-RgbLedsSection_connectivity_net3": true,
+    "C_LED5.1-RgbLedsSection_connectivity_net3": true,
+    "LED1.4-RgbLedsSection_connectivity_net5": true,
+    "LED2.4-RgbLedsSection_connectivity_net5": true,
+    "LED3.4-RgbLedsSection_connectivity_net5": true,
+    "LED4.4-RgbLedsSection_connectivity_net5": true,
+    "LED5.4-RgbLedsSection_connectivity_net5": true,
+    "C_LED1.2-RgbLedsSection_connectivity_net5": true,
+    "C_LED2.2-RgbLedsSection_connectivity_net5": true,
+    "C_LED3.2-RgbLedsSection_connectivity_net5": true,
+    "C_LED4.2-RgbLedsSection_connectivity_net5": true,
+    "C_LED5.2-RgbLedsSection_connectivity_net5": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
