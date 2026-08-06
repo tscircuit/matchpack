@@ -201,9 +201,11 @@ const placeNetOnlyDecouplingRow = (
   const rowBounds = getPartitionBounds(rowChipIds, boundsContext)
   if (!neighbor || !mainBounds || !rowBounds) return
 
+  let mainToRowGap = inputProblem.chipGap
+  if (!neighborId) mainToRowGap = inputProblem.partitionGap
   const offset = getRowOffset({
     side,
-    chipGap: inputProblem.chipGap,
+    chipGap: mainToRowGap,
     mainBounds,
     rowBounds,
     neighbor,

@@ -26,12 +26,14 @@ test("RP2040 power supply section auto-layout", async () => {
       height: capacitor.size.y,
     })
     expect(capacitorBounds.minX).toBeGreaterThanOrEqual(
-      u2Bounds.maxX + input.chipGap,
+      u2Bounds.maxX + input.partitionGap,
     )
     expect(capacitorPlacement.y).toBeCloseTo(u2Placement.y)
   }
   const c4 = input.chipMap.C4!
   const c18 = input.chipMap.C18!
+  const c4BodyGap = layout.chipPlacements.C4!.x - c4.size.x / 2 - u2Bounds.maxX
+  expect(c4BodyGap).toBeCloseTo(input.partitionGap)
   const capacitorBodyGap =
     layout.chipPlacements.C18!.x -
     layout.chipPlacements.C4!.x -
