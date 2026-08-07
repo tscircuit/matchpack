@@ -21,6 +21,7 @@ import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
 import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsSolver/PlaceNetOnlyDecouplingRowsSolver"
+import { AlignChipConnectedRailLoadsSolver } from "../AlignChipConnectedRailLoadsSolver/AlignChipConnectedRailLoadsSolver"
 import { GroundedLoadPairSolver } from "../GroundedLoadPairSolver/GroundedLoadPairSolver"
 import { PlaceRailConnectedLoadsSolver } from "../PlaceRailConnectedLoadsSolver/PlaceRailConnectedLoadsSolver"
 
@@ -65,6 +66,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   alignTestPointsSolver?: AlignTestPointsSolver
   placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
   placeRailConnectedLoadsSolver?: PlaceRailConnectedLoadsSolver
+  alignChipConnectedRailLoadsSolver?: AlignChipConnectedRailLoadsSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -184,10 +186,21 @@ export class LayoutPipelineSolver extends BaseSolver {
           this.alignPowerGroundRowsSolver!.outputLayout!,
       },
     ]),
+    definePipelineStep(
+      "alignChipConnectedRailLoadsSolver",
+      AlignChipConnectedRailLoadsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          inputLayout: this.groundedLoadPairSolver!.outputLayout!,
+        },
+      ],
+    ),
     definePipelineStep("alignTestPointsSolver", AlignTestPointsSolver, () => [
       {
         inputProblem: this.inputProblem,
         inputLayout:
+          this.alignChipConnectedRailLoadsSolver!.outputLayout ??
           this.groundedLoadPairSolver!.outputLayout ??
           this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
           this.alignPowerGroundRowsSolver!.outputLayout ??

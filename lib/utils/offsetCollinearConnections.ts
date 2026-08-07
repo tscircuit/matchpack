@@ -10,6 +10,7 @@ import type { Placement } from "../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "./rotatePinOffset"
 import { getGroundedLoadPairs } from "../solvers/GroundedLoadPairSolver/getGroundedLoadPairs"
 import { createPinOwnerMap } from "./createPinOwnerMap"
+import type { ChipConnectedRailLoadPair } from "../solvers/AlignChipConnectedRailLoadsSolver/getChipConnectedRailLoadPairs"
 
 const TRACE_CLEARANCE = 0.2
 const ALIGNMENT_TOLERANCE = 1e-6
@@ -262,6 +263,49 @@ export const offsetChipAnchoredGroundedLoadConnections = ({
       chipIds: [groundedLoadPair.upperChip.chipId],
       dx: -TRACE_CLEARANCE,
       dy: 0,
+      chipPlacements,
+      inputProblem,
+    })
+  }
+}
+
+export const offsetChipConnectedRailLoadConnections = ({
+  railLoadPairs,
+  inputProblem,
+  chipPlacements,
+}: {
+  railLoadPairs: ChipConnectedRailLoadPair[]
+  inputProblem: InputProblem
+  chipPlacements: Record<ChipId, Placement>
+}): void => {
+  for (const railLoadPair of railLoadPairs) {
+    const mainPin = inputProblem.chipPinMap[railLoadPair.mainPinId]
+    const resistorPin = inputProblem.chipPinMap[railLoadPair.resistorMainPinId]
+    const mainPlacement = chipPlacements[railLoadPair.mainChipId]
+    const resistorPlacement = chipPlacements[railLoadPair.resistor.chipId]
+    if (!mainPin || !resistorPin || !mainPlacement || !resistorPlacement) {
+      continue
+    }
+
+    const mainPinPosition = getAbsolutePinPosition(mainPin, mainPlacement)
+    const resistorPinPosition = getAbsolutePinPosition(
+      resistorPin,
+      resistorPlacement,
+    )
+    if (
+      Math.abs(mainPinPosition.y - resistorPinPosition.y) > ALIGNMENT_TOLERANCE
+    ) {
+      continue
+    }
+
+    // Preserve the branch geometry while creating trace clearance at the IC pin.
+    tryOffsetChips({
+      chipIds: [
+        railLoadPair.railComponent.chipId,
+        railLoadPair.resistor.chipId,
+      ],
+      dx: 0,
+      dy: TRACE_CLEARANCE,
       chipPlacements,
       inputProblem,
     })
