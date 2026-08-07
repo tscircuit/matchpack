@@ -273,10 +273,15 @@ export class PartitionPackingSolver extends BaseSolver {
     packedComponents: PackSolver2["packedComponents"],
     partitionGroups: PartitionGroup[],
   ): OutputLayout {
+    const aspectRatioBalancedComponents = this.balanceDistantPairAspectRatio(
+      packedComponents,
+      partitionGroups,
+    )
+
     // Apply the partition offsets to individual components
     const newChipPlacements: Record<string, Placement> = {}
 
-    for (const packedComponent of packedComponents) {
+    for (const packedComponent of aspectRatioBalancedComponents) {
       const partitionIndex = parseInt(
         packedComponent.componentId.replace("partition_", ""),
       )
@@ -312,6 +317,84 @@ export class PartitionPackingSolver extends BaseSolver {
       chipPlacements: newChipPlacements,
       groupPlacements: {},
     }
+  }
+
+  /**
+   * A pair of partitions connected only by a global rail (typically GND) has
+   * no meaningful routing preference between vertical and horizontal packing.
+   * Prefer the horizontal candidate so these distant groups do not make the
+   * overall schematic portrait-oriented.
+   */
+  private balanceDistantPairAspectRatio(
+    packedComponents: PackSolver2["packedComponents"],
+    partitionGroups: PartitionGroup[],
+  ): PackSolver2["packedComponents"] {
+    if (
+      packedComponents.length !== 2 ||
+      this.countSharedNetworks(partitionGroups) > 1 ||
+      partitionGroups.some((group) =>
+        this.partitionHasFixedChip(group.partitionIndex),
+      )
+    ) {
+      return packedComponents
+    }
+
+    const [anchor, moving] = packedComponents
+    if (!anchor || !moving) return packedComponents
+
+    const deltaX = Math.abs(moving.center.x - anchor.center.x)
+    const deltaY = Math.abs(moving.center.y - anchor.center.y)
+    if (deltaX >= deltaY) return packedComponents
+
+    const anchorIndex = Number(anchor.componentId.replace("partition_", ""))
+    const movingIndex = Number(moving.componentId.replace("partition_", ""))
+    const anchorGroup = partitionGroups.find(
+      (group) => group.partitionIndex === anchorIndex,
+    )
+    const movingGroup = partitionGroups.find(
+      (group) => group.partitionIndex === movingIndex,
+    )
+    if (!anchorGroup || !movingGroup) return packedComponents
+
+    const anchorWidth = anchorGroup.bounds.maxX - anchorGroup.bounds.minX
+    const movingWidth = movingGroup.bounds.maxX - movingGroup.bounds.minX
+    const horizontalDistance =
+      anchorWidth / 2 + this.inputProblem.partitionGap + movingWidth / 2
+
+    return [
+      anchor,
+      {
+        ...moving,
+        center: {
+          x: anchor.center.x + horizontalDistance,
+          y: anchor.center.y,
+        },
+      },
+    ]
+  }
+
+  private countSharedNetworks(partitionGroups: PartitionGroup[]): number {
+    if (partitionGroups.length !== 2) return 0
+
+    const pinToNetworkMap = this.buildConnectivityMap()
+    const networksByGroup = partitionGroups.map((group) => {
+      const networks = new Set<NetId>()
+      for (const chipId of group.chipIds) {
+        const chip = this.inputProblem.chipMap[chipId]
+        if (!chip) continue
+        for (const pinId of chip.pins) {
+          const networkId = pinToNetworkMap.get(pinId)
+          if (networkId) networks.add(networkId)
+        }
+      }
+      return networks
+    })
+
+    const [firstNetworks, secondNetworks] = networksByGroup
+    if (!firstNetworks || !secondNetworks) return 0
+    return [...firstNetworks].filter((networkId) =>
+      secondNetworks.has(networkId),
+    ).length
   }
 
   private getCombinedPackedPartitionsProblem(): InputProblem {
