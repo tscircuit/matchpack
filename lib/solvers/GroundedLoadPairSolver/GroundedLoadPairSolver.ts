@@ -44,6 +44,7 @@ export class GroundedLoadPairSolver extends BaseSolver {
       inputProblem: this.params.inputProblem,
     })
     offsetChipAnchoredGroundedLoadConnections({
+      groundedLoadPairs,
       inputProblem: this.params.inputProblem,
       chipPlacements,
     })

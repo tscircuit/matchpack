@@ -8,7 +8,7 @@ import type {
 } from "../types/InputProblem"
 import type { Placement } from "../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "./rotatePinOffset"
-import { getGroundedLoadPairs } from "../solvers/GroundedLoadPairSolver/getGroundedLoadPairs"
+import type { GroundedLoadPair } from "../solvers/GroundedLoadPairSolver/getGroundedLoadPairs"
 import { createPinOwnerMap } from "./createPinOwnerMap"
 
 const TRACE_CLEARANCE = 0.2
@@ -234,13 +234,15 @@ export const applyDirectPassiveTraceClearance = ({
 }
 
 export const offsetChipAnchoredGroundedLoadConnections = ({
+  groundedLoadPairs,
   inputProblem,
   chipPlacements,
 }: {
+  groundedLoadPairs: GroundedLoadPair[]
   inputProblem: InputProblem
   chipPlacements: Record<ChipId, Placement>
 }): void => {
-  for (const groundedLoadPair of getGroundedLoadPairs(inputProblem)) {
+  for (const groundedLoadPair of groundedLoadPairs) {
     if (!groundedLoadPair.mainPinId) continue
     if (!groundedLoadPair.upperChip.isResistor) continue
 
