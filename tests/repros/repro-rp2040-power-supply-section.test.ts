@@ -3,6 +3,7 @@ import { getBoundFromCenteredRect } from "@tscircuit/math-utils"
 import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "../../lib/types/InputProblem"
 import { getVerticalPinClearanceOffset } from "../../lib/utils/getVerticalPinClearanceOffset"
+import { getRotatedSize } from "../../lib/utils/rotatePinOffset"
 import input from "../assets/repro-rp2040-power-supply-section.input.json"
 
 // Captured from @tscircuit/core 0.0.1539 with @tscircuit/matchpack 0.0.55.
@@ -49,9 +50,16 @@ test("RP2040 power supply section auto-layout", async () => {
     c4.size.x / 2 -
     c18.size.x / 2
   expect(capacitorBodyGap).toBeCloseTo(input.decouplingCapsGap)
+  const dpwr = input.chipMap.DPWR!
+  const dpwrPlacement = layout.chipPlacements.DPWR!
+  const dpwrSize = getRotatedSize(dpwr.size, dpwrPlacement.ccwRotationDegrees)
+  const dpwrLeftEdge = dpwrPlacement.x - dpwrSize.x / 2
+  const capacitorRowRightEdge = layout.chipPlacements.C18!.x + c18.size.x / 2
+  expect(dpwrLeftEdge - capacitorRowRightEdge).toBeCloseTo(input.partitionGap)
+  expect(layout.chipPlacements.R1!.x).toBeCloseTo(dpwrPlacement.x)
   expect(
     solver.checkForOverlaps(
-      solver.placeNetOnlyDecouplingRowsSolver!.outputLayout!,
+      solver.placeRailConnectedLoadsSolver!.outputLayout!,
     ),
   ).toHaveLength(0)
 

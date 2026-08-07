@@ -166,33 +166,31 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep("groundedLoadPairSolver", GroundedLoadPairSolver, () => [
+      {
+        inputProblem: this.inputProblem,
+        inputLayout: this.placeNetOnlyDecouplingRowsSolver!.outputLayout!,
+      },
+    ]),
     definePipelineStep(
       "placeRailConnectedLoadsSolver",
       PlaceRailConnectedLoadsSolver,
       () => [
         {
           inputProblem: this.inputProblem,
+          groundedLoadPairs: this.groundedLoadPairSolver!.groundedLoadPairs,
           packedPartitions: this.packedPartitions!,
-          inputLayout: this.placeNetOnlyDecouplingRowsSolver!.outputLayout!,
+          inputLayout: this.groundedLoadPairSolver!.outputLayout!,
         },
       ],
     ),
-    definePipelineStep("groundedLoadPairSolver", GroundedLoadPairSolver, () => [
-      {
-        inputProblem: this.inputProblem,
-        inputLayout:
-          this.placeRailConnectedLoadsSolver!.outputLayout ??
-          this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
-          this.alignPowerGroundRowsSolver!.outputLayout!,
-      },
-    ]),
     definePipelineStep(
       "alignChipConnectedRailLoadsSolver",
       AlignChipConnectedRailLoadsSolver,
       () => [
         {
           inputProblem: this.inputProblem,
-          inputLayout: this.groundedLoadPairSolver!.outputLayout!,
+          inputLayout: this.placeRailConnectedLoadsSolver!.outputLayout!,
         },
       ],
     ),
@@ -201,6 +199,7 @@ export class LayoutPipelineSolver extends BaseSolver {
         inputProblem: this.inputProblem,
         inputLayout:
           this.alignChipConnectedRailLoadsSolver!.outputLayout ??
+          this.placeRailConnectedLoadsSolver!.outputLayout ??
           this.groundedLoadPairSolver!.outputLayout ??
           this.placeNetOnlyDecouplingRowsSolver!.outputLayout ??
           this.alignPowerGroundRowsSolver!.outputLayout ??
