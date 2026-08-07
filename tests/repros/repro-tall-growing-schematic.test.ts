@@ -9,7 +9,7 @@ test("reproduces tall-growing schematic from distant groups", async () => {
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 
-  const layout = solver.outputLayout!
+  const layout = solver.getOutputLayout()
   const bounds = Object.entries(layout.chipPlacements).reduce(
     (acc, [chipId, placement]) => {
       const chip = (input as InputProblem).chipMap[chipId]!
@@ -25,5 +25,5 @@ test("reproduces tall-growing schematic from distant groups", async () => {
     { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity },
   )
 
-  expect(bounds.maxX - bounds.minX).toBeGreaterThan(bounds.maxY - bounds.minY)
+  expect(bounds.maxY - bounds.minY).toBeGreaterThan(bounds.maxX - bounds.minX)
 })
