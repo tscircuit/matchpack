@@ -1,9 +1,9 @@
 import {
+  type Bounds,
   doBoundsOverlap,
   getBoundFromCenteredRect,
   getBoundsCenter,
   getBoundsFromPoints,
-  type Bounds,
 } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { applyToPoint, translate } from "transformation-matrix"
@@ -15,11 +15,13 @@ import type {
 } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
-import { getRotatedSize } from "../../utils/rotatePinOffset"
 import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
+import { getVerticalPinClearanceOffset } from "../../utils/getVerticalPinClearanceOffset"
+import { getRotatedSize } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
+import { getPositiveRailPin } from "./getPositiveRailPin"
 
 type SolverOptions = {
   inputProblem: InputProblem
@@ -190,7 +192,8 @@ const placeNetOnlyDecouplingRow = (
     { mainPartition, mainChipId, side },
     inputProblem,
   )
-  const neighbor = neighborId && layout.chipPlacements[neighborId]
+  let neighbor = layout.chipPlacements[mainChipId]
+  if (neighborId) neighbor = layout.chipPlacements[neighborId]
   const rowChipIds = Object.keys(partition.chipMap)
   const boundsContext = { inputProblem, layout }
   const mainBounds = getPartitionBounds(
@@ -200,9 +203,36 @@ const placeNetOnlyDecouplingRow = (
   const rowBounds = getPartitionBounds(rowChipIds, boundsContext)
   if (!neighbor || !mainBounds || !rowBounds) return
 
+  if (!neighborId) {
+    const rowChipId = rowChipIds[0]
+    const mainRailPin = getPositiveRailPin(
+      { chipId: mainChipId, side },
+      inputProblem,
+    )
+    const rowRailPin =
+      rowChipId && getPositiveRailPin({ chipId: rowChipId }, inputProblem)
+    const rowPlacement = rowChipId && layout.chipPlacements[rowChipId]
+    if (!mainRailPin || !rowRailPin || !rowPlacement) return
+
+    // Align the shared rail pins while leaving space for a readable trace.
+    neighbor = {
+      ...neighbor,
+      y:
+        neighbor.y +
+        getVerticalPinClearanceOffset({
+          upperPin: mainRailPin,
+          upperPlacement: neighbor,
+          lowerPin: rowRailPin,
+          lowerPlacement: { ...rowPlacement, y: neighbor.y },
+        }),
+    }
+  }
+
+  let mainToRowGap = inputProblem.chipGap
+  if (!neighborId) mainToRowGap = inputProblem.partitionGap
   const offset = getRowOffset({
     side,
-    chipGap: inputProblem.chipGap,
+    chipGap: mainToRowGap,
     mainBounds,
     rowBounds,
     neighbor,
