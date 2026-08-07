@@ -3,13 +3,17 @@ import type { InputProblem } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-import { getGroundedLoadPairs } from "./getGroundedLoadPairs"
+import {
+  getGroundedLoadPairs,
+  type GroundedLoadPair,
+} from "./getGroundedLoadPairs"
 import { layoutGroundedLoadPair } from "./layoutGroundedLoadPair"
 import { offsetChipAnchoredGroundedLoadConnections } from "../../utils/offsetCollinearConnections"
 import { alignStandaloneGroundedLoadPairs } from "./alignStandaloneGroundedLoadPairs"
 
 export class GroundedLoadPairSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
+  groundedLoadPairs: GroundedLoadPair[] = []
 
   constructor(
     private params: {
@@ -29,9 +33,9 @@ export class GroundedLoadPairSolver extends BaseSolver {
       chipPlacements[chipId] = { ...placement }
     }
 
-    const groundedLoadPairs = getGroundedLoadPairs(this.params.inputProblem)
+    this.groundedLoadPairs = getGroundedLoadPairs(this.params.inputProblem)
     // Each detected chain is placed once in deterministic discovery order.
-    for (const groundedLoadPair of groundedLoadPairs) {
+    for (const groundedLoadPair of this.groundedLoadPairs) {
       layoutGroundedLoadPair({
         groundedLoadPair,
         chipPlacements,
@@ -39,12 +43,12 @@ export class GroundedLoadPairSolver extends BaseSolver {
       })
     }
     alignStandaloneGroundedLoadPairs({
-      groundedLoadPairs,
+      groundedLoadPairs: this.groundedLoadPairs,
       chipPlacements,
       inputProblem: this.params.inputProblem,
     })
     offsetChipAnchoredGroundedLoadConnections({
-      groundedLoadPairs,
+      groundedLoadPairs: this.groundedLoadPairs,
       inputProblem: this.params.inputProblem,
       chipPlacements,
     })

@@ -13,9 +13,15 @@ import type {
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
+import type { GroundedLoadPair } from "../GroundedLoadPairSolver/getGroundedLoadPairs"
+import {
+  getRailConnectedLoadGroups,
+  type RailConnectedLoadGroup,
+} from "./getRailConnectedLoadGroups"
 
 export type PlaceRailConnectedLoadsOptions = {
   inputProblem: InputProblem
+  groundedLoadPairs: GroundedLoadPair[]
   packedPartitions: PackedPartition[]
   inputLayout: OutputLayout
 }
@@ -58,15 +64,14 @@ const getPartitionBounds = (
 
 // The upper rail pin is the visual continuation point for a horizontal row.
 const getUpperRailPin = (
-  {
-    partition,
-    railNetIds,
-  }: { partition: PackedPartition; railNetIds: Set<NetId> },
+  { chipIds, railNetIds }: { chipIds: ChipId[]; railNetIds: Set<NetId> },
   context: PlacementContext,
 ): { chipId: ChipId; y: number } | null => {
   let upperRailPin: { chipId: ChipId; y: number } | null = null
 
-  for (const chip of Object.values(partition.inputProblem.chipMap)) {
+  for (const chipId of chipIds) {
+    const chip = context.inputProblem.chipMap[chipId]
+    if (!chip) continue
     const placement = context.layout.chipPlacements[chip.chipId]
     if (!placement) continue
 
@@ -89,29 +94,21 @@ const getUpperRailPin = (
 }
 
 const getRailNetIds = (
-  { partition }: { partition: PackedPartition },
+  { chipIds }: { chipIds: ChipId[] },
   { inputProblem }: PlacementContext,
 ): Set<NetId> => {
   const railNetIds = new Set<NetId>()
-  for (const pinId of Object.keys(partition.inputProblem.chipPinMap)) {
-    for (const [netId, net] of Object.entries(inputProblem.netMap)) {
-      if (!net.isGround && !net.isPositiveVoltageSource) continue
-      if (inputProblem.netConnMap[`${pinId}-${netId}`]) railNetIds.add(netId)
+  for (const chipId of chipIds) {
+    const chip = inputProblem.chipMap[chipId]
+    if (!chip) continue
+    for (const pinId of chip.pins) {
+      for (const [netId, net] of Object.entries(inputProblem.netMap)) {
+        if (!net.isGround && !net.isPositiveVoltageSource) continue
+        if (inputProblem.netConnMap[`${pinId}-${netId}`]) railNetIds.add(netId)
+      }
     }
   }
   return railNetIds
-}
-
-// Loads are multi-part rail chains, not capacitors or fixed components.
-const isTwoPinLoadPartition = (partition: PackedPartition): boolean => {
-  const chips = Object.values(partition.inputProblem.chipMap)
-  return (
-    chips.length > 1 &&
-    chips.every(
-      (chip) =>
-        chip.pins.length === 2 && !chip.isCapacitor && !chip.fixedPosition,
-    )
-  )
 }
 
 const haveSameRails = (railA: Set<NetId>, railB: Set<NetId>): boolean =>
@@ -159,7 +156,7 @@ const movedPartitionOverlaps = (
 export const placeRailConnectedLoads = (
   options: PlaceRailConnectedLoadsOptions,
 ): OutputLayout => {
-  const { inputProblem, packedPartitions } = options
+  const { groundedLoadPairs, inputProblem, packedPartitions } = options
   const layout = structuredClone(options.inputLayout)
   const context = { inputProblem, layout }
   const capacitorPartitions = packedPartitions.filter(
@@ -167,13 +164,16 @@ export const placeRailConnectedLoads = (
       (partition.inputProblem as PartitionInputProblem).partitionType ===
       "decoupling_caps",
   )
-  const loadPartitions = packedPartitions.filter(isTwoPinLoadPartition)
-  const placedLoadPartitions = new Set<PackedPartition>()
+  const loadGroups = getRailConnectedLoadGroups({
+    groundedLoadPairs,
+    packedPartitions,
+  })
+  const placedLoadGroups = new Set<RailConnectedLoadGroup>()
 
   // Decoupling rows are stable anchors; only matching load partitions move.
   for (const capacitorPartition of capacitorPartitions) {
     const capacitorRails = getRailNetIds(
-      { partition: capacitorPartition },
+      { chipIds: Object.keys(capacitorPartition.inputProblem.chipMap) },
       context,
     )
     const capacitorChipIds = Object.keys(
@@ -185,23 +185,23 @@ export const placeRailConnectedLoads = (
     )
     if (!initialCapacitorBounds) continue
     const capacitorRailPin = getUpperRailPin(
-      { partition: capacitorPartition, railNetIds: capacitorRails },
+      { chipIds: capacitorChipIds, railNetIds: capacitorRails },
       context,
     )
     if (!capacitorRailPin) continue
     let rowRightEdge = initialCapacitorBounds.maxX
 
-    for (const loadPartition of loadPartitions) {
-      if (placedLoadPartitions.has(loadPartition)) continue
-      const loadRails = getRailNetIds({ partition: loadPartition }, context)
+    for (const loadGroup of loadGroups) {
+      if (placedLoadGroups.has(loadGroup)) continue
+      const loadRails = getRailNetIds({ chipIds: loadGroup.chipIds }, context)
       if (!haveSameRails(capacitorRails, loadRails)) continue
 
-      const loadChipIds = Object.keys(loadPartition.inputProblem.chipMap)
+      const loadChipIds = loadGroup.chipIds
       const loadBounds = getPartitionBounds({ chipIds: loadChipIds }, context)
       if (!loadBounds) continue
 
       const loadRailPin = getUpperRailPin(
-        { partition: loadPartition, railNetIds: loadRails },
+        { chipIds: loadChipIds, railNetIds: loadRails },
         context,
       )
       if (!loadRailPin) continue
@@ -234,7 +234,7 @@ export const placeRailConnectedLoads = (
 
       const placedBounds = getPartitionBounds({ chipIds: loadChipIds }, context)
       if (placedBounds) rowRightEdge = placedBounds.maxX
-      placedLoadPartitions.add(loadPartition)
+      placedLoadGroups.add(loadGroup)
     }
   }
 
