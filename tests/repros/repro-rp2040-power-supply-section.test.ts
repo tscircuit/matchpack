@@ -3,7 +3,9 @@ import { getBoundFromCenteredRect } from "@tscircuit/math-utils"
 import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "../../lib/types/InputProblem"
 import { getVerticalPinClearanceOffset } from "../../lib/utils/getVerticalPinClearanceOffset"
-import input from "../assets/repro-rp2040-power-supply-section.input.json"
+import inputJson from "../assets/repro-rp2040-power-supply-section.input.json"
+
+const input = inputJson as InputProblem
 
 // Captured from @tscircuit/core 0.0.1539 with @tscircuit/matchpack 0.0.55.
 test("RP2040 power supply section auto-layout", async () => {
@@ -48,7 +50,7 @@ test("RP2040 power supply section auto-layout", async () => {
     layout.chipPlacements.C4!.x -
     c4.size.x / 2 -
     c18.size.x / 2
-  expect(capacitorBodyGap).toBeCloseTo(input.decouplingCapsGap)
+  expect(capacitorBodyGap).toBeCloseTo(input.decouplingCapsGap!)
   expect(
     solver.checkForOverlaps(
       solver.placeNetOnlyDecouplingRowsSolver!.outputLayout!,
