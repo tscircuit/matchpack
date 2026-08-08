@@ -1,0 +1,386 @@
+{
+  "chipMap": {
+    "SW_BOOT": {
+      "chipId": "SW_BOOT",
+      "pins": ["SW_BOOT.1", "SW_BOOT.2"],
+      "size": {
+        "x": 0.94,
+        "y": 0.718910699999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "SW_RUN": {
+      "chipId": "SW_RUN",
+      "pins": ["SW_RUN.1", "SW_RUN.2"],
+      "size": {
+        "x": 0.94,
+        "y": 0.718910699999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "R_BOOT": {
+      "chipId": "R_BOOT",
+      "pins": ["R_BOOT.1", "R_BOOT.2"],
+      "size": {
+        "x": 0.72,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R_RUN": {
+      "chipId": "R_RUN",
+      "pins": ["R_RUN.1", "R_RUN.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R_LED": {
+      "chipId": "R_LED",
+      "pins": ["R_LED.1", "R_LED.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D1": {
+      "chipId": "D1",
+      "pins": ["D1.1", "D1.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.18
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "R_PWR_LED": {
+      "chipId": "R_PWR_LED",
+      "pins": ["R_PWR_LED.1", "R_PWR_LED.2"],
+      "size": {
+        "x": 0.6,
+        "y": 1.565
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "D_PWR": {
+      "chipId": "D_PWR",
+      "pins": ["D_PWR.1", "D_PWR.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.18
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "TP_SWCLK": {
+      "chipId": "TP_SWCLK",
+      "pins": ["TP_SWCLK.1"],
+      "size": {
+        "x": 1.2475,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "TP_GND": {
+      "chipId": "TP_GND",
+      "pins": ["TP_GND.1"],
+      "size": {
+        "x": 1.0075,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "TP_SWDIO": {
+      "chipId": "TP_SWDIO",
+      "pins": ["TP_SWDIO.1"],
+      "size": {
+        "x": 1.2475,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "TP_3V3": {
+      "chipId": "TP_3V3",
+      "pins": ["TP_3V3.1"],
+      "size": {
+        "x": 1.0075,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "SW_BOOT.1": {
+      "pinId": "SW_BOOT.1",
+      "offset": {
+        "x": -0.47,
+        "y": -0.05
+      },
+      "side": "x-"
+    },
+    "SW_BOOT.2": {
+      "pinId": "SW_BOOT.2",
+      "offset": {
+        "x": 0.47,
+        "y": -0.05
+      },
+      "side": "x+"
+    },
+    "SW_RUN.1": {
+      "pinId": "SW_RUN.1",
+      "offset": {
+        "x": -0.47,
+        "y": -0.05
+      },
+      "side": "x-"
+    },
+    "SW_RUN.2": {
+      "pinId": "SW_RUN.2",
+      "offset": {
+        "x": 0.47,
+        "y": -0.05
+      },
+      "side": "x+"
+    },
+    "R_BOOT.1": {
+      "pinId": "R_BOOT.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_BOOT.2": {
+      "pinId": "R_BOOT.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_RUN.1": {
+      "pinId": "R_RUN.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_RUN.2": {
+      "pinId": "R_RUN.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_LED.1": {
+      "pinId": "R_LED.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_LED.2": {
+      "pinId": "R_LED.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D1.1": {
+      "pinId": "D1.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D1.2": {
+      "pinId": "D1.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_PWR_LED.1": {
+      "pinId": "R_PWR_LED.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_PWR_LED.2": {
+      "pinId": "R_PWR_LED.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D_PWR.1": {
+      "pinId": "D_PWR.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D_PWR.2": {
+      "pinId": "D_PWR.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "TP_SWCLK.1": {
+      "pinId": "TP_SWCLK.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "TP_GND.1": {
+      "pinId": "TP_GND.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "TP_SWDIO.1": {
+      "pinId": "TP_SWDIO.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "TP_3V3.1": {
+      "pinId": "TP_3V3.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net7": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net7",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net8": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net8",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "R_LED.2-D1.1": true,
+    "D1.1-R_LED.2": true,
+    "R_PWR_LED.2-D_PWR.1": true,
+    "D_PWR.1-R_PWR_LED.2": true
+  },
+  "netConnMap": {
+    "SW_BOOT.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "R_BOOT.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "SW_BOOT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "SW_RUN.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "D1.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "D_PWR.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "TP_GND.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "SW_RUN.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": true,
+    "R_RUN.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": true,
+    "R_BOOT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "R_RUN.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "R_PWR_LED.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "TP_3V3.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "R_LED.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "TP_SWCLK.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net7": true,
+    "TP_SWDIO.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net8": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
