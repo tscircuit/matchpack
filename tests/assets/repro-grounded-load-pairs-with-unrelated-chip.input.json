@@ -1,0 +1,135 @@
+{
+  "chipMap": {
+    "LED1": {
+      "chipId": "LED1",
+      "pins": ["LED1.1", "LED1.2"],
+      "size": { "x": 1.13, "y": 1.18 },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "LED2": {
+      "chipId": "LED2",
+      "pins": ["LED2.1", "LED2.2"],
+      "size": { "x": 1.13, "y": 1.18 },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": { "x": 0.6, "y": 0.68 },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R2": {
+      "chipId": "R2",
+      "pins": ["R2.1", "R2.2"],
+      "size": { "x": 0.6, "y": 0.68 },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "C_EXTRA": {
+      "chipId": "C_EXTRA",
+      "pins": ["C_EXTRA.1", "C_EXTRA.2"],
+      "size": { "x": 0.8, "y": 0.5 },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0, 90],
+      "fixedPosition": { "x": 10, "y": 10 }
+    }
+  },
+  "chipPinMap": {
+    "LED1.1": {
+      "pinId": "LED1.1",
+      "offset": { "x": -0.54, "y": 0 },
+      "side": "x-"
+    },
+    "LED1.2": {
+      "pinId": "LED1.2",
+      "offset": { "x": 0.54, "y": 0 },
+      "side": "x+"
+    },
+    "LED2.1": {
+      "pinId": "LED2.1",
+      "offset": { "x": -0.54, "y": 0 },
+      "side": "x-"
+    },
+    "LED2.2": {
+      "pinId": "LED2.2",
+      "offset": { "x": 0.54, "y": 0 },
+      "side": "x+"
+    },
+    "R1.1": { "pinId": "R1.1", "offset": { "x": -0.3, "y": 0 }, "side": "x-" },
+    "R1.2": { "pinId": "R1.2", "offset": { "x": 0.3, "y": 0 }, "side": "x+" },
+    "R2.1": { "pinId": "R2.1", "offset": { "x": -0.3, "y": 0 }, "side": "x-" },
+    "R2.2": { "pinId": "R2.2", "offset": { "x": 0.3, "y": 0 }, "side": "x+" },
+    "C_EXTRA.1": {
+      "pinId": "C_EXTRA.1",
+      "offset": { "x": -0.4, "y": 0 },
+      "side": "x-"
+    },
+    "C_EXTRA.2": {
+      "pinId": "C_EXTRA.2",
+      "offset": { "x": 0.4, "y": 0 },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "SIG1": {
+      "netId": "SIG1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "SIG2": {
+      "netId": "SIG2",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "GND": {
+      "netId": "GND",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "EXTRA1": {
+      "netId": "EXTRA1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "EXTRA2": {
+      "netId": "EXTRA2",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "LED1.1-R1.2": true,
+    "R1.2-LED1.1": true,
+    "LED2.1-R2.2": true,
+    "R2.2-LED2.1": true
+  },
+  "netConnMap": {
+    "LED1.2-SIG1": true,
+    "LED2.2-SIG2": true,
+    "R1.1-GND": true,
+    "R2.1-GND": true,
+    "C_EXTRA.1-EXTRA1": true,
+    "C_EXTRA.2-EXTRA2": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
