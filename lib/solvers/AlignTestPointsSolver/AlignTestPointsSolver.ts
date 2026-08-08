@@ -1,9 +1,4 @@
-import {
-  boundsAreaOverlap,
-  doesSegmentIntersectRect,
-  getBoundFromCenteredRect,
-  type Point,
-} from "@tscircuit/math-utils"
+import { doesSegmentIntersectRect, type Point } from "@tscircuit/math-utils"
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { getPinIdToStronglyConnectedPinsObj } from "lib/solvers/LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
@@ -13,6 +8,8 @@ import type { Side } from "lib/types/Side"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
 import { createPinOwnerMap } from "lib/utils/createPinOwnerMap"
+import { alignLooseTestPoints } from "./alignLooseTestPoints"
+import { getPlacementBounds, placementsOverlap } from "./placementsOverlap"
 
 type Axis = "x" | "y"
 
@@ -76,48 +73,6 @@ const vectorToSide = (vector: Point): Side => {
 
 const rotateSide = (side: Side, ccwRotationDegrees: number): Side =>
   vectorToSide(rotatePinOffset(SIDE_VECTORS[side], ccwRotationDegrees))
-
-const getPlacementBounds = ({
-  placement,
-  size,
-  margin = 0,
-}: {
-  placement: Placement
-  size: Point
-  margin?: number
-}) => {
-  const rotatedSize = getRotatedSize(size, placement.ccwRotationDegrees)
-  return getBoundFromCenteredRect({
-    center: placement,
-    width: rotatedSize.x + margin * 2,
-    height: rotatedSize.y + margin * 2,
-  })
-}
-
-const placementsOverlap = ({
-  inputProblem,
-  chipIdA,
-  placementA,
-  chipIdB,
-  placementB,
-}: {
-  inputProblem: InputProblem
-  chipIdA: ChipId
-  placementA: Placement
-  chipIdB: ChipId
-  placementB: Placement
-}): boolean => {
-  const boundsA = getPlacementBounds({
-    placement: placementA,
-    size: inputProblem.chipMap[chipIdA]!.size,
-    margin: inputProblem.chipGap,
-  })
-  const boundsB = getPlacementBounds({
-    placement: placementB,
-    size: inputProblem.chipMap[chipIdB]!.size,
-  })
-  return boundsAreaOverlap(boundsA, boundsB) > 0
-}
 
 const getAnchorPinTangentPosition = (
   {
@@ -594,61 +549,6 @@ const moveTestPointGroupAlongTangent = (
       ...originalPlacement,
       [tangentAxis]: originalPlacement[tangentAxis] + bestOffset,
     }
-  }
-}
-
-const getTestPointPlacementSpan = (
-  {
-    testPointChipIds,
-    axis,
-  }: {
-    testPointChipIds: ChipId[]
-    axis: Axis
-  },
-  context: TestPointPlacementContext,
-): number => {
-  const positions = testPointChipIds.map(
-    (chipId) => context.chipPlacements[chipId]![axis],
-  )
-  return Math.max(...positions) - Math.min(...positions)
-}
-
-const alignLooseTestPoints = (
-  { anchoredTestPointChipIds }: { anchoredTestPointChipIds: Set<ChipId> },
-  context: TestPointPlacementContext,
-): void => {
-  const looseTestPointChipIds = Object.values(context.inputProblem.chipMap)
-    .filter(
-      (chip) =>
-        chip.isTestPoint &&
-        !chip.fixedPosition &&
-        chip.pins.length === 1 &&
-        context.chipPlacements[chip.chipId] &&
-        !anchoredTestPointChipIds.has(chip.chipId),
-    )
-    .map((chip) => chip.chipId)
-  if (looseTestPointChipIds.length < 2) return
-
-  let perpendicularAxis: Axis = "x"
-  const horizontalSpan = getTestPointPlacementSpan(
-    { testPointChipIds: looseTestPointChipIds, axis: "x" },
-    context,
-  )
-  const verticalSpan = getTestPointPlacementSpan(
-    { testPointChipIds: looseTestPointChipIds, axis: "y" },
-    context,
-  )
-  if (horizontalSpan >= verticalSpan) {
-    perpendicularAxis = "y"
-  }
-
-  const perpendicularCenter =
-    looseTestPointChipIds.reduce(
-      (sum, chipId) => sum + context.chipPlacements[chipId]![perpendicularAxis],
-      0,
-    ) / looseTestPointChipIds.length
-  for (const chipId of looseTestPointChipIds) {
-    context.chipPlacements[chipId]![perpendicularAxis] = perpendicularCenter
   }
 }
 
