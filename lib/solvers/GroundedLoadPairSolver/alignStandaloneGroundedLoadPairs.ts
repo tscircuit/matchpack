@@ -4,8 +4,6 @@ import type { Placement } from "../../types/OutputLayout"
 import { getRotatedSize } from "../../utils/rotatePinOffset"
 import type { GroundedLoadPair } from "./getGroundedLoadPairs"
 
-const CHIPS_PER_PAIR = 2
-
 const getChipBounds = ({
   chipId,
   chipPlacements,
@@ -66,12 +64,6 @@ export const alignStandaloneGroundedLoadPairs = ({
   )
   const firstPair = standalonePairs[0]
   if (!firstPair || standalonePairs.length < 2) return
-  if (
-    standalonePairs.length * CHIPS_PER_PAIR !==
-    Object.keys(inputProblem.chipMap).length
-  ) {
-    return
-  }
 
   const firstUpperPlacement = chipPlacements[firstPair.upperChip.chipId]
   if (!firstUpperPlacement) return
