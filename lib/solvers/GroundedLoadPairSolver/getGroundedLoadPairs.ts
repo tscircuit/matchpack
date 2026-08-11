@@ -18,6 +18,8 @@ export type GroundedLoadPair = {
   upperInnerPinId: PinId
   lowerInnerPinId: PinId
   groundPinId: PinId
+  groundNetId: NetId
+  positiveRailNetId?: NetId
   isStandaloneSignalChain?: boolean
 }
 
@@ -40,7 +42,7 @@ const getStronglyConnectedPinIds = ({
 }): PinId[] =>
   (connectedPinsByPinId[pinId] ?? []).map((connectedPin) => connectedPin.pinId)
 
-const getNetIdsForPin = ({
+export const getNetIdsForPin = ({
   inputProblem,
   pinId,
 }: {
@@ -79,6 +81,28 @@ const pinConnectsToGround = ({
     (netId) => inputProblem.netMap[netId]?.isGround === true,
   )
 
+const getGroundNetIdForPin = ({
+  inputProblem,
+  pinId,
+}: {
+  inputProblem: InputProblem
+  pinId: PinId
+}) =>
+  getNetIdsForPin({ inputProblem, pinId }).find(
+    (netId) => inputProblem.netMap[netId]?.isGround === true,
+  )
+
+const getPositiveRailNetIdForPin = ({
+  inputProblem,
+  pinId,
+}: {
+  inputProblem: InputProblem
+  pinId: PinId
+}) =>
+  getNetIdsForPin({ inputProblem, pinId }).find(
+    (netId) => inputProblem.netMap[netId]?.isPositiveVoltageSource === true,
+  )
+
 const pinConnectsToPositiveVoltage = ({
   inputProblem,
   pinId,
@@ -89,6 +113,40 @@ const pinConnectsToPositiveVoltage = ({
   getNetIdsForPin({ inputProblem, pinId }).some(
     (netId) => inputProblem.netMap[netId]?.isPositiveVoltageSource === true,
   )
+
+const getDirectlyConnectedGroundedLowerChip = (
+  { upperInnerPinId }: { upperInnerPinId: PinId },
+  ctx: ConnectivityContext,
+): Pick<
+  GroundedLoadPair,
+  "lowerChip" | "lowerInnerPinId" | "groundPinId" | "groundNetId"
+> | null => {
+  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } = ctx
+  for (const lowerInnerPinId of getStronglyConnectedPinIds({
+    connectedPinsByPinId,
+    pinId: upperInnerPinId,
+  })) {
+    const lowerChip = pinOwnerMap.get(lowerInnerPinId)
+    if (!lowerChip) continue
+    if (lowerChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    if (lowerChip.fixedPosition) continue
+    if (pairedChipIds.has(lowerChip.chipId)) continue
+    const groundPinId = lowerChip.pins.find(
+      (pinId) =>
+        pinId !== lowerInnerPinId &&
+        pinConnectsToGround({ inputProblem, pinId }),
+    )
+    if (!groundPinId) continue
+    const groundNetId = getGroundNetIdForPin({
+      inputProblem,
+      pinId: groundPinId,
+    })
+    if (groundNetId) {
+      return { lowerChip, lowerInnerPinId, groundPinId, groundNetId }
+    }
+  }
+  return null
+}
 
 const getChipConnectedPair = (
   upperChip: Chip,
@@ -142,6 +200,11 @@ const getChipConnectedPair = (
         pinConnectsToGround({ inputProblem, pinId }),
     )
     if (!groundPinId) continue
+    const groundNetId = getGroundNetIdForPin({
+      inputProblem,
+      pinId: groundPinId,
+    })
+    if (!groundNetId) continue
 
     return {
       upperChip,
@@ -152,6 +215,7 @@ const getChipConnectedPair = (
       upperInnerPinId,
       lowerInnerPinId,
       groundPinId,
+      groundNetId,
     }
   }
   return null
@@ -167,42 +231,28 @@ const getRailConnectedPair = (
     pinConnectsToPositiveVoltage({ inputProblem, pinId }),
   )
   if (!upperOuterPinId) return null
+  const positiveRailNetId = getPositiveRailNetIdForPin({
+    inputProblem,
+    pinId: upperOuterPinId,
+  })
+  if (!positiveRailNetId) return null
 
   const upperInnerPinId = upperChip.pins.find(
     (pinId) => pinId !== upperOuterPinId,
   )
   if (!upperInnerPinId) return null
 
-  const directlyConnectedLowerInnerPinId = getStronglyConnectedPinIds({
-    connectedPinsByPinId: ctx.connectedPinsByPinId,
-    pinId: upperInnerPinId,
-  }).find((pinId) => {
-    const chip = pinOwnerMap.get(pinId)
-    if (!chip) return false
-    if (chip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return false
-    if (chip.fixedPosition) return false
-    return !pairedChipIds.has(chip.chipId)
-  })
-
-  if (directlyConnectedLowerInnerPinId) {
-    const directlyConnectedLowerChip = pinOwnerMap.get(
-      directlyConnectedLowerInnerPinId,
-    )
-    if (!directlyConnectedLowerChip) return null
-    const groundPinId = directlyConnectedLowerChip.pins.find(
-      (pinId) =>
-        pinId !== directlyConnectedLowerInnerPinId &&
-        pinConnectsToGround({ inputProblem, pinId }),
-    )
-    if (!groundPinId) return null
-
+  const directlyConnectedLowerChip = getDirectlyConnectedGroundedLowerChip(
+    { upperInnerPinId },
+    ctx,
+  )
+  if (directlyConnectedLowerChip) {
     return {
       upperChip,
-      lowerChip: directlyConnectedLowerChip,
       upperOuterPinId,
       upperInnerPinId,
-      lowerInnerPinId: directlyConnectedLowerInnerPinId,
-      groundPinId,
+      positiveRailNetId,
+      ...directlyConnectedLowerChip,
     }
   }
 
@@ -215,7 +265,10 @@ const getRailConnectedPair = (
   })
   if (!internalNetId) return null
 
-  const internalPinIds = getPinIdsForNet({ inputProblem, netId: internalNetId })
+  const internalPinIds = getPinIdsForNet({
+    inputProblem,
+    netId: internalNetId,
+  })
   // A private two-pin net prevents grouping a branched circuit as one load chain.
   if (internalPinIds.length !== TWO_PIN_COMPONENT_PIN_COUNT) return null
   const lowerInnerPinId = internalPinIds.find(
@@ -234,6 +287,11 @@ const getRailConnectedPair = (
       pinId !== lowerInnerPinId && pinConnectsToGround({ inputProblem, pinId }),
   )
   if (!groundPinId) return null
+  const groundNetId = getGroundNetIdForPin({
+    inputProblem,
+    pinId: groundPinId,
+  })
+  if (!groundNetId) return null
 
   return {
     upperChip,
@@ -242,6 +300,8 @@ const getRailConnectedPair = (
     upperInnerPinId,
     lowerInnerPinId,
     groundPinId,
+    groundNetId,
+    positiveRailNetId,
   }
 }
 
@@ -249,7 +309,7 @@ const getSignalConnectedPair = (
   upperChip: Chip,
   ctx: ConnectivityContext,
 ): GroundedLoadPair | null => {
-  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } = ctx
+  const { inputProblem } = ctx
   for (const upperOuterPinId of upperChip.pins) {
     const hasStandaloneSignalNet = getNetIdsForPin({
       inputProblem,
@@ -266,34 +326,17 @@ const getSignalConnectedPair = (
     )
     if (!upperInnerPinId) continue
 
-    const lowerInnerPinId = getStronglyConnectedPinIds({
-      connectedPinsByPinId,
-      pinId: upperInnerPinId,
-    }).find((pinId) => {
-      const chip = pinOwnerMap.get(pinId)
-      if (!chip) return false
-      if (chip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return false
-      if (chip.fixedPosition) return false
-      return !pairedChipIds.has(chip.chipId)
-    })
-    if (!lowerInnerPinId) continue
-
-    const lowerChip = pinOwnerMap.get(lowerInnerPinId)
-    if (!lowerChip) continue
-    const groundPinId = lowerChip.pins.find(
-      (pinId) =>
-        pinId !== lowerInnerPinId &&
-        pinConnectsToGround({ inputProblem, pinId }),
+    const directlyConnectedLowerChip = getDirectlyConnectedGroundedLowerChip(
+      { upperInnerPinId },
+      ctx,
     )
-    if (!groundPinId) continue
+    if (!directlyConnectedLowerChip) continue
 
     return {
       upperChip,
-      lowerChip,
       upperOuterPinId,
       upperInnerPinId,
-      lowerInnerPinId,
-      groundPinId,
+      ...directlyConnectedLowerChip,
       isStandaloneSignalChain: true,
     }
   }
