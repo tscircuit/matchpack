@@ -3,6 +3,7 @@ import type { ChipId, InputProblem, NetId } from "../../types/InputProblem"
 import type { Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import type { GroundedLoadPair } from "./getGroundedLoadPairs"
+import { partitionGroundedLoadPairsByPositiveRail } from "./partitionGroundedLoadPairsByPositiveRail"
 
 type GroundedLoadPairBounds = {
   minX: number
@@ -105,6 +106,24 @@ const translateGroundedLoadPair = ({
   }
 }
 
+const getLeftPairEdge = ({
+  groundedLoadPair,
+  chipPlacements,
+  inputProblem,
+}: {
+  groundedLoadPair: GroundedLoadPair
+  chipPlacements: Record<ChipId, Placement>
+  inputProblem: InputProblem
+}): number => {
+  const bounds = getPairBounds({
+    groundedLoadPair,
+    chipPlacements,
+    inputProblem,
+  })
+  if (!bounds) return 0
+  return bounds.minX
+}
+
 const alignGroundedLoadPairRow = ({
   groundedLoadPairs,
   chipPlacements,
@@ -114,20 +133,26 @@ const alignGroundedLoadPairRow = ({
   chipPlacements: Record<ChipId, Placement>
   inputProblem: InputProblem
 }): void => {
-  const orderedPairs = [...groundedLoadPairs].sort((pairA, pairB) => {
-    const boundsA = getPairBounds({
-      groundedLoadPair: pairA,
-      chipPlacements,
-      inputProblem,
-    })
-    const boundsB = getPairBounds({
-      groundedLoadPair: pairB,
-      chipPlacements,
-      inputProblem,
-    })
-    if (!boundsA || !boundsB) return 0
-    return boundsA.minX - boundsB.minX
+  const leftToRightPairs = [...groundedLoadPairs].sort(
+    (pairA, pairB) =>
+      getLeftPairEdge({
+        groundedLoadPair: pairA,
+        chipPlacements,
+        inputProblem,
+      }) -
+      getLeftPairEdge({
+        groundedLoadPair: pairB,
+        chipPlacements,
+        inputProblem,
+      }),
+  )
+  const pairPartitions = partitionGroundedLoadPairsByPositiveRail({
+    groundedLoadPairs: leftToRightPairs,
+    inputProblem,
   })
+  const orderedPairs = pairPartitions.flatMap(
+    (partition) => partition.groundedLoadPairs,
+  )
   const initialGroundPinYs = orderedPairs.flatMap((groundedLoadPair) => {
     const groundPinY = getGroundPinY({
       groundedLoadPair,
@@ -156,25 +181,32 @@ const alignGroundedLoadPairRow = ({
   }
 
   let previousPairMaxX: number | undefined
-  for (const groundedLoadPair of orderedPairs) {
-    const pairBounds = getPairBounds({
-      groundedLoadPair,
-      chipPlacements,
-      inputProblem,
-    })
-    if (!pairBounds) continue
-    if (previousPairMaxX === undefined) {
-      previousPairMaxX = pairBounds.maxX
-      continue
+  for (const pairPartition of pairPartitions) {
+    let firstPairInPartition = true
+    for (const groundedLoadPair of pairPartition.groundedLoadPairs) {
+      const pairBounds = getPairBounds({
+        groundedLoadPair,
+        chipPlacements,
+        inputProblem,
+      })
+      if (!pairBounds) continue
+      if (previousPairMaxX === undefined) {
+        previousPairMaxX = pairBounds.maxX
+        firstPairInPartition = false
+        continue
+      }
+      let pairGap = inputProblem.chipGap
+      if (firstPairInPartition) pairGap = inputProblem.partitionGap
+      const dx = previousPairMaxX + pairGap - pairBounds.minX
+      translateGroundedLoadPair({
+        groundedLoadPair,
+        chipPlacements,
+        dx,
+        dy: 0,
+      })
+      previousPairMaxX = pairBounds.maxX + dx
+      firstPairInPartition = false
     }
-    const dx = previousPairMaxX + inputProblem.partitionGap - pairBounds.minX
-    translateGroundedLoadPair({
-      groundedLoadPair,
-      chipPlacements,
-      dx,
-      dy: 0,
-    })
-    previousPairMaxX = pairBounds.maxX + dx
   }
 
   const pairedChipIds = new Set(
