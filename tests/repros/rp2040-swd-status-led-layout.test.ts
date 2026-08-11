@@ -50,6 +50,5 @@ test("RP2040 SWD and status LED layout", async () => {
   })
   expect(Math.max(...groundPinYs) - Math.min(...groundPinYs)).toBeCloseTo(0)
   expect(solver.checkForOverlaps(outputLayout)).toEqual([])
-
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })
