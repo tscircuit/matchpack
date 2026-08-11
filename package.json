@@ -24,7 +24,7 @@
     "bun-match-svg": "^0.0.15",
     "bpc-graph": "^0.0.66",
     "calculate-packing": "^0.0.79",
-    "circuit-json": "^0.0.432",
+    "circuit-json": "^0.0.465",
     "graphics-debug": "^0.0.95",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",
