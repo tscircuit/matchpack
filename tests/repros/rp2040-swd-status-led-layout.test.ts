@@ -1,7 +1,10 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "../../lib/types/InputProblem"
-import { getRotatedSize } from "../../lib/utils/rotatePinOffset"
+import {
+  getRotatedSize,
+  rotatePinOffset,
+} from "../../lib/utils/rotatePinOffset"
 import input from "../assets/rp2040-swd-status-led-layout.input.json"
 
 test("RP2040 SWD and status LED layout", async () => {
@@ -33,6 +36,20 @@ test("RP2040 SWD and status LED layout", async () => {
     Math.abs(swdioPlacement.x - v3v3Placement.x) -
     (swdioSize.x + v3v3Size.x) / 2
   expect(swdioToV3v3Gap).toBeCloseTo(inputProblem.chipGap)
+
+  const groundedLoadPairs = solver.groundedLoadPairSolver!.groundedLoadPairs
+  expect(groundedLoadPairs).toHaveLength(4)
+  const groundPinYs = groundedLoadPairs.map((groundedLoadPair) => {
+    const groundPin = inputProblem.chipPinMap[groundedLoadPair.groundPinId]!
+    const lowerPlacement =
+      outputLayout.chipPlacements[groundedLoadPair.lowerChip.chipId]!
+    return (
+      lowerPlacement.y +
+      rotatePinOffset(groundPin.offset, lowerPlacement.ccwRotationDegrees).y
+    )
+  })
+  expect(Math.max(...groundPinYs) - Math.min(...groundPinYs)).toBeCloseTo(0)
+  expect(solver.checkForOverlaps(outputLayout)).toEqual([])
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })

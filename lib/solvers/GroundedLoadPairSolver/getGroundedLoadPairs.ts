@@ -173,6 +173,39 @@ const getRailConnectedPair = (
   )
   if (!upperInnerPinId) return null
 
+  const directlyConnectedLowerInnerPinId = getStronglyConnectedPinIds({
+    connectedPinsByPinId: ctx.connectedPinsByPinId,
+    pinId: upperInnerPinId,
+  }).find((pinId) => {
+    const chip = pinOwnerMap.get(pinId)
+    if (!chip) return false
+    if (chip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return false
+    if (chip.fixedPosition) return false
+    return !pairedChipIds.has(chip.chipId)
+  })
+
+  if (directlyConnectedLowerInnerPinId) {
+    const directlyConnectedLowerChip = pinOwnerMap.get(
+      directlyConnectedLowerInnerPinId,
+    )
+    if (!directlyConnectedLowerChip) return null
+    const groundPinId = directlyConnectedLowerChip.pins.find(
+      (pinId) =>
+        pinId !== directlyConnectedLowerInnerPinId &&
+        pinConnectsToGround({ inputProblem, pinId }),
+    )
+    if (!groundPinId) return null
+
+    return {
+      upperChip,
+      lowerChip: directlyConnectedLowerChip,
+      upperOuterPinId,
+      upperInnerPinId,
+      lowerInnerPinId: directlyConnectedLowerInnerPinId,
+      groundPinId,
+    }
+  }
+
   const internalNetId = getNetIdsForPin({
     inputProblem,
     pinId: upperInnerPinId,
