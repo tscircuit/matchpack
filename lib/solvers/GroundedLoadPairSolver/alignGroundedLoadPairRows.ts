@@ -1,10 +1,7 @@
 import type { ChipId, InputProblem, NetId } from "../../types/InputProblem"
 import type { Placement } from "../../types/OutputLayout"
 import { rotatePinOffset } from "../../utils/rotatePinOffset"
-import {
-  getPlacementBounds,
-  placementsOverlap,
-} from "../AlignTestPointsSolver/placementsOverlap"
+import { getPlacementBounds } from "../AlignTestPointsSolver/placementsOverlap"
 import type { GroundedLoadPair } from "./getGroundedLoadPairs"
 
 type GroundedLoadPairBounds = {
@@ -18,20 +15,14 @@ type GroundedLoadRowContext = {
 }
 
 const MINIMUM_PAIRS_PER_ROW = 2
-const MINIMUM_COLLISION_SEARCH_STEP = 0.2
 
 const getPairBounds = (
-  {
-    groundedLoadPair,
-  }: {
-    groundedLoadPair: GroundedLoadPair
-  },
+  groundedLoadPair: GroundedLoadPair,
   context: GroundedLoadRowContext,
-): GroundedLoadPairBounds | null => {
-  const { chipPlacements, inputProblem } = context
-  const upperPlacement = chipPlacements[groundedLoadPair.upperChip.chipId]
-  const lowerPlacement = chipPlacements[groundedLoadPair.lowerChip.chipId]
-  if (!upperPlacement || !lowerPlacement) return null
+): GroundedLoadPairBounds => {
+  const { chipPlacements } = context
+  const upperPlacement = chipPlacements[groundedLoadPair.upperChip.chipId]!
+  const lowerPlacement = chipPlacements[groundedLoadPair.lowerChip.chipId]!
   const upperBounds = getPlacementBounds({
     placement: upperPlacement,
     size: groundedLoadPair.upperChip.size,
@@ -48,17 +39,12 @@ const getPairBounds = (
 }
 
 const getGroundPinY = (
-  {
-    groundedLoadPair,
-  }: {
-    groundedLoadPair: GroundedLoadPair
-  },
+  groundedLoadPair: GroundedLoadPair,
   context: GroundedLoadRowContext,
-): number | undefined => {
+): number => {
   const { chipPlacements, inputProblem } = context
-  const placement = chipPlacements[groundedLoadPair.lowerChip.chipId]
-  const groundPin = inputProblem.chipPinMap[groundedLoadPair.groundPinId]
-  if (!placement || !groundPin) return
+  const placement = chipPlacements[groundedLoadPair.lowerChip.chipId]!
+  const groundPin = inputProblem.chipPinMap[groundedLoadPair.groundPinId]!
   const groundPinOffset = rotatePinOffset(
     groundPin.offset,
     placement.ccwRotationDegrees,
@@ -83,88 +69,35 @@ const translateGroundedLoadPair = (
     groundedLoadPair.upperChip.chipId,
     groundedLoadPair.lowerChip.chipId,
   ]) {
-    const placement = chipPlacements[chipId]
-    if (!placement) continue
+    const placement = chipPlacements[chipId]!
     placement.x += dx
     placement.y += dy
   }
 }
 
 const getLeftPairEdge = (
-  {
-    groundedLoadPair,
-  }: {
-    groundedLoadPair: GroundedLoadPair
-  },
+  groundedLoadPair: GroundedLoadPair,
   context: GroundedLoadRowContext,
 ): number => {
-  const bounds = getPairBounds({ groundedLoadPair }, context)
-  if (!bounds) return 0
-  return bounds.minX
-}
-
-const rowOverlapsOtherChips = (
-  { groundedLoadPairs }: { groundedLoadPairs: GroundedLoadPair[] },
-  context: GroundedLoadRowContext,
-): boolean => {
-  const pairedChipIds = new Set(
-    groundedLoadPairs.flatMap((groundedLoadPair) => [
-      groundedLoadPair.upperChip.chipId,
-      groundedLoadPair.lowerChip.chipId,
-    ]),
-  )
-  return [...pairedChipIds].some((chipId) =>
-    Object.entries(context.chipPlacements).some(
-      ([otherChipId, otherPlacement]) => {
-        if (pairedChipIds.has(otherChipId)) return false
-        if (context.inputProblem.chipMap[otherChipId]?.isTestPoint) return false
-        return placementsOverlap({
-          inputProblem: context.inputProblem,
-          chipIdA: chipId,
-          placementA: context.chipPlacements[chipId]!,
-          chipIdB: otherChipId,
-          placementB: otherPlacement,
-        })
-      },
-    ),
-  )
+  return getPairBounds(groundedLoadPair, context).minX
 }
 
 const alignGroundedLoadPairRow = (
-  {
-    groundedLoadPairs,
-  }: {
-    groundedLoadPairs: GroundedLoadPair[]
-  },
+  groundedLoadPairs: GroundedLoadPair[],
   context: GroundedLoadRowContext,
 ): void => {
-  const { chipPlacements, inputProblem } = context
+  const { inputProblem } = context
   const leftToRightPairs = [...groundedLoadPairs].sort(
     (pairA, pairB) =>
-      getLeftPairEdge(
-        {
-          groundedLoadPair: pairA,
-        },
-        context,
-      ) -
-      getLeftPairEdge(
-        {
-          groundedLoadPair: pairB,
-        },
-        context,
-      ),
+      getLeftPairEdge(pairA, context) - getLeftPairEdge(pairB, context),
   )
-  const initialGroundPinYs = leftToRightPairs.flatMap((groundedLoadPair) => {
-    const groundPinY = getGroundPinY({ groundedLoadPair }, context)
-    if (groundPinY === undefined) return []
-    return [groundPinY]
-  })
-  if (initialGroundPinYs.length !== leftToRightPairs.length) return
+  const initialGroundPinYs = leftToRightPairs.map((groundedLoadPair) =>
+    getGroundPinY(groundedLoadPair, context),
+  )
 
   const targetGroundPinY = Math.min(...initialGroundPinYs)
   for (const groundedLoadPair of leftToRightPairs) {
-    const groundPinY = getGroundPinY({ groundedLoadPair }, context)
-    if (groundPinY === undefined) continue
+    const groundPinY = getGroundPinY(groundedLoadPair, context)
     translateGroundedLoadPair(
       {
         groundedLoadPair,
@@ -177,8 +110,7 @@ const alignGroundedLoadPairRow = (
 
   let previousPairMaxX: number | undefined
   for (const groundedLoadPair of leftToRightPairs) {
-    const pairBounds = getPairBounds({ groundedLoadPair }, context)
-    if (!pairBounds) continue
+    const pairBounds = getPairBounds(groundedLoadPair, context)
     if (previousPairMaxX === undefined) {
       previousPairMaxX = pairBounds.maxX
       continue
@@ -193,21 +125,6 @@ const alignGroundedLoadPairRow = (
       context,
     )
     previousPairMaxX = pairBounds.maxX + dx
-  }
-
-  const collisionSearchStep = Math.max(
-    inputProblem.chipGap,
-    MINIMUM_COLLISION_SEARCH_STEP,
-  )
-  while (
-    rowOverlapsOtherChips({ groundedLoadPairs: leftToRightPairs }, context)
-  ) {
-    for (const groundedLoadPair of leftToRightPairs) {
-      translateGroundedLoadPair(
-        { groundedLoadPair, dx: 0, dy: -collisionSearchStep },
-        context,
-      )
-    }
   }
 }
 
@@ -224,6 +141,9 @@ export const alignGroundedLoadPairRows = ({
   const pairsByGroundNetId = new Map<NetId, GroundedLoadPair[]>()
   for (const groundedLoadPair of groundedLoadPairs) {
     if (groundedLoadPair.mainChipId) continue
+    if (!chipPlacements[groundedLoadPair.upperChip.chipId]) continue
+    if (!chipPlacements[groundedLoadPair.lowerChip.chipId]) continue
+    if (!inputProblem.chipPinMap[groundedLoadPair.groundPinId]) continue
     const groundNetId = groundedLoadPair.groundNetId
     const rowPairs = pairsByGroundNetId.get(groundNetId) ?? []
     rowPairs.push(groundedLoadPair)
@@ -232,11 +152,6 @@ export const alignGroundedLoadPairRows = ({
 
   for (const rowPairs of pairsByGroundNetId.values()) {
     if (rowPairs.length < MINIMUM_PAIRS_PER_ROW) continue
-    alignGroundedLoadPairRow(
-      {
-        groundedLoadPairs: rowPairs,
-      },
-      context,
-    )
+    alignGroundedLoadPairRow(rowPairs, context)
   }
 }
