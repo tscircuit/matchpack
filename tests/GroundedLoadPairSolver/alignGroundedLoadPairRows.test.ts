@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test"
 import { getPlacementBounds } from "lib/solvers/AlignTestPointsSolver/placementsOverlap"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
-import { getNetIdsForPin } from "lib/solvers/GroundedLoadPairSolver/getGroundedLoadPairs"
 import type { ChipId, InputProblem } from "lib/types/InputProblem"
 import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import input from "../assets/rp2040-swd-status-led-layout.input.json"
@@ -30,18 +29,19 @@ const getPairHorizontalBounds = ({
   }
 }
 
-test("groups shared-ground load pairs by positive rail", () => {
+test("detects and aligns load pairs sharing ground", () => {
   const inputProblem = structuredClone(input) as InputProblem
-  const ledSignalNetId = getNetIdsForPin({
-    inputProblem,
-    pinId: "R_LED.1",
-  })[0]!
-  inputProblem.netMap[ledSignalNetId]!.isPositiveVoltageSource = true
-
   const solver = new LayoutPipelineSolver(inputProblem)
   solver.solve()
   const placements = solver.getOutputLayout().chipPlacements
   const groundedLoadPairs = solver.groundedLoadPairSolver!.groundedLoadPairs
+  expect(
+    new Set(
+      groundedLoadPairs.map(
+        (groundedLoadPair) => groundedLoadPair.lowerChip.chipId,
+      ),
+    ),
+  ).toEqual(new Set(["SW_RUN", "SW_BOOT", "D1", "D_PWR"]))
   const groundPinYs = groundedLoadPairs.map((groundedLoadPair) => {
     const placement = placements[groundedLoadPair.lowerChip.chipId]!
     const groundPin = inputProblem.chipPinMap[groundedLoadPair.groundPinId]!
@@ -57,21 +57,19 @@ test("groups shared-ground load pairs by positive rail", () => {
     ["R_BOOT", "SW_BOOT"],
     ["R_PWR_LED", "D_PWR"],
     ["R_LED", "D1"],
-  ].map(([upperChipId, lowerChipId]) =>
-    getPairHorizontalBounds({
-      upperChipId: upperChipId!,
-      lowerChipId: lowerChipId!,
-      inputProblem,
-      solver,
-    }),
-  )
-  expect(pairBounds[1]!.minX - pairBounds[0]!.maxX).toBeCloseTo(
-    inputProblem.chipGap,
-  )
-  expect(pairBounds[2]!.minX - pairBounds[1]!.maxX).toBeCloseTo(
-    inputProblem.chipGap,
-  )
-  expect(pairBounds[3]!.minX - pairBounds[2]!.maxX).toBeCloseTo(
-    inputProblem.partitionGap,
-  )
+  ]
+    .map(([upperChipId, lowerChipId]) =>
+      getPairHorizontalBounds({
+        upperChipId: upperChipId!,
+        lowerChipId: lowerChipId!,
+        inputProblem,
+        solver,
+      }),
+    )
+    .sort((boundsA, boundsB) => boundsA.minX - boundsB.minX)
+  for (let pairIndex = 1; pairIndex < pairBounds.length; pairIndex++) {
+    expect(
+      pairBounds[pairIndex]!.minX - pairBounds[pairIndex - 1]!.maxX,
+    ).toBeCloseTo(inputProblem.partitionGap)
+  }
 })

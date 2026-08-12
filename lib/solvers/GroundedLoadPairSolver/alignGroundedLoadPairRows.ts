@@ -6,7 +6,6 @@ import {
   placementsOverlap,
 } from "../AlignTestPointsSolver/placementsOverlap"
 import type { GroundedLoadPair } from "./getGroundedLoadPairs"
-import { partitionGroundedLoadPairsByPositiveRail } from "./partitionGroundedLoadPairsByPositiveRail"
 
 type GroundedLoadPairBounds = {
   minX: number
@@ -155,21 +154,15 @@ const alignGroundedLoadPairRow = (
         context,
       ),
   )
-  const pairPartitions = partitionGroundedLoadPairsByPositiveRail({
-    groundedLoadPairs: leftToRightPairs,
-  })
-  const orderedPairs = pairPartitions.flatMap(
-    (partition) => partition.groundedLoadPairs,
-  )
-  const initialGroundPinYs = orderedPairs.flatMap((groundedLoadPair) => {
+  const initialGroundPinYs = leftToRightPairs.flatMap((groundedLoadPair) => {
     const groundPinY = getGroundPinY({ groundedLoadPair }, context)
     if (groundPinY === undefined) return []
     return [groundPinY]
   })
-  if (initialGroundPinYs.length !== orderedPairs.length) return
+  if (initialGroundPinYs.length !== leftToRightPairs.length) return
 
   const targetGroundPinY = Math.min(...initialGroundPinYs)
-  for (const groundedLoadPair of orderedPairs) {
+  for (const groundedLoadPair of leftToRightPairs) {
     const groundPinY = getGroundPinY({ groundedLoadPair }, context)
     if (groundPinY === undefined) continue
     translateGroundedLoadPair(
@@ -183,41 +176,33 @@ const alignGroundedLoadPairRow = (
   }
 
   let previousPairMaxX: number | undefined
-  const hasMultiplePartitions = pairPartitions.length > 1
-  for (const pairPartition of pairPartitions) {
-    let firstPairInPartition = true
-    for (const groundedLoadPair of pairPartition.groundedLoadPairs) {
-      const pairBounds = getPairBounds({ groundedLoadPair }, context)
-      if (!pairBounds) continue
-      if (previousPairMaxX === undefined) {
-        previousPairMaxX = pairBounds.maxX
-        firstPairInPartition = false
-        continue
-      }
-      let pairGap = inputProblem.partitionGap
-      if (hasMultiplePartitions && !firstPairInPartition) {
-        pairGap = inputProblem.chipGap
-      }
-      const dx = previousPairMaxX + pairGap - pairBounds.minX
-      translateGroundedLoadPair(
-        {
-          groundedLoadPair,
-          dx,
-          dy: 0,
-        },
-        context,
-      )
-      previousPairMaxX = pairBounds.maxX + dx
-      firstPairInPartition = false
+  for (const groundedLoadPair of leftToRightPairs) {
+    const pairBounds = getPairBounds({ groundedLoadPair }, context)
+    if (!pairBounds) continue
+    if (previousPairMaxX === undefined) {
+      previousPairMaxX = pairBounds.maxX
+      continue
     }
+    const dx = previousPairMaxX + inputProblem.partitionGap - pairBounds.minX
+    translateGroundedLoadPair(
+      {
+        groundedLoadPair,
+        dx,
+        dy: 0,
+      },
+      context,
+    )
+    previousPairMaxX = pairBounds.maxX + dx
   }
 
   const collisionSearchStep = Math.max(
     inputProblem.chipGap,
     MINIMUM_COLLISION_SEARCH_STEP,
   )
-  while (rowOverlapsOtherChips({ groundedLoadPairs: orderedPairs }, context)) {
-    for (const groundedLoadPair of orderedPairs) {
+  while (
+    rowOverlapsOtherChips({ groundedLoadPairs: leftToRightPairs }, context)
+  ) {
+    for (const groundedLoadPair of leftToRightPairs) {
       translateGroundedLoadPair(
         { groundedLoadPair, dx: 0, dy: -collisionSearchStep },
         context,

@@ -19,7 +19,6 @@ export type GroundedLoadPair = {
   lowerInnerPinId: PinId
   groundPinId: PinId
   groundNetId: NetId
-  positiveRailNetId?: NetId
   isStandaloneSignalChain?: boolean
 }
 
@@ -42,7 +41,7 @@ const getStronglyConnectedPinIds = ({
 }): PinId[] =>
   (connectedPinsByPinId[pinId] ?? []).map((connectedPin) => connectedPin.pinId)
 
-export const getNetIdsForPin = ({
+const getNetIdsForPin = ({
   inputProblem,
   pinId,
 }: {
@@ -90,17 +89,6 @@ const getGroundNetIdForPin = ({
 }) =>
   getNetIdsForPin({ inputProblem, pinId }).find(
     (netId) => inputProblem.netMap[netId]?.isGround === true,
-  )
-
-const getPositiveRailNetIdForPin = ({
-  inputProblem,
-  pinId,
-}: {
-  inputProblem: InputProblem
-  pinId: PinId
-}) =>
-  getNetIdsForPin({ inputProblem, pinId }).find(
-    (netId) => inputProblem.netMap[netId]?.isPositiveVoltageSource === true,
   )
 
 const pinConnectsToPositiveVoltage = ({
@@ -231,11 +219,6 @@ const getRailConnectedPair = (
     pinConnectsToPositiveVoltage({ inputProblem, pinId }),
   )
   if (!upperOuterPinId) return null
-  const positiveRailNetId = getPositiveRailNetIdForPin({
-    inputProblem,
-    pinId: upperOuterPinId,
-  })
-  if (!positiveRailNetId) return null
 
   const upperInnerPinId = upperChip.pins.find(
     (pinId) => pinId !== upperOuterPinId,
@@ -251,7 +234,6 @@ const getRailConnectedPair = (
       upperChip,
       upperOuterPinId,
       upperInnerPinId,
-      positiveRailNetId,
       ...directlyConnectedLowerChip,
     }
   }
@@ -301,7 +283,6 @@ const getRailConnectedPair = (
     lowerInnerPinId,
     groundPinId,
     groundNetId,
-    positiveRailNetId,
   }
 }
 
