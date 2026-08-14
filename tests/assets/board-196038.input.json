@@ -1,0 +1,1483 @@
+{
+  "chipMap": {
+    "U_MODEM": {
+      "chipId": "U_MODEM",
+      "pins": [
+        "U_MODEM.1",
+        "U_MODEM.2",
+        "U_MODEM.3",
+        "U_MODEM.4",
+        "U_MODEM.5",
+        "U_MODEM.6",
+        "U_MODEM.7",
+        "U_MODEM.8",
+        "U_MODEM.9",
+        "U_MODEM.10",
+        "U_MODEM.11",
+        "U_MODEM.12",
+        "U_MODEM.13",
+        "U_MODEM.14",
+        "U_MODEM.15",
+        "U_MODEM.16",
+        "U_MODEM.17",
+        "U_MODEM.18",
+        "U_MODEM.19",
+        "U_MODEM.20",
+        "U_MODEM.21",
+        "U_MODEM.22",
+        "U_MODEM.23",
+        "U_MODEM.24",
+        "U_MODEM.25",
+        "U_MODEM.26",
+        "U_MODEM.27",
+        "U_MODEM.28",
+        "U_MODEM.29",
+        "U_MODEM.30",
+        "U_MODEM.31",
+        "U_MODEM.32",
+        "U_MODEM.33",
+        "U_MODEM.34",
+        "U_MODEM.35",
+        "U_MODEM.36",
+        "U_MODEM.37",
+        "U_MODEM.38",
+        "U_MODEM.39",
+        "U_MODEM.40",
+        "U_MODEM.41",
+        "U_MODEM.42",
+        "U_MODEM.43",
+        "U_MODEM.44",
+        "U_MODEM.45",
+        "U_MODEM.46",
+        "U_MODEM.47",
+        "U_MODEM.48",
+        "U_MODEM.49",
+        "U_MODEM.50",
+        "U_MODEM.51",
+        "U_MODEM.52",
+        "U_MODEM.53",
+        "U_MODEM.54",
+        "U_MODEM.55",
+        "U_MODEM.56",
+        "U_MODEM.57",
+        "U_MODEM.58",
+        "U_MODEM.59",
+        "U_MODEM.60",
+        "U_MODEM.61",
+        "U_MODEM.62",
+        "U_MODEM.63",
+        "U_MODEM.64",
+        "U_MODEM.65",
+        "U_MODEM.66",
+        "U_MODEM.67",
+        "U_MODEM.68",
+        "U_MODEM.69",
+        "U_MODEM.70",
+        "U_MODEM.71",
+        "U_MODEM.72",
+        "U_MODEM.73",
+        "U_MODEM.74",
+        "U_MODEM.75",
+        "U_MODEM.76",
+        "U_MODEM.77",
+        "U_MODEM.78",
+        "U_MODEM.79",
+        "U_MODEM.80",
+        "U_MODEM.81",
+        "U_MODEM.82",
+        "U_MODEM.83",
+        "U_MODEM.84",
+        "U_MODEM.85",
+        "U_MODEM.86",
+        "U_MODEM.87",
+        "U_MODEM.88",
+        "U_MODEM.89",
+        "U_MODEM.90",
+        "U_MODEM.91",
+        "U_MODEM.92",
+        "U_MODEM.93",
+        "U_MODEM.94",
+        "U_MODEM.95",
+        "U_MODEM.96",
+        "U_MODEM.97",
+        "U_MODEM.98",
+        "U_MODEM.99",
+        "U_MODEM.100",
+        "U_MODEM.101",
+        "U_MODEM.102",
+        "U_MODEM.103",
+        "U_MODEM.104",
+        "U_MODEM.105",
+        "U_MODEM.106",
+        "U_MODEM.107",
+        "U_MODEM.108",
+        "U_MODEM.109",
+        "U_MODEM.110",
+        "U_MODEM.111",
+        "U_MODEM.112",
+        "U_MODEM.113",
+        "U_MODEM.114",
+        "U_MODEM.115",
+        "U_MODEM.116",
+        "U_MODEM.117",
+        "U_MODEM.118",
+        "U_MODEM.119",
+        "U_MODEM.120",
+        "U_MODEM.121",
+        "U_MODEM.122",
+        "U_MODEM.123",
+        "U_MODEM.124"
+      ],
+      "size": {
+        "x": 2.4000000000000004,
+        "y": 13.39999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "C_MODEM_BULK": {
+      "chipId": "C_MODEM_BULK",
+      "pins": ["C_MODEM_BULK.1", "C_MODEM_BULK.2"],
+      "size": {
+        "x": 0.76,
+        "y": 1.88
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_MODEM_1U": {
+      "chipId": "C_MODEM_1U",
+      "pins": ["C_MODEM_1U.1", "C_MODEM_1U.2"],
+      "size": {
+        "x": 0.76,
+        "y": 1.6400000000000001
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_MODEM_100N": {
+      "chipId": "C_MODEM_100N",
+      "pins": ["C_MODEM_100N.1", "C_MODEM_100N.2"],
+      "size": {
+        "x": 0.76,
+        "y": 1.88
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_MODEM_33N": {
+      "chipId": "C_MODEM_33N",
+      "pins": ["C_MODEM_33N.1", "C_MODEM_33N.2"],
+      "size": {
+        "x": 0.76,
+        "y": 1.7599999999999998
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_MODEM_10P": {
+      "chipId": "C_MODEM_10P",
+      "pins": ["C_MODEM_10P.1", "C_MODEM_10P.2"],
+      "size": {
+        "x": 0.76,
+        "y": 1.7599999999999998
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_GNSS_VDD": {
+      "chipId": "C_GNSS_VDD",
+      "pins": ["C_GNSS_VDD.1", "C_GNSS_VDD.2"],
+      "size": {
+        "x": 0.76,
+        "y": 1.6400000000000001
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "C_GNSS_VBKP": {
+      "chipId": "C_GNSS_VBKP",
+      "pins": ["C_GNSS_VBKP.1", "C_GNSS_VBKP.2"],
+      "size": {
+        "x": 0.76,
+        "y": 1.7599999999999998
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "SW_MODEM_PWR": {
+      "chipId": "SW_MODEM_PWR",
+      "pins": ["SW_MODEM_PWR.1", "SW_MODEM_PWR.2"],
+      "size": {
+        "x": 0.94,
+        "y": 0.718910699999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    }
+  },
+  "chipPinMap": {
+    "U_MODEM.1": {
+      "pinId": "U_MODEM.1",
+      "offset": {
+        "x": -1.6,
+        "y": 6.099999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.2": {
+      "pinId": "U_MODEM.2",
+      "offset": {
+        "x": -1.6,
+        "y": 5.899999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.3": {
+      "pinId": "U_MODEM.3",
+      "offset": {
+        "x": -1.6,
+        "y": 5.699999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.4": {
+      "pinId": "U_MODEM.4",
+      "offset": {
+        "x": -1.6,
+        "y": 5.499999999999995
+      },
+      "side": "x-"
+    },
+    "U_MODEM.5": {
+      "pinId": "U_MODEM.5",
+      "offset": {
+        "x": -1.6,
+        "y": 5.2999999999999945
+      },
+      "side": "x-"
+    },
+    "U_MODEM.6": {
+      "pinId": "U_MODEM.6",
+      "offset": {
+        "x": -1.6,
+        "y": 5.099999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.7": {
+      "pinId": "U_MODEM.7",
+      "offset": {
+        "x": -1.6,
+        "y": 4.899999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.8": {
+      "pinId": "U_MODEM.8",
+      "offset": {
+        "x": -1.6,
+        "y": 4.699999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.9": {
+      "pinId": "U_MODEM.9",
+      "offset": {
+        "x": -1.6,
+        "y": 4.499999999999995
+      },
+      "side": "x-"
+    },
+    "U_MODEM.10": {
+      "pinId": "U_MODEM.10",
+      "offset": {
+        "x": -1.6,
+        "y": 4.2999999999999945
+      },
+      "side": "x-"
+    },
+    "U_MODEM.11": {
+      "pinId": "U_MODEM.11",
+      "offset": {
+        "x": -1.6,
+        "y": 4.099999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.12": {
+      "pinId": "U_MODEM.12",
+      "offset": {
+        "x": -1.6,
+        "y": 3.8999999999999946
+      },
+      "side": "x-"
+    },
+    "U_MODEM.13": {
+      "pinId": "U_MODEM.13",
+      "offset": {
+        "x": -1.6,
+        "y": 3.6999999999999944
+      },
+      "side": "x-"
+    },
+    "U_MODEM.14": {
+      "pinId": "U_MODEM.14",
+      "offset": {
+        "x": -1.6,
+        "y": 3.4999999999999942
+      },
+      "side": "x-"
+    },
+    "U_MODEM.15": {
+      "pinId": "U_MODEM.15",
+      "offset": {
+        "x": -1.6,
+        "y": 3.299999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.16": {
+      "pinId": "U_MODEM.16",
+      "offset": {
+        "x": -1.6,
+        "y": 3.099999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.17": {
+      "pinId": "U_MODEM.17",
+      "offset": {
+        "x": -1.6,
+        "y": 2.8999999999999937
+      },
+      "side": "x-"
+    },
+    "U_MODEM.18": {
+      "pinId": "U_MODEM.18",
+      "offset": {
+        "x": -1.6,
+        "y": 2.6999999999999935
+      },
+      "side": "x-"
+    },
+    "U_MODEM.19": {
+      "pinId": "U_MODEM.19",
+      "offset": {
+        "x": -1.6,
+        "y": 2.4999999999999933
+      },
+      "side": "x-"
+    },
+    "U_MODEM.20": {
+      "pinId": "U_MODEM.20",
+      "offset": {
+        "x": -1.6,
+        "y": 2.299999999999993
+      },
+      "side": "x-"
+    },
+    "U_MODEM.21": {
+      "pinId": "U_MODEM.21",
+      "offset": {
+        "x": -1.6,
+        "y": 2.0999999999999934
+      },
+      "side": "x-"
+    },
+    "U_MODEM.22": {
+      "pinId": "U_MODEM.22",
+      "offset": {
+        "x": -1.6,
+        "y": 1.8999999999999932
+      },
+      "side": "x-"
+    },
+    "U_MODEM.23": {
+      "pinId": "U_MODEM.23",
+      "offset": {
+        "x": -1.6,
+        "y": 1.699999999999993
+      },
+      "side": "x-"
+    },
+    "U_MODEM.24": {
+      "pinId": "U_MODEM.24",
+      "offset": {
+        "x": -1.6,
+        "y": 1.499999999999993
+      },
+      "side": "x-"
+    },
+    "U_MODEM.25": {
+      "pinId": "U_MODEM.25",
+      "offset": {
+        "x": -1.6,
+        "y": 1.2999999999999927
+      },
+      "side": "x-"
+    },
+    "U_MODEM.26": {
+      "pinId": "U_MODEM.26",
+      "offset": {
+        "x": -1.6,
+        "y": 1.0999999999999925
+      },
+      "side": "x-"
+    },
+    "U_MODEM.27": {
+      "pinId": "U_MODEM.27",
+      "offset": {
+        "x": -1.6,
+        "y": 0.8999999999999924
+      },
+      "side": "x-"
+    },
+    "U_MODEM.28": {
+      "pinId": "U_MODEM.28",
+      "offset": {
+        "x": -1.6,
+        "y": 0.6999999999999922
+      },
+      "side": "x-"
+    },
+    "U_MODEM.29": {
+      "pinId": "U_MODEM.29",
+      "offset": {
+        "x": -1.6,
+        "y": 0.499999999999992
+      },
+      "side": "x-"
+    },
+    "U_MODEM.30": {
+      "pinId": "U_MODEM.30",
+      "offset": {
+        "x": -1.6,
+        "y": 0.29999999999999183
+      },
+      "side": "x-"
+    },
+    "U_MODEM.31": {
+      "pinId": "U_MODEM.31",
+      "offset": {
+        "x": -1.6,
+        "y": 0.09999999999999165
+      },
+      "side": "x-"
+    },
+    "U_MODEM.32": {
+      "pinId": "U_MODEM.32",
+      "offset": {
+        "x": -1.6,
+        "y": -0.10000000000000853
+      },
+      "side": "x-"
+    },
+    "U_MODEM.33": {
+      "pinId": "U_MODEM.33",
+      "offset": {
+        "x": -1.6,
+        "y": -0.3000000000000087
+      },
+      "side": "x-"
+    },
+    "U_MODEM.34": {
+      "pinId": "U_MODEM.34",
+      "offset": {
+        "x": -1.6,
+        "y": -0.5000000000000089
+      },
+      "side": "x-"
+    },
+    "U_MODEM.35": {
+      "pinId": "U_MODEM.35",
+      "offset": {
+        "x": -1.6,
+        "y": -0.7000000000000091
+      },
+      "side": "x-"
+    },
+    "U_MODEM.36": {
+      "pinId": "U_MODEM.36",
+      "offset": {
+        "x": -1.6,
+        "y": -0.9000000000000092
+      },
+      "side": "x-"
+    },
+    "U_MODEM.37": {
+      "pinId": "U_MODEM.37",
+      "offset": {
+        "x": -1.6,
+        "y": -1.1000000000000094
+      },
+      "side": "x-"
+    },
+    "U_MODEM.38": {
+      "pinId": "U_MODEM.38",
+      "offset": {
+        "x": -1.6,
+        "y": -1.3000000000000096
+      },
+      "side": "x-"
+    },
+    "U_MODEM.39": {
+      "pinId": "U_MODEM.39",
+      "offset": {
+        "x": -1.6,
+        "y": -1.5000000000000098
+      },
+      "side": "x-"
+    },
+    "U_MODEM.40": {
+      "pinId": "U_MODEM.40",
+      "offset": {
+        "x": -1.6,
+        "y": -1.70000000000001
+      },
+      "side": "x-"
+    },
+    "U_MODEM.41": {
+      "pinId": "U_MODEM.41",
+      "offset": {
+        "x": -1.6,
+        "y": -1.9000000000000092
+      },
+      "side": "x-"
+    },
+    "U_MODEM.42": {
+      "pinId": "U_MODEM.42",
+      "offset": {
+        "x": -1.6,
+        "y": -2.1000000000000085
+      },
+      "side": "x-"
+    },
+    "U_MODEM.43": {
+      "pinId": "U_MODEM.43",
+      "offset": {
+        "x": -1.6,
+        "y": -2.300000000000008
+      },
+      "side": "x-"
+    },
+    "U_MODEM.44": {
+      "pinId": "U_MODEM.44",
+      "offset": {
+        "x": -1.6,
+        "y": -2.500000000000007
+      },
+      "side": "x-"
+    },
+    "U_MODEM.45": {
+      "pinId": "U_MODEM.45",
+      "offset": {
+        "x": -1.6,
+        "y": -2.7000000000000064
+      },
+      "side": "x-"
+    },
+    "U_MODEM.46": {
+      "pinId": "U_MODEM.46",
+      "offset": {
+        "x": -1.6,
+        "y": -2.9000000000000057
+      },
+      "side": "x-"
+    },
+    "U_MODEM.47": {
+      "pinId": "U_MODEM.47",
+      "offset": {
+        "x": -1.6,
+        "y": -3.100000000000005
+      },
+      "side": "x-"
+    },
+    "U_MODEM.48": {
+      "pinId": "U_MODEM.48",
+      "offset": {
+        "x": -1.6,
+        "y": -3.3000000000000043
+      },
+      "side": "x-"
+    },
+    "U_MODEM.49": {
+      "pinId": "U_MODEM.49",
+      "offset": {
+        "x": -1.6,
+        "y": -3.5000000000000036
+      },
+      "side": "x-"
+    },
+    "U_MODEM.50": {
+      "pinId": "U_MODEM.50",
+      "offset": {
+        "x": -1.6,
+        "y": -3.700000000000003
+      },
+      "side": "x-"
+    },
+    "U_MODEM.51": {
+      "pinId": "U_MODEM.51",
+      "offset": {
+        "x": -1.6,
+        "y": -3.900000000000002
+      },
+      "side": "x-"
+    },
+    "U_MODEM.52": {
+      "pinId": "U_MODEM.52",
+      "offset": {
+        "x": -1.6,
+        "y": -4.100000000000001
+      },
+      "side": "x-"
+    },
+    "U_MODEM.53": {
+      "pinId": "U_MODEM.53",
+      "offset": {
+        "x": -1.6,
+        "y": -4.300000000000001
+      },
+      "side": "x-"
+    },
+    "U_MODEM.54": {
+      "pinId": "U_MODEM.54",
+      "offset": {
+        "x": -1.6,
+        "y": -4.5
+      },
+      "side": "x-"
+    },
+    "U_MODEM.55": {
+      "pinId": "U_MODEM.55",
+      "offset": {
+        "x": -1.6,
+        "y": -4.699999999999999
+      },
+      "side": "x-"
+    },
+    "U_MODEM.56": {
+      "pinId": "U_MODEM.56",
+      "offset": {
+        "x": -1.6,
+        "y": -4.899999999999999
+      },
+      "side": "x-"
+    },
+    "U_MODEM.57": {
+      "pinId": "U_MODEM.57",
+      "offset": {
+        "x": -1.6,
+        "y": -5.099999999999998
+      },
+      "side": "x-"
+    },
+    "U_MODEM.58": {
+      "pinId": "U_MODEM.58",
+      "offset": {
+        "x": -1.6,
+        "y": -5.299999999999997
+      },
+      "side": "x-"
+    },
+    "U_MODEM.59": {
+      "pinId": "U_MODEM.59",
+      "offset": {
+        "x": -1.6,
+        "y": -5.4999999999999964
+      },
+      "side": "x-"
+    },
+    "U_MODEM.60": {
+      "pinId": "U_MODEM.60",
+      "offset": {
+        "x": -1.6,
+        "y": -5.699999999999996
+      },
+      "side": "x-"
+    },
+    "U_MODEM.61": {
+      "pinId": "U_MODEM.61",
+      "offset": {
+        "x": -1.6,
+        "y": -5.899999999999995
+      },
+      "side": "x-"
+    },
+    "U_MODEM.62": {
+      "pinId": "U_MODEM.62",
+      "offset": {
+        "x": -1.6,
+        "y": -6.099999999999994
+      },
+      "side": "x-"
+    },
+    "U_MODEM.63": {
+      "pinId": "U_MODEM.63",
+      "offset": {
+        "x": 1.6,
+        "y": -6.099999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.64": {
+      "pinId": "U_MODEM.64",
+      "offset": {
+        "x": 1.6,
+        "y": -5.899999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.65": {
+      "pinId": "U_MODEM.65",
+      "offset": {
+        "x": 1.6,
+        "y": -5.699999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.66": {
+      "pinId": "U_MODEM.66",
+      "offset": {
+        "x": 1.6,
+        "y": -5.499999999999995
+      },
+      "side": "x+"
+    },
+    "U_MODEM.67": {
+      "pinId": "U_MODEM.67",
+      "offset": {
+        "x": 1.6,
+        "y": -5.2999999999999945
+      },
+      "side": "x+"
+    },
+    "U_MODEM.68": {
+      "pinId": "U_MODEM.68",
+      "offset": {
+        "x": 1.6,
+        "y": -5.099999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.69": {
+      "pinId": "U_MODEM.69",
+      "offset": {
+        "x": 1.6,
+        "y": -4.899999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.70": {
+      "pinId": "U_MODEM.70",
+      "offset": {
+        "x": 1.6,
+        "y": -4.699999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.71": {
+      "pinId": "U_MODEM.71",
+      "offset": {
+        "x": 1.6,
+        "y": -4.499999999999995
+      },
+      "side": "x+"
+    },
+    "U_MODEM.72": {
+      "pinId": "U_MODEM.72",
+      "offset": {
+        "x": 1.6,
+        "y": -4.2999999999999945
+      },
+      "side": "x+"
+    },
+    "U_MODEM.73": {
+      "pinId": "U_MODEM.73",
+      "offset": {
+        "x": 1.6,
+        "y": -4.099999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.74": {
+      "pinId": "U_MODEM.74",
+      "offset": {
+        "x": 1.6,
+        "y": -3.8999999999999946
+      },
+      "side": "x+"
+    },
+    "U_MODEM.75": {
+      "pinId": "U_MODEM.75",
+      "offset": {
+        "x": 1.6,
+        "y": -3.6999999999999944
+      },
+      "side": "x+"
+    },
+    "U_MODEM.76": {
+      "pinId": "U_MODEM.76",
+      "offset": {
+        "x": 1.6,
+        "y": -3.4999999999999942
+      },
+      "side": "x+"
+    },
+    "U_MODEM.77": {
+      "pinId": "U_MODEM.77",
+      "offset": {
+        "x": 1.6,
+        "y": -3.299999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.78": {
+      "pinId": "U_MODEM.78",
+      "offset": {
+        "x": 1.6,
+        "y": -3.099999999999994
+      },
+      "side": "x+"
+    },
+    "U_MODEM.79": {
+      "pinId": "U_MODEM.79",
+      "offset": {
+        "x": 1.6,
+        "y": -2.8999999999999937
+      },
+      "side": "x+"
+    },
+    "U_MODEM.80": {
+      "pinId": "U_MODEM.80",
+      "offset": {
+        "x": 1.6,
+        "y": -2.6999999999999935
+      },
+      "side": "x+"
+    },
+    "U_MODEM.81": {
+      "pinId": "U_MODEM.81",
+      "offset": {
+        "x": 1.6,
+        "y": -2.4999999999999933
+      },
+      "side": "x+"
+    },
+    "U_MODEM.82": {
+      "pinId": "U_MODEM.82",
+      "offset": {
+        "x": 1.6,
+        "y": -2.299999999999993
+      },
+      "side": "x+"
+    },
+    "U_MODEM.83": {
+      "pinId": "U_MODEM.83",
+      "offset": {
+        "x": 1.6,
+        "y": -2.0999999999999934
+      },
+      "side": "x+"
+    },
+    "U_MODEM.84": {
+      "pinId": "U_MODEM.84",
+      "offset": {
+        "x": 1.6,
+        "y": -1.8999999999999932
+      },
+      "side": "x+"
+    },
+    "U_MODEM.85": {
+      "pinId": "U_MODEM.85",
+      "offset": {
+        "x": 1.6,
+        "y": -1.699999999999993
+      },
+      "side": "x+"
+    },
+    "U_MODEM.86": {
+      "pinId": "U_MODEM.86",
+      "offset": {
+        "x": 1.6,
+        "y": -1.499999999999993
+      },
+      "side": "x+"
+    },
+    "U_MODEM.87": {
+      "pinId": "U_MODEM.87",
+      "offset": {
+        "x": 1.6,
+        "y": -1.2999999999999927
+      },
+      "side": "x+"
+    },
+    "U_MODEM.88": {
+      "pinId": "U_MODEM.88",
+      "offset": {
+        "x": 1.6,
+        "y": -1.0999999999999925
+      },
+      "side": "x+"
+    },
+    "U_MODEM.89": {
+      "pinId": "U_MODEM.89",
+      "offset": {
+        "x": 1.6,
+        "y": -0.8999999999999924
+      },
+      "side": "x+"
+    },
+    "U_MODEM.90": {
+      "pinId": "U_MODEM.90",
+      "offset": {
+        "x": 1.6,
+        "y": -0.6999999999999922
+      },
+      "side": "x+"
+    },
+    "U_MODEM.91": {
+      "pinId": "U_MODEM.91",
+      "offset": {
+        "x": 1.6,
+        "y": -0.499999999999992
+      },
+      "side": "x+"
+    },
+    "U_MODEM.92": {
+      "pinId": "U_MODEM.92",
+      "offset": {
+        "x": 1.6,
+        "y": -0.29999999999999183
+      },
+      "side": "x+"
+    },
+    "U_MODEM.93": {
+      "pinId": "U_MODEM.93",
+      "offset": {
+        "x": 1.6,
+        "y": -0.09999999999999165
+      },
+      "side": "x+"
+    },
+    "U_MODEM.94": {
+      "pinId": "U_MODEM.94",
+      "offset": {
+        "x": 1.6,
+        "y": 0.10000000000000853
+      },
+      "side": "x+"
+    },
+    "U_MODEM.95": {
+      "pinId": "U_MODEM.95",
+      "offset": {
+        "x": 1.6,
+        "y": 0.3000000000000087
+      },
+      "side": "x+"
+    },
+    "U_MODEM.96": {
+      "pinId": "U_MODEM.96",
+      "offset": {
+        "x": 1.6,
+        "y": 0.5000000000000089
+      },
+      "side": "x+"
+    },
+    "U_MODEM.97": {
+      "pinId": "U_MODEM.97",
+      "offset": {
+        "x": 1.6,
+        "y": 0.7000000000000091
+      },
+      "side": "x+"
+    },
+    "U_MODEM.98": {
+      "pinId": "U_MODEM.98",
+      "offset": {
+        "x": 1.6,
+        "y": 0.9000000000000092
+      },
+      "side": "x+"
+    },
+    "U_MODEM.99": {
+      "pinId": "U_MODEM.99",
+      "offset": {
+        "x": 1.6,
+        "y": 1.1000000000000094
+      },
+      "side": "x+"
+    },
+    "U_MODEM.100": {
+      "pinId": "U_MODEM.100",
+      "offset": {
+        "x": 1.6,
+        "y": 1.3000000000000096
+      },
+      "side": "x+"
+    },
+    "U_MODEM.101": {
+      "pinId": "U_MODEM.101",
+      "offset": {
+        "x": 1.6,
+        "y": 1.5000000000000098
+      },
+      "side": "x+"
+    },
+    "U_MODEM.102": {
+      "pinId": "U_MODEM.102",
+      "offset": {
+        "x": 1.6,
+        "y": 1.70000000000001
+      },
+      "side": "x+"
+    },
+    "U_MODEM.103": {
+      "pinId": "U_MODEM.103",
+      "offset": {
+        "x": 1.6,
+        "y": 1.9000000000000092
+      },
+      "side": "x+"
+    },
+    "U_MODEM.104": {
+      "pinId": "U_MODEM.104",
+      "offset": {
+        "x": 1.6,
+        "y": 2.1000000000000085
+      },
+      "side": "x+"
+    },
+    "U_MODEM.105": {
+      "pinId": "U_MODEM.105",
+      "offset": {
+        "x": 1.6,
+        "y": 2.300000000000008
+      },
+      "side": "x+"
+    },
+    "U_MODEM.106": {
+      "pinId": "U_MODEM.106",
+      "offset": {
+        "x": 1.6,
+        "y": 2.500000000000007
+      },
+      "side": "x+"
+    },
+    "U_MODEM.107": {
+      "pinId": "U_MODEM.107",
+      "offset": {
+        "x": 1.6,
+        "y": 2.7000000000000064
+      },
+      "side": "x+"
+    },
+    "U_MODEM.108": {
+      "pinId": "U_MODEM.108",
+      "offset": {
+        "x": 1.6,
+        "y": 2.9000000000000057
+      },
+      "side": "x+"
+    },
+    "U_MODEM.109": {
+      "pinId": "U_MODEM.109",
+      "offset": {
+        "x": 1.6,
+        "y": 3.100000000000005
+      },
+      "side": "x+"
+    },
+    "U_MODEM.110": {
+      "pinId": "U_MODEM.110",
+      "offset": {
+        "x": 1.6,
+        "y": 3.3000000000000043
+      },
+      "side": "x+"
+    },
+    "U_MODEM.111": {
+      "pinId": "U_MODEM.111",
+      "offset": {
+        "x": 1.6,
+        "y": 3.5000000000000036
+      },
+      "side": "x+"
+    },
+    "U_MODEM.112": {
+      "pinId": "U_MODEM.112",
+      "offset": {
+        "x": 1.6,
+        "y": 3.700000000000003
+      },
+      "side": "x+"
+    },
+    "U_MODEM.113": {
+      "pinId": "U_MODEM.113",
+      "offset": {
+        "x": 1.6,
+        "y": 3.900000000000002
+      },
+      "side": "x+"
+    },
+    "U_MODEM.114": {
+      "pinId": "U_MODEM.114",
+      "offset": {
+        "x": 1.6,
+        "y": 4.100000000000001
+      },
+      "side": "x+"
+    },
+    "U_MODEM.115": {
+      "pinId": "U_MODEM.115",
+      "offset": {
+        "x": 1.6,
+        "y": 4.300000000000001
+      },
+      "side": "x+"
+    },
+    "U_MODEM.116": {
+      "pinId": "U_MODEM.116",
+      "offset": {
+        "x": 1.6,
+        "y": 4.5
+      },
+      "side": "x+"
+    },
+    "U_MODEM.117": {
+      "pinId": "U_MODEM.117",
+      "offset": {
+        "x": 1.6,
+        "y": 4.699999999999999
+      },
+      "side": "x+"
+    },
+    "U_MODEM.118": {
+      "pinId": "U_MODEM.118",
+      "offset": {
+        "x": 1.6,
+        "y": 4.899999999999999
+      },
+      "side": "x+"
+    },
+    "U_MODEM.119": {
+      "pinId": "U_MODEM.119",
+      "offset": {
+        "x": 1.6,
+        "y": 5.099999999999998
+      },
+      "side": "x+"
+    },
+    "U_MODEM.120": {
+      "pinId": "U_MODEM.120",
+      "offset": {
+        "x": 1.6,
+        "y": 5.299999999999997
+      },
+      "side": "x+"
+    },
+    "U_MODEM.121": {
+      "pinId": "U_MODEM.121",
+      "offset": {
+        "x": 1.6,
+        "y": 5.4999999999999964
+      },
+      "side": "x+"
+    },
+    "U_MODEM.122": {
+      "pinId": "U_MODEM.122",
+      "offset": {
+        "x": 1.6,
+        "y": 5.699999999999996
+      },
+      "side": "x+"
+    },
+    "U_MODEM.123": {
+      "pinId": "U_MODEM.123",
+      "offset": {
+        "x": 1.6,
+        "y": 5.899999999999995
+      },
+      "side": "x+"
+    },
+    "U_MODEM.124": {
+      "pinId": "U_MODEM.124",
+      "offset": {
+        "x": 1.6,
+        "y": 6.099999999999994
+      },
+      "side": "x+"
+    },
+    "C_MODEM_BULK.1": {
+      "pinId": "C_MODEM_BULK.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_MODEM_BULK.2": {
+      "pinId": "C_MODEM_BULK.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_MODEM_1U.1": {
+      "pinId": "C_MODEM_1U.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_MODEM_1U.2": {
+      "pinId": "C_MODEM_1U.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_MODEM_100N.1": {
+      "pinId": "C_MODEM_100N.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_MODEM_100N.2": {
+      "pinId": "C_MODEM_100N.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_MODEM_33N.1": {
+      "pinId": "C_MODEM_33N.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_MODEM_33N.2": {
+      "pinId": "C_MODEM_33N.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_MODEM_10P.1": {
+      "pinId": "C_MODEM_10P.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_MODEM_10P.2": {
+      "pinId": "C_MODEM_10P.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_GNSS_VDD.1": {
+      "pinId": "C_GNSS_VDD.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_GNSS_VDD.2": {
+      "pinId": "C_GNSS_VDD.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_GNSS_VBKP.1": {
+      "pinId": "C_GNSS_VBKP.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_GNSS_VBKP.2": {
+      "pinId": "C_GNSS_VBKP.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "SW_MODEM_PWR.1": {
+      "pinId": "SW_MODEM_PWR.1",
+      "offset": {
+        "x": -0.47,
+        "y": -0.05
+      },
+      "side": "x-"
+    },
+    "SW_MODEM_PWR.2": {
+      "pinId": "SW_MODEM_PWR.2",
+      "offset": {
+        "x": 0.47,
+        "y": -0.05
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    }
+  },
+  "pinStrongConnMap": {
+    "U_MODEM.1-SW_MODEM_PWR.1": true,
+    "SW_MODEM_PWR.1-U_MODEM.1": true,
+    "U_MODEM.15-U_MODEM.97": true,
+    "U_MODEM.97-U_MODEM.15": true,
+    "C_GNSS_VDD.1-U_MODEM.97": true,
+    "U_MODEM.97-C_GNSS_VDD.1": true,
+    "U_MODEM.26-U_MODEM.98": true,
+    "U_MODEM.98-U_MODEM.26": true,
+    "U_MODEM.95-U_MODEM.49": true,
+    "U_MODEM.49-U_MODEM.95": true,
+    "U_MODEM.50-U_MODEM.96": true,
+    "U_MODEM.96-U_MODEM.50": true,
+    "C_GNSS_VBKP.1-U_MODEM.116": true,
+    "U_MODEM.116-C_GNSS_VBKP.1": true
+  },
+  "netConnMap": {
+    "U_MODEM.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.17-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.18-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.29-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.39-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.45-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.46-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.54-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.58-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.59-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.61-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.62-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.63-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.64-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.65-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.69-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.70-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.71-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.72-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.73-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.74-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.75-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.76-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.77-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.78-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.79-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.80-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.81-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.82-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.83-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.84-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.85-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.86-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.87-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.88-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.89-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.91-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.92-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.94-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "C_MODEM_BULK.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "C_MODEM_1U.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "C_MODEM_100N.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "C_MODEM_33N.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "C_MODEM_10P.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "C_GNSS_VDD.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "C_GNSS_VBKP.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "SW_MODEM_PWR.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net4": true,
+    "U_MODEM.9-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net2": true,
+    "U_MODEM.10-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net3": true,
+    "U_MODEM.15-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "U_MODEM.97-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "C_GNSS_VDD.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "U_MODEM.55-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "U_MODEM.56-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "U_MODEM.57-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "C_MODEM_BULK.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "C_MODEM_1U.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "C_MODEM_100N.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "C_MODEM_33N.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "C_MODEM_10P.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net0": true,
+    "U_MODEM.116-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": true,
+    "C_GNSS_VBKP.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
