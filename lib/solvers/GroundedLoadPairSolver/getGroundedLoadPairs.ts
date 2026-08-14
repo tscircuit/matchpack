@@ -18,6 +18,7 @@ export type GroundedLoadPair = {
   upperInnerPinId: PinId
   lowerInnerPinId: PinId
   groundPinId: PinId
+  groundNetId: NetId
   isStandaloneSignalChain?: boolean
 }
 
@@ -68,16 +69,25 @@ const getPinIdsForNet = ({
   return pinIds
 }
 
-const pinConnectsToGround = ({
+const getGroundConnection = ({
+  lowerChip,
+  lowerInnerPinId,
   inputProblem,
-  pinId,
 }: {
+  lowerChip: Chip
+  lowerInnerPinId: PinId
   inputProblem: InputProblem
-  pinId: PinId
-}) =>
-  getNetIdsForPin({ inputProblem, pinId }).some(
-    (netId) => inputProblem.netMap[netId]?.isGround === true,
-  )
+}): Pick<GroundedLoadPair, "groundPinId" | "groundNetId"> | null => {
+  for (const groundPinId of lowerChip.pins) {
+    if (groundPinId === lowerInnerPinId) continue
+    const groundNetId = getNetIdsForPin({
+      inputProblem,
+      pinId: groundPinId,
+    }).find((netId) => inputProblem.netMap[netId]?.isGround === true)
+    if (groundNetId) return { groundPinId, groundNetId }
+  }
+  return null
+}
 
 const pinConnectsToPositiveVoltage = ({
   inputProblem,
@@ -89,6 +99,34 @@ const pinConnectsToPositiveVoltage = ({
   getNetIdsForPin({ inputProblem, pinId }).some(
     (netId) => inputProblem.netMap[netId]?.isPositiveVoltageSource === true,
   )
+
+const getDirectlyConnectedGroundedLowerChip = (
+  { upperInnerPinId }: { upperInnerPinId: PinId },
+  ctx: ConnectivityContext,
+): Pick<
+  GroundedLoadPair,
+  "lowerChip" | "lowerInnerPinId" | "groundPinId" | "groundNetId"
+> | null => {
+  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } = ctx
+  for (const lowerInnerPinId of getStronglyConnectedPinIds({
+    connectedPinsByPinId,
+    pinId: upperInnerPinId,
+  })) {
+    const lowerChip = pinOwnerMap.get(lowerInnerPinId)
+    if (!lowerChip) continue
+    if (lowerChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    if (lowerChip.fixedPosition) continue
+    if (pairedChipIds.has(lowerChip.chipId)) continue
+    const groundConnection = getGroundConnection({
+      lowerChip,
+      lowerInnerPinId,
+      inputProblem,
+    })
+    if (!groundConnection) continue
+    return { lowerChip, lowerInnerPinId, ...groundConnection }
+  }
+  return null
+}
 
 const getChipConnectedPair = (
   upperChip: Chip,
@@ -136,12 +174,12 @@ const getChipConnectedPair = (
     )
     if (!lowerInnerPinId) continue
 
-    const groundPinId = lowerChip.pins.find(
-      (pinId) =>
-        pinId !== lowerInnerPinId &&
-        pinConnectsToGround({ inputProblem, pinId }),
-    )
-    if (!groundPinId) continue
+    const groundConnection = getGroundConnection({
+      lowerChip,
+      lowerInnerPinId,
+      inputProblem,
+    })
+    if (!groundConnection) continue
 
     return {
       upperChip,
@@ -151,7 +189,7 @@ const getChipConnectedPair = (
       upperOuterPinId,
       upperInnerPinId,
       lowerInnerPinId,
-      groundPinId,
+      ...groundConnection,
     }
   }
   return null
@@ -173,6 +211,19 @@ const getRailConnectedPair = (
   )
   if (!upperInnerPinId) return null
 
+  const directlyConnectedLowerChip = getDirectlyConnectedGroundedLowerChip(
+    { upperInnerPinId },
+    ctx,
+  )
+  if (directlyConnectedLowerChip) {
+    return {
+      upperChip,
+      upperOuterPinId,
+      upperInnerPinId,
+      ...directlyConnectedLowerChip,
+    }
+  }
+
   const internalNetId = getNetIdsForPin({
     inputProblem,
     pinId: upperInnerPinId,
@@ -182,7 +233,10 @@ const getRailConnectedPair = (
   })
   if (!internalNetId) return null
 
-  const internalPinIds = getPinIdsForNet({ inputProblem, netId: internalNetId })
+  const internalPinIds = getPinIdsForNet({
+    inputProblem,
+    netId: internalNetId,
+  })
   // A private two-pin net prevents grouping a branched circuit as one load chain.
   if (internalPinIds.length !== TWO_PIN_COMPONENT_PIN_COUNT) return null
   const lowerInnerPinId = internalPinIds.find(
@@ -196,11 +250,12 @@ const getRailConnectedPair = (
   if (lowerChip.fixedPosition) return null
   if (pairedChipIds.has(lowerChip.chipId)) return null
 
-  const groundPinId = lowerChip.pins.find(
-    (pinId) =>
-      pinId !== lowerInnerPinId && pinConnectsToGround({ inputProblem, pinId }),
-  )
-  if (!groundPinId) return null
+  const groundConnection = getGroundConnection({
+    lowerChip,
+    lowerInnerPinId,
+    inputProblem,
+  })
+  if (!groundConnection) return null
 
   return {
     upperChip,
@@ -208,7 +263,7 @@ const getRailConnectedPair = (
     upperOuterPinId,
     upperInnerPinId,
     lowerInnerPinId,
-    groundPinId,
+    ...groundConnection,
   }
 }
 
@@ -216,7 +271,7 @@ const getSignalConnectedPair = (
   upperChip: Chip,
   ctx: ConnectivityContext,
 ): GroundedLoadPair | null => {
-  const { inputProblem, pinOwnerMap, connectedPinsByPinId, pairedChipIds } = ctx
+  const { inputProblem } = ctx
   for (const upperOuterPinId of upperChip.pins) {
     const hasStandaloneSignalNet = getNetIdsForPin({
       inputProblem,
@@ -233,34 +288,17 @@ const getSignalConnectedPair = (
     )
     if (!upperInnerPinId) continue
 
-    const lowerInnerPinId = getStronglyConnectedPinIds({
-      connectedPinsByPinId,
-      pinId: upperInnerPinId,
-    }).find((pinId) => {
-      const chip = pinOwnerMap.get(pinId)
-      if (!chip) return false
-      if (chip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return false
-      if (chip.fixedPosition) return false
-      return !pairedChipIds.has(chip.chipId)
-    })
-    if (!lowerInnerPinId) continue
-
-    const lowerChip = pinOwnerMap.get(lowerInnerPinId)
-    if (!lowerChip) continue
-    const groundPinId = lowerChip.pins.find(
-      (pinId) =>
-        pinId !== lowerInnerPinId &&
-        pinConnectsToGround({ inputProblem, pinId }),
+    const directlyConnectedLowerChip = getDirectlyConnectedGroundedLowerChip(
+      { upperInnerPinId },
+      ctx,
     )
-    if (!groundPinId) continue
+    if (!directlyConnectedLowerChip) continue
 
     return {
       upperChip,
-      lowerChip,
       upperOuterPinId,
       upperInnerPinId,
-      lowerInnerPinId,
-      groundPinId,
+      ...directlyConnectedLowerChip,
       isStandaloneSignalChain: true,
     }
   }

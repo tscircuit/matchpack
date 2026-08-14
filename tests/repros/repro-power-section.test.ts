@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "lib/types/InputProblem"
-import { rotatePinOffset } from "lib/utils/rotatePinOffset"
+import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
 import inputProblem from "../assets/repro-power-section.input.json"
 
 test("power section schematic auto-layout", async () => {
@@ -17,7 +17,19 @@ test("power section schematic auto-layout", async () => {
     inputProblem.partitionGap,
   )
   expect(placements.R1!.x).toBeCloseTo(placements.LED1!.x)
-  expect(placements.R1!.y - placements.LED1!.y).toBeCloseTo(1.54)
+  const resistorSize = getRotatedSize(
+    inputProblem.chipMap.R1!.size,
+    placements.R1!.ccwRotationDegrees,
+  )
+  const ledSize = getRotatedSize(
+    inputProblem.chipMap.LED1!.size,
+    placements.LED1!.ccwRotationDegrees,
+  )
+  const expectedPairCenterDistance =
+    resistorSize.y / 2 + inputProblem.chipGap + ledSize.y / 2
+  expect(placements.R1!.y - placements.LED1!.y).toBeCloseTo(
+    expectedPairCenterDistance,
+  )
   const r1RailPinOffset = rotatePinOffset(
     inputProblem.chipPinMap["R1.1"]!.offset,
     placements.R1!.ccwRotationDegrees,

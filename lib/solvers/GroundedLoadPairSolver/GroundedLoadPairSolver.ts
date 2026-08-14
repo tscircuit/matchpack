@@ -9,7 +9,7 @@ import {
 } from "./getGroundedLoadPairs"
 import { layoutGroundedLoadPair } from "./layoutGroundedLoadPair"
 import { offsetChipAnchoredGroundedLoadConnections } from "../../utils/offsetCollinearConnections"
-import { alignStandaloneGroundedLoadPairs } from "./alignStandaloneGroundedLoadPairs"
+import { alignGroundedLoadPairRows } from "./alignGroundedLoadPairRows"
 
 export class GroundedLoadPairSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
@@ -42,7 +42,7 @@ export class GroundedLoadPairSolver extends BaseSolver {
         inputProblem: this.params.inputProblem,
       })
     }
-    alignStandaloneGroundedLoadPairs({
+    alignGroundedLoadPairRows({
       groundedLoadPairs: this.groundedLoadPairs,
       chipPlacements,
       inputProblem: this.params.inputProblem,
