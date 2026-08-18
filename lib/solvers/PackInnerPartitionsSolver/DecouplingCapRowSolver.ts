@@ -41,6 +41,7 @@ import type {
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
+import { getDecouplingRailNetId } from "../../utils/getDecouplingRailNetId"
 
 /** Axis a 2-pin chip's pins run along, once its fixed rotation is applied. */
 const getPinAxis = (
@@ -100,28 +101,25 @@ export class DecouplingCapRowSolver extends BaseSolver {
     return chip.availableRotations?.[0] ?? 0
   }
 
-  private isOnPositiveVoltageNet(pinId: PinId): boolean {
+  private isOnRailNet(pinId: PinId): boolean {
     const problem = this.partitionInputProblem
-    for (const [connKey, connected] of Object.entries(problem.netConnMap)) {
-      if (!connected) continue
-      if (!connKey.startsWith(`${pinId}-`)) continue
-      const netId = connKey.slice(pinId.length + 1)
-      if (problem.netMap[netId]?.isPositiveVoltageSource) return true
-    }
-    return false
+    const railNetId = getDecouplingRailNetId({
+      inputProblem: problem,
+      netIds: Object.keys(problem.netMap),
+    })
+    if (!railNetId) return false
+    return problem.netConnMap[`${pinId}-${railNetId}`] === true
   }
 
   /**
-   * Offset along the pin axis that puts this cap's positive pin on the shared rail.
-   * Falls back to centering the body if no pin sits on a positive net.
+   * Offset along the pin axis that puts this cap's rail pin on the shared rail.
+   * Falls back to centering the body if no rail pin is available.
    */
   private getRailOffset(chip: Chip, pinAxis: "x" | "y"): number {
-    const positivePinId = chip.pins.find((pinId) =>
-      this.isOnPositiveVoltageNet(pinId),
-    )
-    if (!positivePinId) return 0
+    const railPinId = chip.pins.find((pinId) => this.isOnRailNet(pinId))
+    if (!railPinId) return 0
 
-    const pin = this.partitionInputProblem.chipPinMap[positivePinId]
+    const pin = this.partitionInputProblem.chipPinMap[railPinId]
     if (!pin) return 0
 
     return -rotatePinOffset(pin.offset, this.getRotation(chip))[pinAxis]
