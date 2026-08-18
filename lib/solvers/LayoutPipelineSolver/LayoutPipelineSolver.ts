@@ -56,6 +56,10 @@ function definePipelineStep<
 }
 
 export class LayoutPipelineSolver extends BaseSolver {
+  getSolverName(): string {
+    return "LayoutPipelineSolver"
+  }
+
   identifyCrystalCircuitsSolver?: IdentifyCrystalCircuitsSolver
   identifyDecouplingCapsSolver?: IdentifyDecouplingCapsSolver
   chipPartitionsSolver?: ChipPartitionsSolver
