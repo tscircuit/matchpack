@@ -23,6 +23,11 @@ import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { Side } from "lib/types/Side"
+import { getDecouplingRailNetId } from "lib/utils/getDecouplingRailNetId"
+import {
+  type GroundedCapacitor,
+  groupGroundedCapacitorsByNetPair,
+} from "./groupGroundedCapacitorsByNetPair"
 
 export interface DecouplingCapGroup {
   decouplingCapGroupId: string
@@ -49,6 +54,8 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   queuedChips: Chip[]
 
   outputDecouplingCapGroups: DecouplingCapGroup[] = []
+
+  private groundedCapacitorsWithoutPowerMetadata: GroundedCapacitor[] = []
 
   /** Quick lookup of groups by main chip and net pair for accumulation */
   private groupsByMainChipId = new Map<string, DecouplingCapGroup>()
@@ -269,16 +276,18 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const mainChip = this.inputProblem.chipMap[mainChipId]
     if (!mainChip) return null
 
-    const positiveNetIds = netPair.filter(
-      (netId) => this.inputProblem.netMap[netId]?.isPositiveVoltageSource,
-    )
+    const railNetId = getDecouplingRailNetId({
+      inputProblem: this.inputProblem,
+      netIds: netPair,
+    })
+    if (!railNetId) return null
     const sideCounts = new Map<Side, number>()
 
     for (const pinId of mainChip.pins) {
       const pin = this.inputProblem.chipPinMap[pinId]
       if (!pin) continue
       const pinNetIds = this.getNetIdsForPin(pinId)
-      if (!positiveNetIds.some((netId) => pinNetIds.has(netId))) continue
+      if (!pinNetIds.has(railNetId)) continue
       sideCounts.set(pin.side, (sideCounts.get(pin.side) ?? 0) + 1)
     }
 
@@ -293,10 +302,33 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   }
 
   lastChip: Chip | null = null
+
+  private addGroundedCapacitorGroupsWithoutPowerMetadata(): void {
+    const groundedCapacitorGroups = groupGroundedCapacitorsByNetPair({
+      groundedCapacitorsWithoutPowerMetadata:
+        this.groundedCapacitorsWithoutPowerMetadata,
+    })
+
+    for (const groundedCapacitorGroup of groundedCapacitorGroups) {
+      const mainChipId = this.findUniqueMainChipSharingNetPair(
+        groundedCapacitorGroup.netPair,
+      )
+      if (!mainChipId) continue
+      for (const capacitorChipId of groundedCapacitorGroup.capacitorChipIds) {
+        this.addToGroup(
+          mainChipId,
+          groundedCapacitorGroup.netPair,
+          capacitorChipId,
+        )
+      }
+    }
+  }
+
   override _step() {
     const currentChip = this.queuedChips.shift()
     this.lastChip = currentChip ?? null
     if (!currentChip) {
+      this.addGroundedCapacitorGroupsWithoutPowerMetadata()
       this.solved = true
       return
     }
@@ -324,7 +356,18 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
     const isDecouplingNetPair =
       (net1?.isGround && net2?.isPositiveVoltageSource) ||
       (net2?.isGround && net1?.isPositiveVoltageSource)
-    if (!isDecouplingNetPair) return
+    if (!isDecouplingNetPair) {
+      const groundNetCount = netPair.filter(
+        (netId) => this.inputProblem.netMap[netId]?.isGround,
+      ).length
+      if (groundNetCount === 1) {
+        this.groundedCapacitorsWithoutPowerMetadata.push({
+          capacitorChipId: currentChip.chipId,
+          netPair,
+        })
+      }
+      return
+    }
 
     // Require a chip for the cap to decouple, found by pin-to-pin connection or,
     // for a cap wired only to the rail, the chip whose directly-wired caps already
