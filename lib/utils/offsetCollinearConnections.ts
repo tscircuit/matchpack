@@ -68,11 +68,15 @@ const chipPinsAreVerticallyOriented = ({
 const placementHasClearance = ({
   chipId,
   chipPlacements,
+  ignoredChipIds,
   inputProblem,
+  minimumGap,
 }: {
   chipId: ChipId
   chipPlacements: Record<ChipId, Placement>
+  ignoredChipIds: Set<ChipId>
   inputProblem: InputProblem
+  minimumGap: number
 }): boolean => {
   const chip = inputProblem.chipMap[chipId]
   const placement = chipPlacements[chipId]
@@ -86,7 +90,7 @@ const placementHasClearance = ({
   })
 
   for (const [otherChipId, otherPlacement] of Object.entries(chipPlacements)) {
-    if (otherChipId === chipId) continue
+    if (ignoredChipIds.has(otherChipId)) continue
     const otherChip = inputProblem.chipMap[otherChipId]
     if (!otherChip) continue
     const otherSize = getRotatedSize(
@@ -100,7 +104,7 @@ const placementHasClearance = ({
     })
     if (
       boundsDistance(bounds, otherBounds) <
-      inputProblem.chipGap - ALIGNMENT_TOLERANCE
+      minimumGap - ALIGNMENT_TOLERANCE
     ) {
       return false
     }
@@ -109,41 +113,49 @@ const placementHasClearance = ({
   return true
 }
 
-const tryOffsetChips = ({
+export const tryOffsetChips = ({
   chipIds,
+  clearanceGroupChipIds,
   dx,
   dy,
   chipPlacements,
   inputProblem,
+  minimumOutsideGap,
 }: {
   chipIds: ChipId[]
+  clearanceGroupChipIds?: ChipId[]
   dx: number
   dy: number
   chipPlacements: Record<ChipId, Placement>
   inputProblem: InputProblem
-}): void => {
+  minimumOutsideGap?: number
+}): boolean => {
   const placements = chipIds
     .map((chipId) => chipPlacements[chipId])
     .filter((placement): placement is Placement => Boolean(placement))
-  if (placements.length !== chipIds.length) return
+  if (placements.length !== chipIds.length) return false
 
   for (const placement of placements) {
     placement.x += dx
     placement.y += dy
   }
+  const ignoredChipIds = new Set(clearanceGroupChipIds ?? chipIds)
   const allChipsHaveClearance = chipIds.every((chipId) =>
     placementHasClearance({
       chipId,
       chipPlacements,
+      ignoredChipIds,
       inputProblem,
+      minimumGap: minimumOutsideGap ?? inputProblem.chipGap,
     }),
   )
-  if (allChipsHaveClearance) return
+  if (allChipsHaveClearance) return true
 
   for (const placement of placements) {
     placement.x -= dx
     placement.y -= dy
   }
+  return false
 }
 
 export const applyDirectPassiveTraceClearance = ({
