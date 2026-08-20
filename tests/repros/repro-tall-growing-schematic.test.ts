@@ -25,5 +25,7 @@ test("reproduces tall-growing schematic from distant groups", async () => {
     { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity },
   )
 
-  expect(bounds.maxY - bounds.minY).toBeGreaterThan(bounds.maxX - bounds.minX)
+  const width = bounds.maxX - bounds.minX
+  const height = bounds.maxY - bounds.minY
+  expect(width / height).toBeGreaterThanOrEqual(4 / 3)
 })

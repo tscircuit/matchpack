@@ -11,12 +11,15 @@ import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 
+const MINIMUM_LAYOUT_ASPECT_RATIO = 4 / 3
+
 export interface PartitionPackingSolverInput {
   packedPartitions: PackedPartition[]
   inputProblem: InputProblem
 }
 
 type PartitionGroup = {
+  componentId: string
   partitionIndex: number
   chipIds: string[]
   bounds: {
@@ -25,6 +28,11 @@ type PartitionGroup = {
     minY: number
     maxY: number
   }
+}
+
+type PackingCandidateScore = {
+  aspectRatioPenalty: number
+  connectionDistanceSquared: number
 }
 
 export class PartitionPackingSolver extends BaseSolver {
@@ -171,6 +179,7 @@ export class PartitionPackingSolver extends BaseSolver {
         }
 
         partitionGroups.push({
+          componentId: `partition_${i}`,
           partitionIndex: i,
           chipIds: partitionChipIds,
           bounds: { minX, maxX, minY, maxY },
@@ -250,7 +259,7 @@ export class PartitionPackingSolver extends BaseSolver {
       }
 
       return {
-        componentId: `partition_${group.partitionIndex}`,
+        componentId: group.componentId,
         pads,
         availableRotationDegrees: [0] as Array<0 | 90 | 180 | 270>,
         ...(isFixed && {
@@ -273,17 +282,22 @@ export class PartitionPackingSolver extends BaseSolver {
     packedComponents: PackSolver2["packedComponents"],
     partitionGroups: PartitionGroup[],
   ): OutputLayout {
+    const selectedComponents = this.selectAspectRatioAwareCandidate(
+      packedComponents,
+      partitionGroups,
+    )
+    const groupByComponentId = new Map(
+      partitionGroups.map((group) => [group.componentId, group]),
+    )
+
     // Apply the partition offsets to individual components
     const newChipPlacements: Record<string, Placement> = {}
 
-    for (const packedComponent of packedComponents) {
-      const partitionIndex = parseInt(
-        packedComponent.componentId.replace("partition_", ""),
-      )
-      const group = partitionGroups.find(
-        (g) => g.partitionIndex === partitionIndex,
-      )
-      const packedPartition = this.packedPartitions[partitionIndex]
+    for (const packedComponent of selectedComponents) {
+      const group = groupByComponentId.get(packedComponent.componentId)
+      const packedPartition = group
+        ? this.packedPartitions[group.partitionIndex]
+        : undefined
 
       if (group && packedPartition) {
         // Calculate offset to apply to this partition's components
@@ -312,6 +326,132 @@ export class PartitionPackingSolver extends BaseSolver {
       chipPlacements: newChipPlacements,
       groupPlacements: {},
     }
+  }
+
+  private selectAspectRatioAwareCandidate(
+    packedComponents: PackSolver2["packedComponents"],
+    partitionGroups: PartitionGroup[],
+  ): PackSolver2["packedComponents"] {
+    // For two movable partitions, all four cardinal placements are valid packing
+    // alternatives. Evaluate them alongside the packer's result instead of
+    // relying on its direction tie-breaker, which is unaware of page shape.
+    if (
+      packedComponents.length !== 2 ||
+      partitionGroups.some((group) =>
+        this.partitionHasFixedChip(group.partitionIndex),
+      )
+    ) {
+      return packedComponents
+    }
+
+    const [anchor, moving] = packedComponents
+    if (!anchor || !moving) return packedComponents
+
+    const groupByComponentId = new Map(
+      partitionGroups.map((group) => [group.componentId, group]),
+    )
+    const anchorGroup = groupByComponentId.get(anchor.componentId)
+    const movingGroup = groupByComponentId.get(moving.componentId)
+    if (!anchorGroup || !movingGroup) return packedComponents
+
+    const anchorWidth = anchorGroup.bounds.maxX - anchorGroup.bounds.minX
+    const anchorHeight = anchorGroup.bounds.maxY - anchorGroup.bounds.minY
+    const movingWidth = movingGroup.bounds.maxX - movingGroup.bounds.minX
+    const movingHeight = movingGroup.bounds.maxY - movingGroup.bounds.minY
+    const horizontalDistance =
+      anchorWidth / 2 + this.inputProblem.partitionGap + movingWidth / 2
+    const verticalDistance =
+      anchorHeight / 2 + this.inputProblem.partitionGap + movingHeight / 2
+
+    const candidateCenters = [
+      moving.center,
+      { x: anchor.center.x - horizontalDistance, y: anchor.center.y },
+      { x: anchor.center.x + horizontalDistance, y: anchor.center.y },
+      { x: anchor.center.x, y: anchor.center.y - verticalDistance },
+      { x: anchor.center.x, y: anchor.center.y + verticalDistance },
+    ]
+
+    const candidates = candidateCenters.map((center) => [
+      anchor,
+      { ...moving, center },
+    ]) as Array<PackSolver2["packedComponents"]>
+
+    const scoredCandidates = candidates.map((components) => ({
+      components,
+      score: this.scorePackingCandidate(components, groupByComponentId),
+    }))
+    const originalScore = scoredCandidates[0]!.score
+    const distanceTolerance =
+      Number.EPSILON * Math.max(1, originalScore.connectionDistanceSquared) * 16
+    const routingSafeCandidates = scoredCandidates.filter(({ score }) => {
+      return (
+        score.connectionDistanceSquared <=
+        originalScore.connectionDistanceSquared + distanceTolerance
+      )
+    })
+
+    return routingSafeCandidates.reduce((best, candidate) => {
+      return candidate.score.aspectRatioPenalty < best.score.aspectRatioPenalty
+        ? candidate
+        : best
+    }).components
+  }
+
+  private scorePackingCandidate(
+    packedComponents: PackSolver2["packedComponents"],
+    groupByComponentId: Map<string, PartitionGroup>,
+  ): PackingCandidateScore {
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+
+    for (const component of packedComponents) {
+      const group = groupByComponentId.get(component.componentId)
+      if (!group) {
+        return {
+          aspectRatioPenalty: Infinity,
+          connectionDistanceSquared: Infinity,
+        }
+      }
+      const width = group.bounds.maxX - group.bounds.minX
+      const height = group.bounds.maxY - group.bounds.minY
+      minX = Math.min(minX, component.center.x - width / 2)
+      maxX = Math.max(maxX, component.center.x + width / 2)
+      minY = Math.min(minY, component.center.y - height / 2)
+      maxY = Math.max(maxY, component.center.y + height / 2)
+    }
+
+    const width = maxX - minX
+    const height = maxY - minY
+    const aspectRatioPenalty = Math.max(
+      0,
+      MINIMUM_LAYOUT_ASPECT_RATIO - width / height,
+    )
+
+    const [first, second] = packedComponents
+    if (!first || !second) {
+      return { aspectRatioPenalty, connectionDistanceSquared: 0 }
+    }
+    const secondPadsByNetwork = new Map(
+      second.pads.map((pad) => [pad.networkId, pad]),
+    )
+    let connectionDistanceSquared = 0
+    for (const firstPad of first.pads) {
+      const secondPad = secondPadsByNetwork.get(firstPad.networkId)
+      if (!secondPad) continue
+      const dx =
+        first.center.x +
+        firstPad.offset.x -
+        (second.center.x + secondPad.offset.x)
+      const dy =
+        first.center.y +
+        firstPad.offset.y -
+        (second.center.y + secondPad.offset.y)
+      connectionDistanceSquared += dx * dx + dy * dy
+    }
+
+    return { aspectRatioPenalty, connectionDistanceSquared }
   }
 
   private getCombinedPackedPartitionsProblem(): InputProblem {
