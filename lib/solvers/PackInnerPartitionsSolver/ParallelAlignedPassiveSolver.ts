@@ -55,6 +55,23 @@ const OUTWARD_BY_SIDE: Record<Side, { x: number; y: number }> = {
   "y+": { x: 0, y: 1 },
 }
 
+const sideForRotatedOffset = (offset: { x: number; y: number }): Side => {
+  if (Math.abs(offset.x) >= Math.abs(offset.y)) {
+    if (offset.x >= 0) return "x+"
+    return "x-"
+  }
+  if (offset.y >= 0) return "y+"
+  return "y-"
+}
+
+const edgeCoordForSide = (
+  offset: { x: number; y: number },
+  side: Side,
+): number => {
+  if (side === "x-" || side === "x+") return offset.y
+  return offset.x
+}
+
 /** Gap between two bounds along a single axis (0 if they overlap on that axis). */
 const axisGap = (a: Bounds, b: Bounds, axis: "x" | "y"): number => {
   if (axis === "x") return Math.max(0, a.minX - b.maxX, b.minX - a.maxX)
@@ -143,6 +160,12 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     const carrierPlacement = placements[railCarrier.carrierChipId]
     const carrierChip = prob.chipMap[railCarrier.carrierChipId]
     if (!mainChipPlacement || !carrierPlacement || !carrierChip) return
+    const physicalPassiveGroup = this.getPhysicalRailCarrierPassiveGroup(
+      passiveGroup,
+      mainChipPlacement,
+    )
+    if (!physicalPassiveGroup) return
+    passiveGroup = physicalPassiveGroup
 
     const outward = OUTWARD_BY_SIDE[passiveGroup.side]
     const outwardAxis: "x" | "y" = outward.x === 0 ? "y" : "x"
@@ -200,6 +223,7 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         previousChipIds: passiveGroup.passiveChipIds.slice(0, index),
         outwardAxis,
         outwardSign: outward[outwardAxis],
+        gap,
       })
     }
 
@@ -229,6 +253,43 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
 
     for (const chipId of movedChipIds) {
       placements[chipId] = candidatePlacements[chipId]!
+    }
+  }
+
+  private getPhysicalRailCarrierPassiveGroup(
+    passiveGroup: SameSidePassiveGroup,
+    mainChipPlacement: Placement,
+  ): SameSidePassiveGroup | null {
+    const prob = this.partitionInputProblem
+    const ordered = passiveGroup.passiveChipIds.map((passiveChipId, index) => {
+      const mainChipPinId = passiveGroup.mainChipPinIds[index]
+      const mainChipPin = mainChipPinId && prob.chipPinMap[mainChipPinId]
+      if (!mainChipPinId || !mainChipPin) return null
+      const rotatedOffset = rotatePinOffset(
+        mainChipPin.offset,
+        mainChipPlacement.ccwRotationDegrees,
+      )
+      const side = sideForRotatedOffset(rotatedOffset)
+      return {
+        passiveChipId,
+        mainChipPinId,
+        side,
+        edgeCoord: edgeCoordForSide(rotatedOffset, side),
+      }
+    })
+    if (ordered.some((entry) => entry === null)) return null
+
+    const firstEntry = ordered[0]
+    if (!firstEntry) return null
+    const side = firstEntry.side
+    if (ordered.some((entry) => entry!.side !== side)) return null
+
+    ordered.sort((a, b) => a!.edgeCoord - b!.edgeCoord)
+    return {
+      ...passiveGroup,
+      side,
+      passiveChipIds: ordered.map((entry) => entry!.passiveChipId),
+      mainChipPinIds: ordered.map((entry) => entry!.mainChipPinId),
     }
   }
 
@@ -363,12 +424,14 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     previousChipIds,
     outwardAxis,
     outwardSign,
+    gap,
   }: {
     candidatePlacements: Record<ChipId, Placement>
     chipId: ChipId
     previousChipIds: ChipId[]
     outwardAxis: "x" | "y"
     outwardSign: number
+    gap: number
   }): void {
     const placement = candidatePlacements[chipId]
     if (!placement) return
@@ -378,16 +441,32 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       if (!previousPlacement) continue
       const previousBounds = this.boxFor(previousChipId, previousPlacement)
       let bounds = this.boxFor(chipId, placement)
-      if (!doBoundsOverlap(bounds, previousBounds)) continue
+      if (boundsDistance(bounds, previousBounds) >= gap - CLEARANCE_EPSILON) {
+        continue
+      }
 
+      const crossAxis: "x" | "y" = outwardAxis === "x" ? "y" : "x"
+      const crossGap = axisGap(bounds, previousBounds, crossAxis)
+      const neededOutwardGap = Math.sqrt(
+        Math.max(0, gap * gap - crossGap * crossGap),
+      )
+      let adjustment: number
       if (outwardAxis === "x" && outwardSign > 0) {
-        placement.x += previousBounds.maxX - bounds.minX + CLEARANCE_EPSILON
+        adjustment = previousBounds.maxX - bounds.minX + neededOutwardGap
       } else if (outwardAxis === "x") {
-        placement.x -= bounds.maxX - previousBounds.minX + CLEARANCE_EPSILON
+        adjustment = bounds.maxX - previousBounds.minX + neededOutwardGap
       } else if (outwardSign > 0) {
-        placement.y += previousBounds.maxY - bounds.minY + CLEARANCE_EPSILON
+        adjustment = previousBounds.maxY - bounds.minY + neededOutwardGap
       } else {
-        placement.y -= bounds.maxY - previousBounds.minY + CLEARANCE_EPSILON
+        adjustment = bounds.maxY - previousBounds.minY + neededOutwardGap
+      }
+      adjustment += CLEARANCE_EPSILON
+      if (adjustment <= CLEARANCE_EPSILON) continue
+
+      if (outwardAxis === "x") {
+        placement.x += outwardSign * adjustment
+      } else {
+        placement.y += outwardSign * adjustment
       }
     }
   }

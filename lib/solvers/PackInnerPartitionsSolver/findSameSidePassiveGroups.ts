@@ -118,6 +118,9 @@ const edgeCoordForSide = (
 const isRailCarrierPassiveLeaf = (chip: Chip): boolean =>
   chip.pins.length === PASSIVE_PIN_COUNT && chip.isResistor === true
 
+const passiveSetKey = (passiveChipIds: ChipId[]): string =>
+  [...passiveChipIds].sort().join("|")
+
 /**
  * Find same-side passive groups in a partition. Returns one entry per group,
  * with its passives ordered along the main-chip edge.
@@ -299,6 +302,37 @@ export const findSameSidePassiveGroups = (
     })
   }
 
+  const ambiguousRailCarrierGroupKeys = new Set<string>()
+  for (let i = 0; i < railCarrierGroups.length; i++) {
+    const group = railCarrierGroups[i]!
+    if (!group.railCarrier) continue
+    const groupPassiveKey = passiveSetKey(group.passiveChipIds)
+    for (let j = i + 1; j < railCarrierGroups.length; j++) {
+      const otherGroup = railCarrierGroups[j]!
+      const otherRailCarrier = otherGroup.railCarrier
+      if (!otherRailCarrier) continue
+      if (
+        group.mainChipId === otherRailCarrier.carrierChipId &&
+        group.railCarrier.carrierChipId === otherGroup.mainChipId &&
+        groupPassiveKey === passiveSetKey(otherGroup.passiveChipIds)
+      ) {
+        ambiguousRailCarrierGroupKeys.add(
+          `${group.mainChipId}|${group.railCarrier.carrierChipId}|${groupPassiveKey}`,
+        )
+        ambiguousRailCarrierGroupKeys.add(
+          `${otherGroup.mainChipId}|${otherRailCarrier.carrierChipId}|${groupPassiveKey}`,
+        )
+      }
+    }
+  }
+  const unambiguousRailCarrierGroups = railCarrierGroups.filter((group) => {
+    const railCarrier = group.railCarrier
+    if (!railCarrier) return true
+    return !ambiguousRailCarrierGroupKeys.has(
+      `${group.mainChipId}|${railCarrier.carrierChipId}|${passiveSetKey(group.passiveChipIds)}`,
+    )
+  })
+
   const commonNodeGroups: SameSidePassiveGroup[] = []
   for (const strongs of strongByChip.values()) {
     const strongsByPin = new Map<PinId, typeof strongs>()
@@ -358,7 +392,7 @@ export const findSameSidePassiveGroups = (
     commonNodeGroups.flatMap((group) => group.passiveChipIds),
   )
   const railCarrierPassiveChipIds = new Set(
-    railCarrierGroups.flatMap((group) => group.passiveChipIds),
+    unambiguousRailCarrierGroups.flatMap((group) => group.passiveChipIds),
   )
 
   interface Candidate {
@@ -424,7 +458,7 @@ export const findSameSidePassiveGroups = (
   }
 
   const groups: SameSidePassiveGroup[] = [
-    ...railCarrierGroups,
+    ...unambiguousRailCarrierGroups,
     ...commonNodeGroups,
   ]
   for (const list of candidatesByGroup.values()) {

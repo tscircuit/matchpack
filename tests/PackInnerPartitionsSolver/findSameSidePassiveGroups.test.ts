@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import { findSameSidePassiveGroups } from "lib/solvers/PackInnerPartitionsSolver/findSameSidePassiveGroups"
+import type { Placement } from "lib/types/OutputLayout"
 import type { InputProblem } from "lib/types/InputProblem"
-import { rotatePinOffset } from "lib/utils/rotatePinOffset"
+import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
 import si7021Input from "../../pages/repros/repro-si7021/si7021-matchpack-input.json"
 import commonNodeInput from "../assets/repro-core-repro70-common-node-placement.input.json"
 
@@ -14,6 +15,7 @@ const makeRailCarrierProblem = (
     multipleRailPins?: boolean
     fixedCarrier?: boolean
     fixedPassive?: boolean
+    fixedMain?: boolean
   } = {},
 ): InputProblem => {
   const main = opts.customIds ? "sensor_controller" : "U1"
@@ -34,6 +36,7 @@ const makeRailCarrierProblem = (
         pins: [`${main}.1`, `${main}.2`, `${main}.3`, `${main}.4`],
         size: { x: 1.2, y: 0.8 },
         availableRotations: [0, 90, 180, 270],
+        ...(opts.fixedMain && { fixedPosition: { x: 0, y: 0 } }),
       },
       [upperPassive]: {
         chipId: upperPassive,
@@ -334,6 +337,185 @@ const makeMultiPassiveRailCarrierProblem = (
   }
 }
 
+const makeMirroredRailCarrierProblem = (): InputProblem => {
+  const problem = makeRailCarrierProblem()
+  problem.chipMap.A = {
+    chipId: "A",
+    pins: ["A.1", "A.2", "A.3", "A.4"],
+    size: { x: 1.2, y: 1.2 },
+    availableRotations: [0, 90, 180, 270],
+  }
+  problem.chipMap.B = {
+    chipId: "B",
+    pins: ["B.1", "B.2", "B.3", "B.4"],
+    size: { x: 1.2, y: 1.2 },
+    availableRotations: [0, 90, 180, 270],
+  }
+  delete problem.chipMap.U1
+  delete problem.chipMap.SJ1
+  problem.chipMap.R3 = {
+    chipId: "R3",
+    pins: ["R3.1", "R3.2"],
+    size: { x: 0.5, y: 1 },
+    availableRotations: [0, 90, 180, 270],
+    isResistor: true,
+  }
+  problem.chipPinMap = {
+    "A.1": { pinId: "A.1", side: "x+", offset: { x: 0.6, y: -0.3 } },
+    "A.2": { pinId: "A.2", side: "x+", offset: { x: 0.6, y: 0 } },
+    "A.3": { pinId: "A.3", side: "y+", offset: { x: 0, y: 0.6 } },
+    "A.4": { pinId: "A.4", side: "x+", offset: { x: 0.6, y: 0.3 } },
+    "B.1": { pinId: "B.1", side: "x-", offset: { x: -0.6, y: -0.3 } },
+    "B.2": { pinId: "B.2", side: "x-", offset: { x: -0.6, y: 0 } },
+    "B.3": { pinId: "B.3", side: "y+", offset: { x: 0, y: 0.6 } },
+    "B.4": { pinId: "B.4", side: "x-", offset: { x: -0.6, y: 0.3 } },
+    "R1.1": { pinId: "R1.1", side: "y+", offset: { x: 0, y: 0.5 } },
+    "R1.2": { pinId: "R1.2", side: "y-", offset: { x: 0, y: -0.5 } },
+    "R2.1": { pinId: "R2.1", side: "y+", offset: { x: 0, y: 0.5 } },
+    "R2.2": { pinId: "R2.2", side: "y-", offset: { x: 0, y: -0.5 } },
+    "R3.1": { pinId: "R3.1", side: "y+", offset: { x: 0, y: 0.5 } },
+    "R3.2": { pinId: "R3.2", side: "y-", offset: { x: 0, y: -0.5 } },
+  }
+  problem.netMap = {
+    A_RAIL: { netId: "A_RAIL" },
+    B_RAIL: { netId: "B_RAIL" },
+  }
+  problem.pinStrongConnMap = {
+    "A.1-R1.1": true,
+    "A.2-R2.1": true,
+    "A.4-R3.1": true,
+    "R1.2-B.1": true,
+    "R2.2-B.2": true,
+    "R3.2-B.4": true,
+  }
+  problem.netConnMap = {
+    "A.3-A_RAIL": true,
+    "B.3-B_RAIL": true,
+  }
+  return problem
+}
+
+const makeDenseRailCarrierGapProblem = (): InputProblem => {
+  const problem = makeRailCarrierProblem()
+  problem.chipGap = 0.5
+  problem.chipPinMap["U1.3"] = {
+    pinId: "U1.3",
+    side: "x+",
+    offset: { x: 1, y: -0.025 },
+  }
+  problem.chipPinMap["U1.4"] = {
+    pinId: "U1.4",
+    side: "x+",
+    offset: { x: 1, y: 0.025 },
+  }
+  return problem
+}
+
+const makeRotatedPackedMainRailCarrierProblem = (): InputProblem => {
+  const passiveIds = ["R1", "R2", "R3", "R4"]
+  const chipMap: InputProblem["chipMap"] = {
+    A: {
+      chipId: "A",
+      pins: ["A.1", "A.2", "A.3", "A.4"],
+      size: { x: 0.8, y: 2.4 },
+      availableRotations: [0, 90, 180, 270],
+    },
+    B: {
+      chipId: "B",
+      pins: ["B.1", "B.2", "B.3", "B.4", "B.RAIL"],
+      size: { x: 0.8, y: 2.4 },
+      availableRotations: [0, 90],
+    },
+  }
+  for (const passiveId of passiveIds) {
+    chipMap[passiveId] = {
+      chipId: passiveId,
+      pins: [`${passiveId}.1`, `${passiveId}.2`],
+      size: { x: 0.5, y: 1 },
+      availableRotations: [0, 90, 180, 270],
+      isResistor: true,
+    }
+  }
+
+  const chipPinMap: InputProblem["chipPinMap"] = {
+    "B.RAIL": { pinId: "B.RAIL", side: "y+", offset: { x: 0, y: 1.2 } },
+  }
+  for (const [index, pinId] of ["A.1", "A.2", "A.3", "A.4"].entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: "y+",
+      offset: { x: (index - 1.5) * 0.2, y: 1.2 },
+    }
+  }
+  for (const [index, pinId] of ["B.1", "B.2", "B.3", "B.4"].entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: "x-",
+      offset: { x: -0.4, y: (index - 1.5) * 0.3 },
+    }
+  }
+  for (const passiveId of passiveIds) {
+    chipPinMap[`${passiveId}.1`] = {
+      pinId: `${passiveId}.1`,
+      side: "y+",
+      offset: { x: 0, y: 0.5 },
+    }
+    chipPinMap[`${passiveId}.2`] = {
+      pinId: `${passiveId}.2`,
+      side: "y-",
+      offset: { x: 0, y: -0.5 },
+    }
+  }
+
+  return {
+    chipMap,
+    chipPinMap,
+    netMap: { RAIL: { netId: "RAIL" } },
+    pinStrongConnMap: Object.fromEntries(
+      passiveIds.flatMap((passiveId, index) => [
+        [`A.${index + 1}-${passiveId}.1`, true],
+        [`${passiveId}.2-B.${index + 1}`, true],
+      ]),
+    ),
+    netConnMap: { "B.RAIL-RAIL": true },
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+}
+
+type Bounds = { minX: number; minY: number; maxX: number; maxY: number }
+
+const getChipBounds = (
+  inputProblem: InputProblem,
+  chipId: string,
+  placement: Placement,
+): Bounds => {
+  const chip = inputProblem.chipMap[chipId]!
+  const size = getRotatedSize(chip.size, placement.ccwRotationDegrees)
+  const points = [
+    { x: placement.x - size.x / 2, y: placement.y - size.y / 2 },
+    { x: placement.x + size.x / 2, y: placement.y + size.y / 2 },
+  ]
+  for (const pinId of chip.pins) {
+    const pin = inputProblem.chipPinMap[pinId]
+    if (!pin) continue
+    const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+    points.push({ x: placement.x + offset.x, y: placement.y + offset.y })
+  }
+  return {
+    minX: Math.min(...points.map((point) => point.x)),
+    minY: Math.min(...points.map((point) => point.y)),
+    maxX: Math.max(...points.map((point) => point.x)),
+    maxY: Math.max(...points.map((point) => point.y)),
+  }
+}
+
+const getBoundsDistance = (a: Bounds, b: Bounds): number => {
+  const dx = Math.max(0, a.minX - b.maxX, b.minX - a.maxX)
+  const dy = Math.max(0, a.minY - b.maxY, b.minY - a.maxY)
+  return Math.hypot(dx, dy)
+}
+
 const getStrongEdgeMetrics = (inputProblem: InputProblem) => {
   const solver = new LayoutPipelineSolver(inputProblem)
   solver.solve()
@@ -427,6 +609,52 @@ test("detects five-passive rail-carrier topology by exact carrier pin roles", ()
   expect(groups).toHaveLength(1)
   expect(groups[0]!.railCarrier?.carrierChipId).toBe("Jwide")
   expect(groups[0]!.passiveChipIds).toEqual(["R1", "R2", "R3", "R4", "R5"])
+})
+
+test("declines symmetric mirrored rail-carrier topology", () => {
+  const groups = findSameSidePassiveGroups(makeMirroredRailCarrierProblem())
+
+  expect(groups).toHaveLength(0)
+})
+
+test("keeps dense rail-carrier passives at least chipGap apart", () => {
+  const inputProblem = makeDenseRailCarrierGapProblem()
+  const solver = new LayoutPipelineSolver(inputProblem)
+  solver.solve()
+  const layout = solver.getOutputLayout()
+  const r1Bounds = getChipBounds(inputProblem, "R1", layout.chipPlacements.R1!)
+  const r2Bounds = getChipBounds(inputProblem, "R2", layout.chipPlacements.R2!)
+
+  expect(
+    solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
+  ).toBe("ParallelAlignedPassiveSolver")
+  expect(getBoundsDistance(r1Bounds, r2Bounds)).toBeGreaterThanOrEqual(
+    inputProblem.chipGap - 1e-6,
+  )
+})
+
+test("reflows rail-carrier groups using the actual packed main-chip rotation", () => {
+  const inputProblem = makeRotatedPackedMainRailCarrierProblem()
+  const detectedGroups = findSameSidePassiveGroups(inputProblem)
+  const solver = new LayoutPipelineSolver(inputProblem)
+  solver.solve()
+  const layout = solver.getOutputLayout()
+  const mainPlacement = layout.chipPlacements.A!
+  const mainBounds = getChipBounds(inputProblem, "A", mainPlacement)
+
+  expect(detectedGroups).toHaveLength(1)
+  expect(detectedGroups[0]!.side).toBe("y+")
+  expect(mainPlacement.ccwRotationDegrees).toBe(90)
+  for (const passiveChipId of ["R1", "R2", "R3", "R4"]) {
+    const passiveBounds = getChipBounds(
+      inputProblem,
+      passiveChipId,
+      layout.chipPlacements[passiveChipId]!,
+    )
+    expect(passiveBounds.maxX).toBeLessThanOrEqual(
+      mainBounds.minX - inputProblem.chipGap + 1e-6,
+    )
+  }
 })
 
 test("declines rail-carrier topology for diode-like or untyped leaves", () => {
