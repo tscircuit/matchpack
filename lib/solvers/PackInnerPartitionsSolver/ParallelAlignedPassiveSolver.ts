@@ -246,7 +246,12 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       railCarrier.carrierChipId,
     ]
     if (
-      this.hasAnyOverlapAfterMove(candidatePlacements, placements, movedChipIds)
+      this.hasChipGapViolationAfterMove(
+        candidatePlacements,
+        placements,
+        movedChipIds,
+        gap,
+      )
     ) {
       return
     }
@@ -471,30 +476,25 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     }
   }
 
-  private hasAnyOverlapAfterMove(
+  private hasChipGapViolationAfterMove(
     candidatePlacements: Record<ChipId, Placement>,
     placements: Record<ChipId, Placement>,
     movedChipIds: ChipId[],
+    gap: number,
   ): boolean {
-    const movedChipIdSet = new Set(movedChipIds)
     const nextPlacements = { ...placements, ...candidatePlacements }
 
     for (let i = 0; i < movedChipIds.length; i++) {
       const chipId = movedChipIds[i]!
       const bounds = this.boxFor(chipId, nextPlacements[chipId]!)
 
-      for (let j = i + 1; j < movedChipIds.length; j++) {
-        const otherChipId = movedChipIds[j]!
-        const otherBounds = this.boxFor(
-          otherChipId,
-          nextPlacements[otherChipId]!,
-        )
+      for (const [otherChipId, otherPlacement] of Object.entries(
+        nextPlacements,
+      )) {
+        if (otherChipId === chipId) continue
+        const otherBounds = this.boxFor(otherChipId, otherPlacement)
         if (doBoundsOverlap(bounds, otherBounds)) return true
-      }
-
-      for (const [otherChipId, otherPlacement] of Object.entries(placements)) {
-        if (movedChipIdSet.has(otherChipId)) continue
-        if (doBoundsOverlap(bounds, this.boxFor(otherChipId, otherPlacement))) {
+        if (boundsDistance(bounds, otherBounds) < gap - CLEARANCE_EPSILON) {
           return true
         }
       }
