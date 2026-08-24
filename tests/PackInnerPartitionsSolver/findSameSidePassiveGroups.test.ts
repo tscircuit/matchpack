@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import { ParallelAlignedPassiveSolver } from "lib/solvers/PackInnerPartitionsSolver/ParallelAlignedPassiveSolver"
 import { findSameSidePassiveGroups } from "lib/solvers/PackInnerPartitionsSolver/findSameSidePassiveGroups"
-import type { Placement } from "lib/types/OutputLayout"
-import type { InputProblem } from "lib/types/InputProblem"
+import type { OutputLayout, Placement } from "lib/types/OutputLayout"
+import type { ChipPin, InputProblem } from "lib/types/InputProblem"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
 import si7021Input from "../../pages/repros/repro-si7021/si7021-matchpack-input.json"
 import commonNodeInput from "../assets/repro-core-repro70-common-node-placement.input.json"
@@ -516,6 +517,159 @@ const getBoundsDistance = (a: Bounds, b: Bounds): number => {
   return Math.hypot(dx, dy)
 }
 
+const getConnectedPinsByPinId = (
+  inputProblem: InputProblem,
+): Record<string, ChipPin[]> => {
+  const connectedPinsByPinId: Record<string, ChipPin[]> = {}
+  for (const [connKey, connected] of Object.entries(
+    inputProblem.pinStrongConnMap,
+  )) {
+    if (!connected) continue
+    const [a, b] = connKey.split("-")
+    const pinA = a && inputProblem.chipPinMap[a]
+    const pinB = b && inputProblem.chipPinMap[b]
+    if (!a || !b || !pinA || !pinB) continue
+    connectedPinsByPinId[a] = [...(connectedPinsByPinId[a] ?? []), pinB]
+    connectedPinsByPinId[b] = [...(connectedPinsByPinId[b] ?? []), pinA]
+  }
+  return connectedPinsByPinId
+}
+
+const makeRailCarrierPackedLayout = (): OutputLayout => ({
+  chipPlacements: {
+    U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+    R1: { x: 7, y: 7, ccwRotationDegrees: 0 },
+    R2: { x: 8, y: 7, ccwRotationDegrees: 0 },
+    SJ1: { x: 9, y: 7, ccwRotationDegrees: 0 },
+  },
+  groupPlacements: {},
+})
+
+const alignRailCarrierFromPackedLayout = (
+  inputProblem: InputProblem,
+  baseLayout: OutputLayout,
+): OutputLayout => {
+  const solver = new ParallelAlignedPassiveSolver({
+    partitionInputProblem: inputProblem,
+    pinIdToStronglyConnectedPins: getConnectedPinsByPinId(inputProblem),
+  })
+  return (
+    solver as unknown as {
+      alignPassiveGroups(base: OutputLayout): OutputLayout
+    }
+  ).alignPassiveGroups(baseLayout)
+}
+
+const withFixedObstacle = ({
+  inputProblem,
+  x,
+  y,
+}: {
+  inputProblem: InputProblem
+  x: number
+  y: number
+}): InputProblem => {
+  const next = structuredClone(inputProblem)
+  next.chipMap.OBS = {
+    chipId: "OBS",
+    pins: [],
+    size: { x: 0.2, y: 0.2 },
+    availableRotations: [0],
+    fixedPosition: { x, y },
+  }
+  return next
+}
+
+const makeRailCarrierObstacleProblem = ({
+  targetChipId,
+  clearance,
+  chipGap = 0.5,
+}: {
+  targetChipId: "R2" | "SJ1"
+  clearance: number
+  chipGap?: number
+}): {
+  inputProblem: InputProblem
+  baseLayout: OutputLayout
+  unobstructedLayout: OutputLayout
+} => {
+  const inputProblem = makeDenseRailCarrierGapProblem()
+  inputProblem.chipGap = chipGap
+  const baseLayout = makeRailCarrierPackedLayout()
+  const unobstructedLayout = alignRailCarrierFromPackedLayout(
+    inputProblem,
+    baseLayout,
+  )
+  const targetBounds = getChipBounds(
+    inputProblem,
+    targetChipId,
+    unobstructedLayout.chipPlacements[targetChipId]!,
+  )
+  const obstacleX = targetBounds.maxX + clearance + 0.1
+  const obstacleY = (targetBounds.minY + targetBounds.maxY) / 2
+
+  return {
+    inputProblem: withFixedObstacle({
+      inputProblem,
+      x: obstacleX,
+      y: obstacleY,
+    }),
+    baseLayout: {
+      chipPlacements: {
+        ...baseLayout.chipPlacements,
+        OBS: { x: obstacleX, y: obstacleY, ccwRotationDegrees: 0 },
+      },
+      groupPlacements: {},
+    },
+    unobstructedLayout,
+  }
+}
+
+const expectPlacementToEqual = (
+  actual: Placement,
+  expected: Placement,
+): void => {
+  expect(actual.x).toBe(expected.x)
+  expect(actual.y).toBe(expected.y)
+  expect(actual.ccwRotationDegrees).toBe(expected.ccwRotationDegrees)
+}
+
+const getDistancesFromMovedGroup = (
+  inputProblem: InputProblem,
+  layout: OutputLayout,
+): Array<{ pair: string; distance: number }> => {
+  const movedChipIds = ["R1", "R2", "SJ1"]
+  const pairs: Array<{ pair: string; distance: number }> = []
+  for (const chipId of movedChipIds) {
+    const chipBounds = getChipBounds(
+      inputProblem,
+      chipId,
+      layout.chipPlacements[chipId]!,
+    )
+    for (const [otherChipId, otherPlacement] of Object.entries(
+      layout.chipPlacements,
+    )) {
+      if (otherChipId === chipId) continue
+      if (
+        movedChipIds.includes(otherChipId) &&
+        movedChipIds.indexOf(otherChipId) < movedChipIds.indexOf(chipId)
+      ) {
+        continue
+      }
+      const otherBounds = getChipBounds(
+        inputProblem,
+        otherChipId,
+        otherPlacement,
+      )
+      pairs.push({
+        pair: `${chipId}-${otherChipId}`,
+        distance: getBoundsDistance(chipBounds, otherBounds),
+      })
+    }
+  }
+  return pairs
+}
+
 const getStrongEdgeMetrics = (inputProblem: InputProblem) => {
   const solver = new LayoutPipelineSolver(inputProblem)
   solver.solve()
@@ -631,6 +785,92 @@ test("keeps dense rail-carrier passives at least chipGap apart", () => {
   expect(getBoundsDistance(r1Bounds, r2Bounds)).toBeGreaterThanOrEqual(
     inputProblem.chipGap - 1e-6,
   )
+})
+
+test("rejects rail-carrier reflow that would violate chipGap to an unrelated obstacle", () => {
+  const { inputProblem, baseLayout, unobstructedLayout } =
+    makeRailCarrierObstacleProblem({
+      targetChipId: "R2",
+      clearance: 0.1,
+    })
+  const obstacleBounds = getChipBounds(
+    inputProblem,
+    "OBS",
+    baseLayout.chipPlacements.OBS!,
+  )
+  const proposedR1Distance = getBoundsDistance(
+    getChipBounds(inputProblem, "R1", unobstructedLayout.chipPlacements.R1!),
+    obstacleBounds,
+  )
+  const proposedR2Distance = getBoundsDistance(
+    getChipBounds(inputProblem, "R2", unobstructedLayout.chipPlacements.R2!),
+    obstacleBounds,
+  )
+
+  expect(proposedR1Distance).toBeGreaterThan(0)
+  expect(proposedR1Distance).toBeLessThan(inputProblem.chipGap)
+  expect(proposedR2Distance).toBeGreaterThan(0)
+  expect(proposedR2Distance).toBeLessThan(inputProblem.chipGap)
+
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
+  }
+})
+
+test("rail-carrier obstacle boundary preserves chipGap semantics", () => {
+  const cases = [
+    { clearance: 0.1, chipGap: 0.5, shouldAccept: false },
+    { clearance: 0.499, chipGap: 0.5, shouldAccept: false },
+    { clearance: 0.5, chipGap: 0.5, shouldAccept: true },
+    { clearance: 0.6, chipGap: 0.5, shouldAccept: true },
+    { clearance: 0.1, chipGap: 0, shouldAccept: true },
+  ]
+
+  for (const testCase of cases) {
+    const { inputProblem, baseLayout, unobstructedLayout } =
+      makeRailCarrierObstacleProblem({
+        targetChipId: "SJ1",
+        clearance: testCase.clearance,
+        chipGap: testCase.chipGap,
+      })
+    const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+    for (const chipId of ["R1", "R2", "SJ1"]) {
+      expectPlacementToEqual(
+        layout.chipPlacements[chipId]!,
+        (testCase.shouldAccept ? unobstructedLayout : baseLayout)
+          .chipPlacements[chipId]!,
+      )
+    }
+  }
+})
+
+test("accepted rail-carrier reflow satisfies chipGap for every moved pair", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierObstacleProblem({
+    targetChipId: "SJ1",
+    clearance: 0.6,
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  const distances = getDistancesFromMovedGroup(inputProblem, layout)
+
+  expect(distances.map((entry) => entry.pair).sort()).toEqual([
+    "R1-OBS",
+    "R1-R2",
+    "R1-SJ1",
+    "R1-U1",
+    "R2-OBS",
+    "R2-SJ1",
+    "R2-U1",
+    "SJ1-OBS",
+    "SJ1-U1",
+  ])
+  for (const { distance } of distances) {
+    expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
+  }
 })
 
 test("reflows rail-carrier groups using the actual packed main-chip rotation", () => {
