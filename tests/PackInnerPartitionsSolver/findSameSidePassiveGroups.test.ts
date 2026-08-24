@@ -40,6 +40,7 @@ const makeRailCarrierProblem = (
         pins: [`${upperPassive}.1`, `${upperPassive}.2`],
         size: { x: 0.5, y: 1 },
         availableRotations: [0, 90, 180, 270],
+        isResistor: true,
         ...(opts.fixedPassive && { fixedPosition: { x: 2, y: 1 } }),
       },
       [lowerPassive]: {
@@ -47,6 +48,7 @@ const makeRailCarrierProblem = (
         pins: [`${lowerPassive}.1`, `${lowerPassive}.2`],
         size: { x: 0.5, y: 1 },
         availableRotations: [0, 90, 180, 270],
+        isResistor: true,
       },
       [carrierA]: {
         chipId: carrierA,
@@ -188,6 +190,150 @@ const makeRailCarrierProblem = (
   }
 }
 
+const makeMultiPassiveRailCarrierProblem = (
+  opts: {
+    passiveCount?: number
+    extraBranch?: boolean
+    multipleRailPins?: boolean
+    extraCarrierPin?: boolean
+    diodeLikeFirstPassive?: boolean
+    untypedFirstPassive?: boolean
+    transistorLikeFirstPassive?: boolean
+    largeCarrierLike?: boolean
+  } = {},
+): InputProblem => {
+  const passiveCount = opts.passiveCount ?? 4
+  const mainPins = Array.from({ length: Math.max(passiveCount, 4) }, (_, i) => {
+    return `Uwide.${i + 1}`
+  })
+  const passiveIds = Array.from({ length: passiveCount }, (_, i) => {
+    if (i === 0 && opts.diodeLikeFirstPassive) return "Dprotect"
+    if (i === 0 && opts.untypedFirstPassive) return "leaf"
+    if (i === 0 && opts.transistorLikeFirstPassive) return "Q1"
+    return `R${i + 1}`
+  })
+  const carrierPassivePins = passiveIds.map((_, i) => `Jwide.${i + 1}`)
+  const railPins = opts.multipleRailPins
+    ? ["Jwide.RAIL1", "Jwide.RAIL2"]
+    : ["Jwide.RAIL"]
+  const extraCarrierPins = [
+    ...(opts.extraBranch ? ["Jwide.BRANCH"] : []),
+    ...(opts.extraCarrierPin ? ["Jwide.NC"] : []),
+    ...(opts.largeCarrierLike
+      ? Array.from({ length: 12 }, (_, i) => `Jwide.EXTRA${i + 1}`)
+      : []),
+  ]
+  const carrierPins = [...carrierPassivePins, ...railPins, ...extraCarrierPins]
+  const chipMap: InputProblem["chipMap"] = {
+    Uwide: {
+      chipId: "Uwide",
+      pins: mainPins,
+      size: { x: 1.6, y: 1.6 },
+      availableRotations: [0, 90, 180, 270],
+    },
+    Jwide: {
+      chipId: "Jwide",
+      pins: carrierPins,
+      size: { x: 0.8, y: 0.8 },
+      availableRotations: [0, 90, 180, 270],
+    },
+  }
+  const chipPinMap: InputProblem["chipPinMap"] = {}
+  const pinStrongConnMap: InputProblem["pinStrongConnMap"] = {}
+  const netConnMap: InputProblem["netConnMap"] = {}
+
+  for (const [index, pinId] of mainPins.entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: "x+",
+      offset: { x: 1, y: index * 0.35 - passiveCount * 0.175 },
+    }
+  }
+  for (const [index, passiveId] of passiveIds.entries()) {
+    const firstPassiveHasUnsupportedType =
+      index === 0 &&
+      (opts.diodeLikeFirstPassive ||
+        opts.untypedFirstPassive ||
+        opts.transistorLikeFirstPassive)
+    const passivePins =
+      opts.transistorLikeFirstPassive && index === 0
+        ? [`${passiveId}.1`, `${passiveId}.2`, `${passiveId}.3`]
+        : [`${passiveId}.1`, `${passiveId}.2`]
+    chipMap[passiveId] = {
+      chipId: passiveId,
+      pins: passivePins,
+      size: { x: 0.5, y: 1 },
+      availableRotations: [0, 90, 180, 270],
+      ...(!firstPassiveHasUnsupportedType && { isResistor: true }),
+    }
+    chipPinMap[`${passiveId}.1`] = {
+      pinId: `${passiveId}.1`,
+      side: "y+",
+      offset: { x: 0, y: 0.5 },
+    }
+    chipPinMap[`${passiveId}.2`] = {
+      pinId: `${passiveId}.2`,
+      side: "y-",
+      offset: { x: 0, y: -0.5 },
+    }
+    if (passivePins.length === 3) {
+      chipPinMap[`${passiveId}.3`] = {
+        pinId: `${passiveId}.3`,
+        side: "x+",
+        offset: { x: 0.25, y: 0 },
+      }
+    }
+    pinStrongConnMap[`Uwide.${index + 1}-${passiveId}.1`] = true
+    pinStrongConnMap[`${passiveId}.2-Jwide.${index + 1}`] = true
+  }
+
+  for (const [index, pinId] of carrierPins.entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: pinId.includes("RAIL") ? "y+" : "x-",
+      offset: {
+        x: pinId.includes("RAIL") ? 0 : -0.4,
+        y: index * 0.2 - carrierPins.length * 0.1,
+      },
+    }
+  }
+  for (const [index, railPinId] of railPins.entries()) {
+    netConnMap[`${railPinId}-RAIL${index || ""}`] = true
+  }
+  if (opts.extraBranch) {
+    chipMap.branch_load = {
+      chipId: "branch_load",
+      pins: ["branch_load.1", "branch_load.2"],
+      size: { x: 0.5, y: 1 },
+      availableRotations: [0, 90, 180, 270],
+    }
+    chipPinMap["branch_load.1"] = {
+      pinId: "branch_load.1",
+      side: "y+",
+      offset: { x: 0, y: 0.5 },
+    }
+    chipPinMap["branch_load.2"] = {
+      pinId: "branch_load.2",
+      side: "y-",
+      offset: { x: 0, y: -0.5 },
+    }
+    pinStrongConnMap["Jwide.BRANCH-branch_load.1"] = true
+  }
+
+  return {
+    chipMap,
+    chipPinMap,
+    netMap: {
+      RAIL: { netId: "RAIL" },
+      ...(opts.multipleRailPins && { RAIL1: { netId: "RAIL1" } }),
+    },
+    pinStrongConnMap,
+    netConnMap,
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+}
+
 const getStrongEdgeMetrics = (inputProblem: InputProblem) => {
   const solver = new LayoutPipelineSolver(inputProblem)
   solver.solve()
@@ -263,6 +409,47 @@ test("detects rail-carrier topology with arbitrary component ids", () => {
   expect(groups[0]!.passiveChipIds).toEqual(["pullup_lower", "pullup_upper"])
 })
 
+test("detects four-passive rail-carrier topology without a pin-count ceiling", () => {
+  const groups = findSameSidePassiveGroups(
+    makeMultiPassiveRailCarrierProblem({ passiveCount: 4 }),
+  )
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.railCarrier?.carrierChipId).toBe("Jwide")
+  expect(groups[0]!.passiveChipIds).toEqual(["R1", "R2", "R3", "R4"])
+})
+
+test("detects five-passive rail-carrier topology by exact carrier pin roles", () => {
+  const groups = findSameSidePassiveGroups(
+    makeMultiPassiveRailCarrierProblem({ passiveCount: 5 }),
+  )
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.railCarrier?.carrierChipId).toBe("Jwide")
+  expect(groups[0]!.passiveChipIds).toEqual(["R1", "R2", "R3", "R4", "R5"])
+})
+
+test("declines rail-carrier topology for diode-like or untyped leaves", () => {
+  expect(
+    findSameSidePassiveGroups(
+      makeMultiPassiveRailCarrierProblem({ diodeLikeFirstPassive: true }),
+    ),
+  ).toHaveLength(0)
+  expect(
+    findSameSidePassiveGroups(
+      makeMultiPassiveRailCarrierProblem({ untypedFirstPassive: true }),
+    ),
+  ).toHaveLength(0)
+})
+
+test("declines rail-carrier topology for non-two-pin passive leaves", () => {
+  expect(
+    findSameSidePassiveGroups(
+      makeMultiPassiveRailCarrierProblem({ transistorLikeFirstPassive: true }),
+    ),
+  ).toHaveLength(0)
+})
+
 test("declines same-side passives attached to unrelated downstream parts", () => {
   expect(
     findSameSidePassiveGroups(
@@ -283,6 +470,32 @@ test("declines a shared carrier with multiple possible rail pins", () => {
   expect(
     findSameSidePassiveGroups(
       makeRailCarrierProblem({ multipleRailPins: true }),
+    ),
+  ).toHaveLength(0)
+})
+
+test("declines larger carriers with unexplained pins or branches", () => {
+  expect(
+    findSameSidePassiveGroups(
+      makeMultiPassiveRailCarrierProblem({ extraBranch: true }),
+    ),
+  ).toHaveLength(0)
+  expect(
+    findSameSidePassiveGroups(
+      makeMultiPassiveRailCarrierProblem({ extraCarrierPin: true }),
+    ),
+  ).toHaveLength(0)
+  expect(
+    findSameSidePassiveGroups(
+      makeMultiPassiveRailCarrierProblem({ largeCarrierLike: true }),
+    ),
+  ).toHaveLength(0)
+})
+
+test("declines four-passive carrier with multiple possible rail pins", () => {
+  expect(
+    findSameSidePassiveGroups(
+      makeMultiPassiveRailCarrierProblem({ multipleRailPins: true }),
     ),
   ).toHaveLength(0)
 })

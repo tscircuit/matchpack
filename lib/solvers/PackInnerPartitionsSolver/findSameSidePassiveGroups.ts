@@ -17,7 +17,13 @@
  * layout and re-flows just the group into a clean row.
  */
 
-import type { ChipId, InputProblem, NetId, PinId } from "lib/types/InputProblem"
+import type {
+  Chip,
+  ChipId,
+  InputProblem,
+  NetId,
+  PinId,
+} from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
 import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 
@@ -109,6 +115,9 @@ const edgeCoordForSide = (
   return offset.x
 }
 
+const isRailCarrierPassiveLeaf = (chip: Chip): boolean =>
+  chip.pins.length === PASSIVE_PIN_COUNT && chip.isResistor === true
+
 /**
  * Find same-side passive groups in a partition. Returns one entry per group,
  * with its passives ordered along the main-chip edge.
@@ -157,7 +166,7 @@ export const findSameSidePassiveGroups = (
 
   for (const [passiveChipId, passiveChip] of Object.entries(problem.chipMap)) {
     if (passiveChip.fixedPosition) continue
-    if (passiveChip.pins.length !== PASSIVE_PIN_COUNT) continue
+    if (!isRailCarrierPassiveLeaf(passiveChip)) continue
 
     const strongs = strongByChip.get(passiveChipId) ?? []
     for (const strongToMain of strongs) {
@@ -183,7 +192,8 @@ export const findSameSidePassiveGroups = (
       if (carrierChipId === mainChipId) continue
       const carrierChip = problem.chipMap[carrierChipId]
       if (!carrierChip || carrierChip.fixedPosition) continue
-      if (carrierChip.pins.length < 3 || carrierChip.pins.length > 4) continue
+      if (carrierChip.pins.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE + 1)
+        continue
 
       const mainChipRotation = mainChip.availableRotations?.[0] ?? 0
       const mainChipPinOffset = rotatePinOffset(
@@ -251,6 +261,10 @@ export const findSameSidePassiveGroups = (
         getNetIdsForPin(problem, pinId).length === 1,
     )
     if (railPins.length !== 1) continue
+    const accountedCarrierPins = new Set([...carrierPinIds, railPins[0]!])
+    if (carrierChip.pins.some((pinId) => !accountedCarrierPins.has(pinId))) {
+      continue
+    }
 
     candidates.sort((a, b) => a.edgeCoord - b.edgeCoord)
     railCarrierGroups.push({
