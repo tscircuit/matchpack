@@ -38,6 +38,7 @@ import { SingleInnerPartitionPackingSolver } from "./SingleInnerPartitionPacking
 import {
   type Bounds,
   boundsDistance,
+  doBoundsOverlap,
   getBoundsCenter,
   getBoundsFromPoints,
 } from "@tscircuit/math-utils"
@@ -109,17 +110,331 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     }
     const passiveGroups = findSameSidePassiveGroups(this.partitionInputProblem)
     for (const passiveGroup of passiveGroups) {
-      this.reflowPassiveGroup(placements, passiveGroup)
+      if (passiveGroup.railCarrier) {
+        this.reflowRailCarrierPassiveGroup(placements, passiveGroup)
+      } else {
+        this.reflowPassiveGroup(placements, passiveGroup)
+      }
     }
     applyDirectPassiveTraceClearance({
       inputProblem: this.partitionInputProblem,
       connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
       chipPlacements: placements,
-      rigidChipGroups: passiveGroups.map(
-        (passiveGroup) => passiveGroup.passiveChipIds,
-      ),
+      rigidChipGroups: passiveGroups.map((passiveGroup) => [
+        ...passiveGroup.passiveChipIds,
+        ...(passiveGroup.railCarrier
+          ? [passiveGroup.railCarrier.carrierChipId]
+          : []),
+      ]),
     })
     return { chipPlacements: placements, groupPlacements: base.groupPlacements }
+  }
+
+  private reflowRailCarrierPassiveGroup(
+    placements: Record<ChipId, Placement>,
+    passiveGroup: SameSidePassiveGroup,
+  ): void {
+    const railCarrier = passiveGroup.railCarrier
+    if (!railCarrier) return
+
+    const prob = this.partitionInputProblem
+    const gap = prob.chipGap
+    const mainChipPlacement = placements[passiveGroup.mainChipId]
+    const carrierPlacement = placements[railCarrier.carrierChipId]
+    const carrierChip = prob.chipMap[railCarrier.carrierChipId]
+    if (!mainChipPlacement || !carrierPlacement || !carrierChip) return
+
+    const outward = OUTWARD_BY_SIDE[passiveGroup.side]
+    const outwardAxis: "x" | "y" = outward.x === 0 ? "y" : "x"
+    const alignAxis: "x" | "y" = outwardAxis === "x" ? "y" : "x"
+    const mainChipBox = this.boxFor(passiveGroup.mainChipId, mainChipPlacement)
+    const candidatePlacements: Record<ChipId, Placement> = {}
+
+    for (const [
+      index,
+      passiveChipId,
+    ] of passiveGroup.passiveChipIds.entries()) {
+      const passiveChip = prob.chipMap[passiveChipId]
+      const packedPlacement = placements[passiveChipId]
+      const mainPinId = passiveGroup.mainChipPinIds[index]
+      const passiveMainPinId =
+        railCarrier.passiveMainPinIdsByChipId[passiveChipId]
+      if (!passiveChip || !packedPlacement || !mainPinId || !passiveMainPinId) {
+        return
+      }
+
+      const mainPinPosition = this.pinPosition(
+        passiveGroup.mainChipId,
+        mainPinId,
+        mainChipPlacement,
+      )
+      const passiveMainPin = prob.chipPinMap[passiveMainPinId]
+      if (!mainPinPosition || !passiveMainPin) return
+
+      const passiveSize = getRotatedSize(
+        passiveChip.size,
+        packedPlacement.ccwRotationDegrees,
+      )
+      const passiveMainPinOffset = rotatePinOffset(
+        passiveMainPin.offset,
+        packedPlacement.ccwRotationDegrees,
+      )
+      const nextPlacement: Placement = {
+        ...packedPlacement,
+        [alignAxis]:
+          mainPinPosition[alignAxis] - passiveMainPinOffset[alignAxis],
+      }
+      if (passiveGroup.side === "x+") {
+        nextPlacement.x = mainChipBox.maxX + gap + passiveSize.x / 2
+      } else if (passiveGroup.side === "x-") {
+        nextPlacement.x = mainChipBox.minX - gap - passiveSize.x / 2
+      } else if (passiveGroup.side === "y+") {
+        nextPlacement.y = mainChipBox.maxY + gap + passiveSize.y / 2
+      } else {
+        nextPlacement.y = mainChipBox.minY - gap - passiveSize.y / 2
+      }
+      candidatePlacements[passiveChipId] = nextPlacement
+      this.movePastEarlierGroupOverlaps({
+        candidatePlacements,
+        chipId: passiveChipId,
+        previousChipIds: passiveGroup.passiveChipIds.slice(0, index),
+        outwardAxis,
+        outwardSign: outward[outwardAxis],
+      })
+    }
+
+    const carrierCandidate = this.placeRailCarrier({
+      candidatePlacements,
+      carrierChipId: railCarrier.carrierChipId,
+      carrierPinIdsByPassiveChipId: railCarrier.carrierPinIdsByPassiveChipId,
+      passiveCarrierPinIdsByChipId: railCarrier.passiveCarrierPinIdsByChipId,
+      passiveChipIds: passiveGroup.passiveChipIds,
+      side: passiveGroup.side,
+      baseCarrierPlacement: carrierPlacement,
+      outwardAxis,
+      alignAxis,
+    })
+    if (!carrierCandidate) return
+    candidatePlacements[railCarrier.carrierChipId] = carrierCandidate
+
+    const movedChipIds = [
+      ...passiveGroup.passiveChipIds,
+      railCarrier.carrierChipId,
+    ]
+    if (
+      this.hasAnyOverlapAfterMove(candidatePlacements, placements, movedChipIds)
+    ) {
+      return
+    }
+
+    for (const chipId of movedChipIds) {
+      placements[chipId] = candidatePlacements[chipId]!
+    }
+  }
+
+  private placeRailCarrier({
+    candidatePlacements,
+    carrierChipId,
+    carrierPinIdsByPassiveChipId,
+    passiveCarrierPinIdsByChipId,
+    passiveChipIds,
+    side,
+    baseCarrierPlacement,
+    outwardAxis,
+    alignAxis,
+  }: {
+    candidatePlacements: Record<ChipId, Placement>
+    carrierChipId: ChipId
+    carrierPinIdsByPassiveChipId: Record<ChipId, PinId>
+    passiveCarrierPinIdsByChipId: Record<ChipId, PinId>
+    passiveChipIds: ChipId[]
+    side: Side
+    baseCarrierPlacement: Placement
+    outwardAxis: "x" | "y"
+    alignAxis: "x" | "y"
+  }): Placement | null {
+    const prob = this.partitionInputProblem
+    const carrierChip = prob.chipMap[carrierChipId]
+    if (!carrierChip) return null
+
+    const passiveBounds = getBoundsFromPoints(
+      passiveChipIds.flatMap((chipId) => {
+        const bounds = this.boxFor(chipId, candidatePlacements[chipId]!)
+        return [
+          { x: bounds.minX, y: bounds.minY },
+          { x: bounds.maxX, y: bounds.maxY },
+        ]
+      }),
+    )
+    if (!passiveBounds) return null
+
+    const rotations = carrierChip.availableRotations ?? [
+      baseCarrierPlacement.ccwRotationDegrees,
+    ]
+    let bestCandidate: { placement: Placement; score: number } | null = null
+
+    for (const ccwRotationDegrees of rotations) {
+      const offsets = passiveChipIds.map((passiveChipId) => {
+        const passivePinId = passiveCarrierPinIdsByChipId[passiveChipId]
+        const carrierPinId = carrierPinIdsByPassiveChipId[passiveChipId]
+        const passivePlacement = candidatePlacements[passiveChipId]
+        const passivePin = passivePinId && prob.chipPinMap[passivePinId]
+        const carrierPin = carrierPinId && prob.chipPinMap[carrierPinId]
+        if (!passivePlacement || !passivePin || !carrierPin) return null
+        const passivePinOffset = rotatePinOffset(
+          passivePin.offset,
+          passivePlacement.ccwRotationDegrees,
+        )
+        const carrierPinOffset = rotatePinOffset(
+          carrierPin.offset,
+          ccwRotationDegrees,
+        )
+        return {
+          passivePinPosition: {
+            x: passivePlacement.x + passivePinOffset.x,
+            y: passivePlacement.y + passivePinOffset.y,
+          },
+          carrierPinOffset,
+        }
+      })
+      if (offsets.some((offset) => offset === null)) continue
+
+      const alignCoordinate =
+        offsets.reduce(
+          (sum, offset) =>
+            sum +
+            offset!.passivePinPosition[alignAxis] -
+            offset!.carrierPinOffset[alignAxis],
+          0,
+        ) / offsets.length
+      const maxAlignmentError = Math.max(
+        ...offsets.map((offset) =>
+          Math.abs(
+            offset!.passivePinPosition[alignAxis] -
+              (alignCoordinate + offset!.carrierPinOffset[alignAxis]),
+          ),
+        ),
+      )
+
+      const carrierSize = getRotatedSize(carrierChip.size, ccwRotationDegrees)
+      const placement: Placement = {
+        x: baseCarrierPlacement.x,
+        y: baseCarrierPlacement.y,
+        ccwRotationDegrees,
+        [alignAxis]: alignCoordinate,
+      }
+      if (side === "x+") {
+        placement.x =
+          passiveBounds.maxX +
+          this.partitionInputProblem.chipGap +
+          carrierSize.x / 2
+      } else if (side === "x-") {
+        placement.x =
+          passiveBounds.minX -
+          this.partitionInputProblem.chipGap -
+          carrierSize.x / 2
+      } else if (side === "y+") {
+        placement.y =
+          passiveBounds.maxY +
+          this.partitionInputProblem.chipGap +
+          carrierSize.y / 2
+      } else {
+        placement.y =
+          passiveBounds.minY -
+          this.partitionInputProblem.chipGap -
+          carrierSize.y / 2
+      }
+
+      const outwardDistance = Math.abs(
+        placement[outwardAxis] - getBoundsCenter(passiveBounds)[outwardAxis],
+      )
+      const score = maxAlignmentError * 100 + outwardDistance
+      if (!bestCandidate || score < bestCandidate.score) {
+        bestCandidate = { placement, score }
+      }
+    }
+
+    return bestCandidate?.placement ?? null
+  }
+
+  private movePastEarlierGroupOverlaps({
+    candidatePlacements,
+    chipId,
+    previousChipIds,
+    outwardAxis,
+    outwardSign,
+  }: {
+    candidatePlacements: Record<ChipId, Placement>
+    chipId: ChipId
+    previousChipIds: ChipId[]
+    outwardAxis: "x" | "y"
+    outwardSign: number
+  }): void {
+    const placement = candidatePlacements[chipId]
+    if (!placement) return
+
+    for (const previousChipId of previousChipIds) {
+      const previousPlacement = candidatePlacements[previousChipId]
+      if (!previousPlacement) continue
+      const previousBounds = this.boxFor(previousChipId, previousPlacement)
+      let bounds = this.boxFor(chipId, placement)
+      if (!doBoundsOverlap(bounds, previousBounds)) continue
+
+      if (outwardAxis === "x" && outwardSign > 0) {
+        placement.x += previousBounds.maxX - bounds.minX + CLEARANCE_EPSILON
+      } else if (outwardAxis === "x") {
+        placement.x -= bounds.maxX - previousBounds.minX + CLEARANCE_EPSILON
+      } else if (outwardSign > 0) {
+        placement.y += previousBounds.maxY - bounds.minY + CLEARANCE_EPSILON
+      } else {
+        placement.y -= bounds.maxY - previousBounds.minY + CLEARANCE_EPSILON
+      }
+    }
+  }
+
+  private hasAnyOverlapAfterMove(
+    candidatePlacements: Record<ChipId, Placement>,
+    placements: Record<ChipId, Placement>,
+    movedChipIds: ChipId[],
+  ): boolean {
+    const movedChipIdSet = new Set(movedChipIds)
+    const nextPlacements = { ...placements, ...candidatePlacements }
+
+    for (let i = 0; i < movedChipIds.length; i++) {
+      const chipId = movedChipIds[i]!
+      const bounds = this.boxFor(chipId, nextPlacements[chipId]!)
+
+      for (let j = i + 1; j < movedChipIds.length; j++) {
+        const otherChipId = movedChipIds[j]!
+        const otherBounds = this.boxFor(
+          otherChipId,
+          nextPlacements[otherChipId]!,
+        )
+        if (doBoundsOverlap(bounds, otherBounds)) return true
+      }
+
+      for (const [otherChipId, otherPlacement] of Object.entries(placements)) {
+        if (movedChipIdSet.has(otherChipId)) continue
+        if (doBoundsOverlap(bounds, this.boxFor(otherChipId, otherPlacement))) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  private pinPosition(
+    _chipId: ChipId,
+    pinId: PinId,
+    placement: Placement,
+  ): { x: number; y: number } | null {
+    const pin = this.partitionInputProblem.chipPinMap[pinId]
+    if (!pin) return null
+    const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+    return {
+      x: placement.x + offset.x,
+      y: placement.y + offset.y,
+    }
   }
 
   private reflowPassiveGroup(
