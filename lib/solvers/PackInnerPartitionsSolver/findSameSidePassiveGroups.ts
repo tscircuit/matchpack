@@ -220,7 +220,9 @@ export const findSameSidePassiveGroups = (
 
   for (const candidates of railCarrierCandidatesByGroup.values()) {
     if (candidates.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE) continue
-    const [{ mainChipId, side, carrierChipId }] = candidates
+    const firstCandidate = candidates[0]
+    if (!firstCandidate) continue
+    const { mainChipId, side, carrierChipId } = firstCandidate
     const carrierChip = problem.chipMap[carrierChipId]!
     const passiveChipIds = candidates.map(
       (candidate) => candidate.passiveChipId,
