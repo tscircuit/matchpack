@@ -17,13 +17,7 @@
  * layout and re-flows just the group into a clean row.
  */
 
-import type {
-  Chip,
-  ChipId,
-  InputProblem,
-  NetId,
-  PinId,
-} from "lib/types/InputProblem"
+import type { ChipId, InputProblem, NetId, PinId } from "lib/types/InputProblem"
 import type { Side } from "lib/types/Side"
 import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 
@@ -41,10 +35,9 @@ export interface SameSidePassiveGroup {
   mainChipPinIds: PinId[]
   railCarrier?: {
     carrierChipId: ChipId
-    railPinId: PinId
-    passiveMainPinIdsByChipId: Record<ChipId, PinId>
-    passiveCarrierPinIdsByChipId: Record<ChipId, PinId>
-    carrierPinIdsByPassiveChipId: Record<ChipId, PinId>
+    passiveMainPinIds: PinId[]
+    passiveCarrierPinIds: PinId[]
+    carrierPinIds: PinId[]
   }
 }
 
@@ -115,12 +108,6 @@ const edgeCoordForSide = (
   return offset.x
 }
 
-const isRailCarrierPassiveLeaf = (chip: Chip): boolean =>
-  chip.pins.length === PASSIVE_PIN_COUNT && chip.isResistor === true
-
-const passiveSetKey = (passiveChipIds: ChipId[]): string =>
-  [...passiveChipIds].sort().join("|")
-
 type StrongConnection = {
   selfPin: PinId
   otherPin: PinId
@@ -139,140 +126,13 @@ interface RailCarrierCandidate {
   carrierChipId: ChipId
 }
 
-const hasOnlyExpectedStrongConnection = (
-  strongs: StrongConnection[],
-  selfPin: PinId,
-  expectedOtherPin: PinId,
-  expectedOtherChip: ChipId,
-): boolean => {
-  const matchingSelfPinConnections = strongs.filter(
-    (strong) => strong.selfPin === selfPin,
-  )
-  if (matchingSelfPinConnections.length !== 1) return false
-  const connection = matchingSelfPinConnections[0]!
-  return (
-    connection.otherPin === expectedOtherPin &&
-    connection.otherChip === expectedOtherChip
-  )
-}
-
-const hasUniqueValues = (values: string[]): boolean =>
+const hasDistinctValues = (values: string[]): boolean =>
   new Set(values).size === values.length
 
 const sortRailCarrierCandidates = (
   candidates: RailCarrierCandidate[],
 ): void => {
-  candidates.sort((a, b) => {
-    if (a.edgeCoord !== b.edgeCoord) return a.edgeCoord - b.edgeCoord
-    return (
-      a.mainChipPinId.localeCompare(b.mainChipPinId) ||
-      a.passiveChipId.localeCompare(b.passiveChipId) ||
-      a.carrierPinId.localeCompare(b.carrierPinId)
-    )
-  })
-}
-
-const buildRailCarrierGroupIfValid = ({
-  problem,
-  candidates,
-  strongByChip,
-}: {
-  problem: InputProblem
-  candidates: RailCarrierCandidate[]
-  strongByChip: Map<ChipId, StrongConnection[]>
-}): SameSidePassiveGroup | null => {
-  if (candidates.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE) return null
-  const firstCandidate = candidates[0]
-  if (!firstCandidate) return null
-
-  const { mainChipId, side, carrierChipId } = firstCandidate
-  if (
-    candidates.some(
-      (candidate) =>
-        candidate.mainChipId !== mainChipId ||
-        candidate.side !== side ||
-        candidate.carrierChipId !== carrierChipId,
-    )
-  ) {
-    return null
-  }
-
-  const carrierChip = problem.chipMap[carrierChipId]
-  if (!carrierChip) return null
-
-  const passiveChipIds = candidates.map((candidate) => candidate.passiveChipId)
-  if (!hasUniqueValues(passiveChipIds)) return null
-
-  const mainChipPinIds = candidates.map((candidate) => candidate.mainChipPinId)
-  if (!hasUniqueValues(mainChipPinIds)) return null
-
-  const edgeCoords = candidates.map((candidate) => `${candidate.edgeCoord}`)
-  if (!hasUniqueValues(edgeCoords)) return null
-
-  const carrierPinIds = candidates.map((candidate) => candidate.carrierPinId)
-  if (!hasUniqueValues(carrierPinIds)) return null
-
-  const claimedCarrierPins = new Set(carrierPinIds)
-  for (const carrierPinId of carrierChip.pins) {
-    const carrierPinStrongConnections = (
-      strongByChip.get(carrierChipId) ?? []
-    ).filter((strong) => strong.selfPin === carrierPinId)
-    if (claimedCarrierPins.has(carrierPinId)) {
-      const matchingPassiveConnections = carrierPinStrongConnections.filter(
-        (strong) => passiveChipIds.includes(strong.otherChip),
-      )
-      if (
-        matchingPassiveConnections.length !== 1 ||
-        carrierPinStrongConnections.length !== 1
-      ) {
-        return null
-      }
-      continue
-    }
-    if (carrierPinStrongConnections.length > 0) return null
-  }
-
-  const railPins = carrierChip.pins.filter(
-    (pinId) =>
-      !claimedCarrierPins.has(pinId) &&
-      getNetIdsForPin(problem, pinId).length === 1,
-  )
-  if (railPins.length !== 1) return null
-
-  const accountedCarrierPins = new Set([...carrierPinIds, railPins[0]!])
-  if (carrierChip.pins.some((pinId) => !accountedCarrierPins.has(pinId))) {
-    return null
-  }
-
-  sortRailCarrierCandidates(candidates)
-  return {
-    mainChipId,
-    side,
-    passiveChipIds: candidates.map((candidate) => candidate.passiveChipId),
-    mainChipPinIds: candidates.map((candidate) => candidate.mainChipPinId),
-    railCarrier: {
-      carrierChipId,
-      railPinId: railPins[0]!,
-      passiveMainPinIdsByChipId: Object.fromEntries(
-        candidates.map((candidate) => [
-          candidate.passiveChipId,
-          candidate.passiveMainPinId,
-        ]),
-      ),
-      passiveCarrierPinIdsByChipId: Object.fromEntries(
-        candidates.map((candidate) => [
-          candidate.passiveChipId,
-          candidate.passiveCarrierPinId,
-        ]),
-      ),
-      carrierPinIdsByPassiveChipId: Object.fromEntries(
-        candidates.map((candidate) => [
-          candidate.passiveChipId,
-          candidate.carrierPinId,
-        ]),
-      ),
-    },
-  }
+  candidates.sort((a, b) => a.edgeCoord - b.edgeCoord)
 }
 
 /**
@@ -303,116 +163,110 @@ export const findSameSidePassiveGroups = (
 
   for (const [passiveChipId, passiveChip] of Object.entries(problem.chipMap)) {
     if (passiveChip.fixedPosition) continue
-    if (!isRailCarrierPassiveLeaf(passiveChip)) continue
+    if (passiveChip.pins.length !== PASSIVE_PIN_COUNT) continue
+    if (passiveChip.isResistor !== true) continue
 
     const strongs = strongByChip.get(passiveChipId) ?? []
-    for (const strongToMain of strongs) {
-      const mainChipId = strongToMain.otherChip
-      const mainChip = problem.chipMap[mainChipId]
-      const mainPin = problem.chipPinMap[strongToMain.otherPin]
-      if (!mainChip || !mainPin) continue
-      if (mainChip.pins.length < MAIN_CHIP_MIN_PINS) continue
-      if (
-        !hasOnlyExpectedStrongConnection(
-          strongs,
-          strongToMain.selfPin,
-          strongToMain.otherPin,
-          mainChipId,
-        )
-      ) {
-        continue
-      }
-
-      const passiveCarrierPinId = passiveChip.pins.find(
-        (pinId) => pinId !== strongToMain.selfPin,
+    if (strongs.length !== 2) continue
+    const mainStrong = strongs.find((strong) => {
+      const chip = problem.chipMap[strong.otherChip]
+      return (
+        chip && !chip.fixedPosition && chip.pins.length >= MAIN_CHIP_MIN_PINS
       )
-      if (!passiveCarrierPinId) continue
+    })
+    const carrierStrong = strongs.find((strong) => {
+      const chip = problem.chipMap[strong.otherChip]
+      return chip && !chip.fixedPosition && chip.pins.length === 3
+    })
+    if (!mainStrong || !carrierStrong) continue
+    if (mainStrong.selfPin === carrierStrong.selfPin) continue
+    if (mainStrong.otherChip === carrierStrong.otherChip) continue
 
-      const carrierStrongConnections = strongs.filter(
-        (strong) => strong.selfPin === passiveCarrierPinId,
-      )
-      if (carrierStrongConnections.length !== 1) continue
-
-      const carrierConnection = carrierStrongConnections[0]!
-      const carrierChipId = carrierConnection.otherChip
-      if (carrierChipId === mainChipId) continue
-      if (
-        !hasOnlyExpectedStrongConnection(
-          strongs,
-          passiveCarrierPinId,
-          carrierConnection.otherPin,
-          carrierChipId,
-        )
-      ) {
-        continue
-      }
-      const carrierChip = problem.chipMap[carrierChipId]
-      if (!carrierChip || carrierChip.fixedPosition) continue
-      if (carrierChip.pins.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE + 1)
-        continue
-
-      const mainChipRotation = mainChip.availableRotations?.[0] ?? 0
-      const mainChipPinOffset = rotatePinOffset(
-        mainPin.offset,
-        mainChipRotation,
-      )
-      const side = getMainChipPinSide(mainPin.offset, mainChipRotation)
-      const key = `${mainChipId}|${side}|${carrierChipId}`
-      const candidates = railCarrierCandidatesByGroup.get(key) ?? []
-      candidates.push({
+    const mainPin = problem.chipPinMap[mainStrong.otherPin]
+    const mainChip = problem.chipMap[mainStrong.otherChip]!
+    if (!mainPin) continue
+    const mainChipRotation = mainChip.availableRotations?.[0] ?? 0
+    const mainChipPinOffset = rotatePinOffset(mainPin.offset, mainChipRotation)
+    const side = getMainChipPinSide(mainPin.offset, mainChipRotation)
+    const key = `${mainStrong.otherChip}|${side}|${carrierStrong.otherChip}`
+    railCarrierCandidatesByGroup.set(key, [
+      ...(railCarrierCandidatesByGroup.get(key) ?? []),
+      {
         passiveChipId,
-        passiveMainPinId: strongToMain.selfPin,
-        passiveCarrierPinId,
-        carrierPinId: carrierConnection.otherPin,
-        mainChipPinId: strongToMain.otherPin,
+        passiveMainPinId: mainStrong.selfPin,
+        passiveCarrierPinId: carrierStrong.selfPin,
+        carrierPinId: carrierStrong.otherPin,
+        mainChipPinId: mainStrong.otherPin,
         edgeCoord: edgeCoordForSide(mainChipPinOffset, side),
-        mainChipId,
+        mainChipId: mainStrong.otherChip,
         side,
-        carrierChipId,
-      })
-      railCarrierCandidatesByGroup.set(key, candidates)
-    }
+        carrierChipId: carrierStrong.otherChip,
+      },
+    ])
   }
 
   for (const candidates of railCarrierCandidatesByGroup.values()) {
-    const group = buildRailCarrierGroupIfValid({
-      problem,
-      candidates,
-      strongByChip,
-    })
-    if (group) railCarrierGroups.push(group)
-  }
+    const first = candidates[0]
+    if (!first || candidates.length !== 2) continue
+    const carrierChip = problem.chipMap[first.carrierChipId]
+    if (!carrierChip || carrierChip.pins.length !== 3) continue
 
-  const ambiguousRailCarrierGroupKeys = new Set<string>()
-  for (let i = 0; i < railCarrierGroups.length; i++) {
-    const group = railCarrierGroups[i]!
-    if (!group.railCarrier) continue
-    const groupPassiveKey = passiveSetKey(group.passiveChipIds)
-    for (let j = i + 1; j < railCarrierGroups.length; j++) {
-      const otherGroup = railCarrierGroups[j]!
-      const otherRailCarrier = otherGroup.railCarrier
-      if (!otherRailCarrier) continue
-      if (
-        group.mainChipId === otherRailCarrier.carrierChipId &&
-        group.railCarrier.carrierChipId === otherGroup.mainChipId &&
-        groupPassiveKey === passiveSetKey(otherGroup.passiveChipIds)
-      ) {
-        ambiguousRailCarrierGroupKeys.add(
-          `${group.mainChipId}|${group.railCarrier.carrierChipId}|${groupPassiveKey}`,
-        )
-        ambiguousRailCarrierGroupKeys.add(
-          `${otherGroup.mainChipId}|${otherRailCarrier.carrierChipId}|${groupPassiveKey}`,
-        )
-      }
-    }
-  }
-  const unambiguousRailCarrierGroups = railCarrierGroups.filter((group) => {
-    const railCarrier = group.railCarrier
-    if (!railCarrier) return true
-    return !ambiguousRailCarrierGroupKeys.has(
-      `${group.mainChipId}|${railCarrier.carrierChipId}|${passiveSetKey(group.passiveChipIds)}`,
+    const passiveChipIds = candidates.map(
+      (candidate) => candidate.passiveChipId,
     )
-  })
+    const mainChipPinIds = candidates.map(
+      (candidate) => candidate.mainChipPinId,
+    )
+    const carrierPinIds = candidates.map((candidate) => candidate.carrierPinId)
+    if (
+      !hasDistinctValues(passiveChipIds) ||
+      !hasDistinctValues(mainChipPinIds) ||
+      !hasDistinctValues(carrierPinIds) ||
+      !hasDistinctValues(
+        candidates.map((candidate) => `${candidate.edgeCoord}`),
+      )
+    ) {
+      continue
+    }
+
+    const claimedCarrierPins = new Set(carrierPinIds)
+    const carrierPinsAreExclusive = carrierPinIds.every((carrierPinId) => {
+      const strongsForPin = (
+        strongByChip.get(first.carrierChipId) ?? []
+      ).filter((strong) => strong.selfPin === carrierPinId)
+      return (
+        strongsForPin.length === 1 &&
+        passiveChipIds.includes(strongsForPin[0]!.otherChip)
+      )
+    })
+    const railPins = carrierChip.pins.filter(
+      (pinId) =>
+        !claimedCarrierPins.has(pinId) &&
+        (strongByChip.get(first.carrierChipId) ?? []).every(
+          (strong) => strong.selfPin !== pinId,
+        ) &&
+        getNetIdsForPin(problem, pinId).length === 1,
+    )
+    if (!carrierPinsAreExclusive || railPins.length !== 1) continue
+
+    sortRailCarrierCandidates(candidates)
+    railCarrierGroups.push({
+      mainChipId: first.mainChipId,
+      side: first.side,
+      passiveChipIds: candidates.map((candidate) => candidate.passiveChipId),
+      mainChipPinIds: candidates.map((candidate) => candidate.mainChipPinId),
+      railCarrier: {
+        carrierChipId: first.carrierChipId,
+        passiveMainPinIds: candidates.map(
+          (candidate) => candidate.passiveMainPinId,
+        ),
+        passiveCarrierPinIds: candidates.map(
+          (candidate) => candidate.passiveCarrierPinId,
+        ),
+        carrierPinIds,
+      },
+    })
+  }
 
   const commonNodeGroups: SameSidePassiveGroup[] = []
   for (const strongs of strongByChip.values()) {
@@ -473,7 +327,7 @@ export const findSameSidePassiveGroups = (
     commonNodeGroups.flatMap((group) => group.passiveChipIds),
   )
   const railCarrierPassiveChipIds = new Set(
-    unambiguousRailCarrierGroups.flatMap((group) => group.passiveChipIds),
+    railCarrierGroups.flatMap((group) => group.passiveChipIds),
   )
 
   interface Candidate {
@@ -539,7 +393,7 @@ export const findSameSidePassiveGroups = (
   }
 
   const groups: SameSidePassiveGroup[] = [
-    ...unambiguousRailCarrierGroups,
+    ...railCarrierGroups,
     ...commonNodeGroups,
   ]
   for (const list of candidatesByGroup.values()) {

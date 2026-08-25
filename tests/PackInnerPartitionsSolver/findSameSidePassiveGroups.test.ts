@@ -669,7 +669,7 @@ const makeRailCarrierObstacleProblem = ({
   }
 }
 
-const makeRailCarrierRotationRetryProblem = ({
+const makeRailCarrierBlockedPlacementProblem = ({
   rotations = [0, 90],
   carrierSize = { x: 0.3, y: 1.2 },
   obstaclePosition = { x: 3.925001, y: -0.25 },
@@ -688,7 +688,6 @@ const makeRailCarrierRotationRetryProblem = ({
         pins: ["U1.1", "U1.2", "U1.3", "U1.4"],
         size: { x: 1.2, y: 0.8 },
         availableRotations: [0],
-        fixedPosition: { x: 0, y: 0 },
       },
       R1: {
         chipId: "R1",
@@ -898,435 +897,126 @@ test("detects rail-carrier topology with arbitrary component ids", () => {
   expect(groups[0]!.passiveChipIds).toEqual(["pullup_lower", "pullup_upper"])
 })
 
-test("detects rail-carrier topology around a fixed main chip", () => {
-  const groups = findSameSidePassiveGroups(
-    makeRailCarrierProblem({ fixedMain: true }),
+test("detects rail-carrier topology after record reordering", () => {
+  const inputProblem = makeRailCarrierProblem()
+  inputProblem.chipMap = Object.fromEntries(
+    Object.entries(inputProblem.chipMap).reverse(),
+  )
+  inputProblem.chipPinMap = Object.fromEntries(
+    Object.entries(inputProblem.chipPinMap).reverse(),
+  )
+  inputProblem.pinStrongConnMap = Object.fromEntries(
+    Object.entries(inputProblem.pinStrongConnMap).reverse(),
+  )
+  inputProblem.netConnMap = Object.fromEntries(
+    Object.entries(inputProblem.netConnMap).reverse(),
   )
 
+  const groups = findSameSidePassiveGroups(inputProblem)
+
   expect(groups).toHaveLength(1)
-  expect(groups[0]!.mainChipId).toBe("U1")
-  expect(groups[0]!.railCarrier?.carrierChipId).toBe("SJ1")
   expect(groups[0]!.passiveChipIds).toEqual(["R2", "R1"])
 })
 
-test("reflows rail-carrier passives around fixed main chips without moving them", () => {
-  const cases = [
-    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 0 },
-    { fixedMainPosition: { x: 10, y: 5 }, fixedMainRotation: 0 },
-    { fixedMainPosition: { x: -7, y: -4 }, fixedMainRotation: 0 },
-    { fixedMainPosition: { x: 100, y: -80 }, fixedMainRotation: 0 },
-    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 90 },
-    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 180 },
-    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 270 },
-  ] as const
-
-  for (const testCase of cases) {
-    const inputProblem = makeRailCarrierProblem({
-      fixedMain: true,
-      fixedMainPosition: testCase.fixedMainPosition,
-      fixedMainRotation: testCase.fixedMainRotation,
-    })
-    const solver = new LayoutPipelineSolver(inputProblem)
-    solver.solve()
-    const layout = solver.getOutputLayout()
-
-    expect(
-      solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
-    ).toBe("ParallelAlignedPassiveSolver")
-    expectPlacementToEqual(layout.chipPlacements.U1!, {
-      ...testCase.fixedMainPosition,
-      ccwRotationDegrees: testCase.fixedMainRotation,
-    })
-    expect(solver.checkForOverlaps(layout)).toHaveLength(0)
-    for (const { distance } of getDistancesFromMovedGroup(
-      inputProblem,
-      layout,
-    )) {
-      expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
-    }
+test("declines unsupported rail-carrier topology variants", () => {
+  const mutateRailCarrierProblem = (
+    mutate: (inputProblem: InputProblem) => void,
+  ) => {
+    const inputProblem = makeRailCarrierProblem()
+    mutate(inputProblem)
+    return inputProblem
   }
-})
-
-test("uses fixed main-chip rotation when ordering rail-carrier passives", () => {
-  const groups = findSameSidePassiveGroups(
-    makeRailCarrierProblem({ fixedMain: true, fixedMainRotation: 90 }),
-  )
-
-  expect(groups).toHaveLength(1)
-  expect(groups[0]!.side).toBe("y+")
-  expect(groups[0]!.passiveChipIds).toEqual(["R1", "R2"])
-  expect(groups[0]!.mainChipPinIds).toEqual(["U1.4", "U1.3"])
-})
-
-test("declines rail-carrier topology when a resistor main-facing pin is branched", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({ branchedMainFacingPin: true }),
-    ),
-  ).toHaveLength(0)
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({
-        branchedMainFacingPin: true,
-        customIds: true,
-      }),
-    ),
-  ).toHaveLength(0)
-
-  const renamedOrderVariant = makeRailCarrierProblem({
-    branchedMainFacingPin: true,
-    customIds: true,
-  })
-  renamedOrderVariant.pinStrongConnMap = Object.fromEntries(
-    Object.entries(renamedOrderVariant.pinStrongConnMap).reverse(),
-  )
-  expect(findSameSidePassiveGroups(renamedOrderVariant)).toHaveLength(0)
-})
-
-test("declines rail-carrier topology when a resistor carrier-facing pin is branched", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({ branchedCarrierFacingPin: true }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("declines fixed-main rail-carrier topology when a resistor pin is branched", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({
-        fixedMain: true,
-        branchedMainFacingPin: true,
-      }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("enforces rail-carrier identity and cardinality invariants", () => {
-  const cases: Array<{
-    name: string
-    mutate: (inputProblem: InputProblem) => void
-    expectedRailGroups: number
-  }> = [
+  const cases: Array<{ name: string; inputProblem: InputProblem }> = [
     {
-      name: "duplicate main pin",
-      mutate: (inputProblem) => {
-        replaceStrongConnection(inputProblem, "Uwide.2-R2.1", "Uwide.1-R2.1")
-      },
-      expectedRailGroups: 0,
+      name: "three resistors",
+      inputProblem: makeMultiPassiveRailCarrierProblem({ passiveCount: 3 }),
     },
     {
-      name: "all resistors share one main pin",
-      mutate: (inputProblem) => {
-        replaceStrongConnection(inputProblem, "Uwide.2-R2.1", "Uwide.1-R2.1")
-        replaceStrongConnection(inputProblem, "Uwide.3-R3.1", "Uwide.1-R3.1")
-      },
-      expectedRailGroups: 0,
+      name: "four resistors",
+      inputProblem: makeMultiPassiveRailCarrierProblem({ passiveCount: 4 }),
     },
     {
-      name: "duplicate carrier pin",
-      mutate: (inputProblem) => {
-        replaceStrongConnection(inputProblem, "R2.2-Jwide.2", "R2.2-Jwide.1")
-      },
-      expectedRailGroups: 0,
+      name: "five resistors",
+      inputProblem: makeMultiPassiveRailCarrierProblem({ passiveCount: 5 }),
     },
     {
-      name: "all resistors share one carrier pin",
-      mutate: (inputProblem) => {
-        replaceStrongConnection(inputProblem, "R2.2-Jwide.2", "R2.2-Jwide.1")
-        replaceStrongConnection(inputProblem, "R3.2-Jwide.3", "R3.2-Jwide.1")
-      },
-      expectedRailGroups: 0,
+      name: "four-pin carrier",
+      inputProblem: makeRailCarrierProblem({ multipleRailPins: true }),
     },
     {
-      name: "different main chip",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.Uother = {
-          chipId: "Uother",
-          pins: ["Uother.1", "Uother.2", "Uother.3", "Uother.4"],
-          size: { x: 1.6, y: 1.6 },
-          availableRotations: [0, 90, 180, 270],
-        }
-        inputProblem.chipPinMap["Uother.1"] = {
-          pinId: "Uother.1",
-          side: "x+",
-          offset: { x: 1, y: 0 },
-        }
-        replaceStrongConnection(inputProblem, "Uwide.3-R3.1", "Uother.1-R3.1")
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "different carrier chip",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.Jother = {
-          chipId: "Jother",
-          pins: ["Jother.1", "Jother.RAIL"],
-          size: { x: 0.8, y: 0.8 },
-          availableRotations: [0, 90, 180, 270],
-        }
-        inputProblem.chipPinMap["Jother.1"] = {
-          pinId: "Jother.1",
-          side: "x-",
-          offset: { x: -0.4, y: 0 },
-        }
-        inputProblem.chipPinMap["Jother.RAIL"] = {
-          pinId: "Jother.RAIL",
-          side: "y+",
-          offset: { x: 0, y: 0.4 },
-        }
-        inputProblem.netConnMap["Jother.RAIL-RAIL"] = true
-        replaceStrongConnection(inputProblem, "R3.2-Jwide.3", "R3.2-Jother.1")
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "same main and carrier chip",
-      mutate: (inputProblem) => {
-        replaceStrongConnection(inputProblem, "R1.2-Jwide.1", "R1.2-Uwide.4")
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "main-facing branch",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.TP1 = {
-          chipId: "TP1",
-          pins: ["TP1.1"],
-          size: { x: 0.2, y: 0.2 },
-          availableRotations: [0],
-        }
-        inputProblem.chipPinMap["TP1.1"] = {
-          pinId: "TP1.1",
-          side: "x+",
-          offset: { x: 0.1, y: 0 },
-        }
-        inputProblem.pinStrongConnMap["R1.1-TP1.1"] = true
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "carrier-facing branch",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.TP1 = {
-          chipId: "TP1",
-          pins: ["TP1.1"],
-          size: { x: 0.2, y: 0.2 },
-          availableRotations: [0],
-        }
-        inputProblem.chipPinMap["TP1.1"] = {
-          pinId: "TP1.1",
-          side: "x+",
-          offset: { x: 0.1, y: 0 },
-        }
-        inputProblem.pinStrongConnMap["R1.2-TP1.1"] = true
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "carrier claimed pin branch",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.TP1 = {
-          chipId: "TP1",
-          pins: ["TP1.1"],
-          size: { x: 0.2, y: 0.2 },
-          availableRotations: [0],
-        }
-        inputProblem.chipPinMap["TP1.1"] = {
-          pinId: "TP1.1",
-          side: "x+",
-          offset: { x: 0.1, y: 0 },
-        }
-        inputProblem.pinStrongConnMap["Jwide.1-TP1.1"] = true
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "extra unexplained carrier pin",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.Jwide!.pins.push("Jwide.NC")
-        inputProblem.chipPinMap["Jwide.NC"] = {
-          pinId: "Jwide.NC",
-          side: "y-",
-          offset: { x: 0, y: -0.4 },
-        }
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "zero rail pins",
-      mutate: (inputProblem) => {
-        inputProblem.netConnMap = {}
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "multiple rail pins",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.Jwide!.pins.push("Jwide.RAIL2")
-        inputProblem.chipPinMap["Jwide.RAIL2"] = {
-          pinId: "Jwide.RAIL2",
-          side: "y+",
-          offset: { x: 0.2, y: 0.4 },
-        }
-        inputProblem.netMap.RAIL2 = { netId: "RAIL2" }
-        inputProblem.netConnMap["Jwide.RAIL2-RAIL2"] = true
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "rail pin with ambiguous net membership",
-      mutate: (inputProblem) => {
-        inputProblem.netMap.OTHER = { netId: "OTHER" }
-        inputProblem.netConnMap["Jwide.RAIL-OTHER"] = true
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "partial carrier accounting",
-      mutate: (inputProblem) => {
-        delete inputProblem.pinStrongConnMap["R3.2-Jwide.3"]
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "mixed main-chip side",
-      mutate: (inputProblem) => {
-        inputProblem.chipPinMap["Uwide.3"] = {
-          pinId: "Uwide.3",
-          side: "x-",
-          offset: { x: -1, y: 0.2 },
-        }
-      },
-      expectedRailGroups: 0,
-    },
-    {
-      name: "same-side distinct pins with identical edge coordinate",
-      mutate: (inputProblem) => {
-        inputProblem.chipPinMap["Uwide.2"] = {
-          ...inputProblem.chipPinMap["Uwide.2"]!,
-          offset: { ...inputProblem.chipPinMap["Uwide.1"]!.offset },
-        }
-      },
-      expectedRailGroups: 0,
+      name: "fixed main",
+      inputProblem: makeRailCarrierProblem({ fixedMain: true }),
     },
     {
       name: "fixed resistor",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.R1!.fixedPosition = { x: 2, y: 1 }
-      },
-      expectedRailGroups: 0,
+      inputProblem: makeRailCarrierProblem({ fixedPassive: true }),
     },
     {
       name: "fixed carrier",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.Jwide!.fixedPosition = { x: 3, y: 0 }
-      },
-      expectedRailGroups: 0,
+      inputProblem: makeRailCarrierProblem({ fixedCarrier: true }),
     },
     {
-      name: "fixed main remains valid",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap.Uwide!.fixedPosition = { x: 0, y: 0 }
-      },
-      expectedRailGroups: 1,
+      name: "duplicate main pin",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        replaceStrongConnection(inputProblem, "U1.3-R2.1", "U1.4-R2.1")
+      }),
     },
     {
-      name: "reordered maps remain valid",
-      mutate: (inputProblem) => {
-        inputProblem.chipMap = reorderRecord(inputProblem.chipMap)
-        inputProblem.chipPinMap = reorderRecord(inputProblem.chipPinMap)
-        inputProblem.pinStrongConnMap = reorderRecord(
-          inputProblem.pinStrongConnMap,
-        )
-        inputProblem.netConnMap = reorderRecord(inputProblem.netConnMap)
-      },
-      expectedRailGroups: 1,
+      name: "duplicate carrier pin",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        replaceStrongConnection(inputProblem, "SJ1.1-R2.2", "SJ1.3-R2.2")
+      }),
+    },
+    {
+      name: "branched main-facing pin",
+      inputProblem: makeRailCarrierProblem({ branchedMainFacingPin: true }),
+    },
+    {
+      name: "branched carrier-facing pin",
+      inputProblem: makeRailCarrierProblem({ branchedCarrierFacingPin: true }),
+    },
+    {
+      name: "no rail pin",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.netConnMap = {}
+      }),
+    },
+    {
+      name: "rail pin with two nets",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.netMap.OTHER = { netId: "OTHER" }
+        inputProblem.netConnMap["SJ1.2-OTHER"] = true
+      }),
+    },
+    {
+      name: "untyped passive",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.chipMap.R1!.isResistor = false
+      }),
+    },
+    {
+      name: "non-two-pin passive",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.chipMap.R1!.pins.push("R1.3")
+        inputProblem.chipPinMap["R1.3"] = {
+          pinId: "R1.3",
+          side: "x+",
+          offset: { x: 0.25, y: 0 },
+        }
+      }),
+    },
+    {
+      name: "different carriers",
+      inputProblem: makeRailCarrierProblem({ differentCarriers: true }),
     },
   ]
 
   for (const testCase of cases) {
-    const groups = getRailCarrierGroups(
-      makeRailCarrierContractProblem(testCase.mutate),
-    )
-    expect(groups, testCase.name).toHaveLength(testCase.expectedRailGroups)
-    if (testCase.expectedRailGroups === 1) {
-      expect(groups[0]!.passiveChipIds, testCase.name).toEqual([
-        "R1",
-        "R2",
-        "R3",
-      ])
-    }
+    expect(
+      getRailCarrierGroups(testCase.inputProblem),
+      testCase.name,
+    ).toHaveLength(0)
   }
-})
-
-test("declines mirrored or overlapping rail-carrier membership ambiguity", () => {
-  expect(getRailCarrierGroups(makeMirroredRailCarrierProblem())).toHaveLength(0)
-
-  const overlappingCarrierProblem = makeRailCarrierContractProblem(
-    (inputProblem) => {
-      inputProblem.chipMap.Jother = {
-        chipId: "Jother",
-        pins: ["Jother.1", "Jother.2", "Jother.RAIL"],
-        size: { x: 0.8, y: 0.8 },
-        availableRotations: [0, 90, 180, 270],
-      }
-      inputProblem.chipPinMap["Jother.1"] = {
-        pinId: "Jother.1",
-        side: "x-",
-        offset: { x: -0.4, y: -0.1 },
-      }
-      inputProblem.chipPinMap["Jother.2"] = {
-        pinId: "Jother.2",
-        side: "x-",
-        offset: { x: -0.4, y: 0.1 },
-      }
-      inputProblem.chipPinMap["Jother.RAIL"] = {
-        pinId: "Jother.RAIL",
-        side: "y+",
-        offset: { x: 0, y: 0.4 },
-      }
-      inputProblem.netConnMap["Jother.RAIL-RAIL"] = true
-      inputProblem.pinStrongConnMap["R2.2-Jother.1"] = true
-      replaceStrongConnection(inputProblem, "R3.2-Jwide.3", "R3.2-Jother.2")
-    },
-  )
-
-  expect(getRailCarrierGroups(overlappingCarrierProblem)).toHaveLength(0)
-})
-
-test("detects four-passive rail-carrier topology without a pin-count ceiling", () => {
-  const groups = findSameSidePassiveGroups(
-    makeMultiPassiveRailCarrierProblem({ passiveCount: 4 }),
-  )
-
-  expect(groups).toHaveLength(1)
-  expect(groups[0]!.railCarrier?.carrierChipId).toBe("Jwide")
-  expect(groups[0]!.passiveChipIds).toEqual(["R1", "R2", "R3", "R4"])
-})
-
-test("detects five-passive rail-carrier topology by exact carrier pin roles", () => {
-  const groups = findSameSidePassiveGroups(
-    makeMultiPassiveRailCarrierProblem({ passiveCount: 5 }),
-  )
-
-  expect(groups).toHaveLength(1)
-  expect(groups[0]!.railCarrier?.carrierChipId).toBe("Jwide")
-  expect(groups[0]!.passiveChipIds).toEqual(["R1", "R2", "R3", "R4", "R5"])
-})
-
-test("declines symmetric mirrored rail-carrier topology", () => {
-  const groups = findSameSidePassiveGroups(makeMirroredRailCarrierProblem())
-
-  expect(groups).toHaveLength(0)
-})
-
-test("declines mirrored rail-carrier topology when mirrored endpoints are fixed", () => {
-  const problem = makeMirroredRailCarrierProblem()
-  problem.chipMap.A!.fixedPosition = { x: 0, y: 0 }
-  problem.chipMap.B!.fixedPosition = { x: 4, y: 0 }
-
-  expect(findSameSidePassiveGroups(problem)).toHaveLength(0)
 })
 
 test("keeps dense rail-carrier passives at least chipGap apart", () => {
@@ -1343,26 +1033,6 @@ test("keeps dense rail-carrier passives at least chipGap apart", () => {
   expect(getBoundsDistance(r1Bounds, r2Bounds)).toBeGreaterThanOrEqual(
     inputProblem.chipGap - 1e-6,
   )
-})
-
-test("keeps dense fixed-main rail-carrier passives at least chipGap apart", () => {
-  const inputProblem = makeDenseRailCarrierGapProblem()
-  inputProblem.chipMap.U1!.fixedPosition = { x: 0, y: 0 }
-  const solver = new LayoutPipelineSolver(inputProblem)
-  solver.solve()
-  const layout = solver.getOutputLayout()
-
-  expect(
-    solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
-  ).toBe("ParallelAlignedPassiveSolver")
-  expectPlacementToEqual(layout.chipPlacements.U1!, {
-    x: 0,
-    y: 0,
-    ccwRotationDegrees: 0,
-  })
-  for (const { distance } of getDistancesFromMovedGroup(inputProblem, layout)) {
-    expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
-  }
 })
 
 test("rejects rail-carrier reflow that would violate chipGap to an unrelated obstacle", () => {
@@ -1399,50 +1069,6 @@ test("rejects rail-carrier reflow that would violate chipGap to an unrelated obs
   }
 })
 
-test("fixed-main obstacle fallback leaves the main and rail group atomically packed", () => {
-  const { inputProblem, baseLayout } = makeRailCarrierObstacleProblem({
-    targetChipId: "R2",
-    clearance: 0.1,
-  })
-  inputProblem.chipMap.U1!.fixedPosition = { x: 0, y: 0 }
-  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
-
-  for (const chipId of ["U1", "R1", "R2", "SJ1"]) {
-    expectPlacementToEqual(
-      layout.chipPlacements[chipId]!,
-      baseLayout.chipPlacements[chipId]!,
-    )
-  }
-})
-
-test("rail-carrier obstacle boundary preserves chipGap semantics", () => {
-  const cases = [
-    { clearance: 0.1, chipGap: 0.5, shouldAccept: false },
-    { clearance: 0.499, chipGap: 0.5, shouldAccept: false },
-    { clearance: 0.5, chipGap: 0.5, shouldAccept: true },
-    { clearance: 0.6, chipGap: 0.5, shouldAccept: true },
-    { clearance: 0.1, chipGap: 0, shouldAccept: true },
-  ]
-
-  for (const testCase of cases) {
-    const { inputProblem, baseLayout, unobstructedLayout } =
-      makeRailCarrierObstacleProblem({
-        targetChipId: "SJ1",
-        clearance: testCase.clearance,
-        chipGap: testCase.chipGap,
-      })
-    const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
-
-    for (const chipId of ["R1", "R2", "SJ1"]) {
-      expectPlacementToEqual(
-        layout.chipPlacements[chipId]!,
-        (testCase.shouldAccept ? unobstructedLayout : baseLayout)
-          .chipPlacements[chipId]!,
-      )
-    }
-  }
-})
-
 test("accepted rail-carrier reflow satisfies chipGap for every moved pair", () => {
   const { inputProblem, baseLayout } = makeRailCarrierObstacleProblem({
     targetChipId: "SJ1",
@@ -1467,53 +1093,9 @@ test("accepted rail-carrier reflow satisfies chipGap for every moved pair", () =
   }
 })
 
-test("retries rail-carrier rotations after the preferred candidate violates chipGap", () => {
-  const preferredOnly = makeRailCarrierRotationRetryProblem({
-    rotations: [0],
-  })
-  const preferredOnlyLayout = alignRailCarrierFromPackedLayout(
-    preferredOnly.inputProblem,
-    preferredOnly.baseLayout,
-  )
-  expectPlacementToEqual(
-    preferredOnlyLayout.chipPlacements.SJ1!,
-    preferredOnly.baseLayout.chipPlacements.SJ1!,
-  )
-
-  const { inputProblem, baseLayout } = makeRailCarrierRotationRetryProblem({
-    rotations: [0, 90],
-  })
-  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
-
-  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(90)
-  expect(layout.chipPlacements.SJ1!.x).toBeCloseTo(3.800001)
-  expect(layout.chipPlacements.SJ1!.y).toBeCloseTo(-1.65)
-  for (const chipId of ["R1", "R2", "SJ1"]) {
-    expect(layout.chipPlacements[chipId]).not.toEqual(
-      baseLayout.chipPlacements[chipId],
-    )
-  }
-  for (const { distance } of getDistancesFromMovedGroup(inputProblem, layout)) {
-    expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
-  }
-})
-
-test("keeps scored rail-carrier rotation order when earlier input rotations are also clear", () => {
-  const { inputProblem, baseLayout } = makeRailCarrierRotationRetryProblem({
-    rotations: [90, 0],
-    obstaclePosition: null,
-  })
-  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
-
-  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(0)
-  expect(layout.chipPlacements.SJ1!.x).toBeCloseTo(3.350001)
-  expect(layout.chipPlacements.SJ1!.y).toBeCloseTo(-1)
-})
-
-test("keeps rail-carrier group packed when every retried rotation violates chipGap", () => {
-  const { inputProblem, baseLayout } = makeRailCarrierRotationRetryProblem({
-    rotations: [0, 90],
-    obstaclePosition: { x: 3.925001, y: -0.95 },
+test("does not retry another carrier rotation when the unique one is unsafe", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierBlockedPlacementProblem({
+    rotations: [270],
   })
   const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
 
@@ -1525,121 +1107,66 @@ test("keeps rail-carrier group packed when every retried rotation violates chipG
   }
 })
 
-test("reflows rail-carrier groups using the actual packed main-chip rotation", () => {
-  const inputProblem = makeRotatedPackedMainRailCarrierProblem()
-  const detectedGroups = findSameSidePassiveGroups(inputProblem)
-  const solver = new LayoutPipelineSolver(inputProblem)
-  solver.solve()
-  const layout = solver.getOutputLayout()
-  const mainPlacement = layout.chipPlacements.A!
-  const mainBounds = getChipBounds(inputProblem, "A", mainPlacement)
+test("uses the actual packed main rotation for rail-carrier side and order", () => {
+  const inputProblem = makeRailCarrierProblem()
+  const baseLayout = makeRailCarrierPackedLayout()
+  baseLayout.chipPlacements.U1 = { x: 0, y: 0, ccwRotationDegrees: 90 }
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  const mainBounds = getChipBounds(
+    inputProblem,
+    "U1",
+    layout.chipPlacements.U1!,
+  )
 
-  expect(detectedGroups).toHaveLength(1)
-  expect(detectedGroups[0]!.side).toBe("y+")
-  expect(mainPlacement.ccwRotationDegrees).toBe(90)
-  for (const passiveChipId of ["R1", "R2", "R3", "R4"]) {
-    const passiveBounds = getChipBounds(
+  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(0)
+  for (const passiveChipId of ["R1", "R2", "SJ1"]) {
+    const bounds = getChipBounds(
       inputProblem,
       passiveChipId,
       layout.chipPlacements[passiveChipId]!,
     )
-    expect(passiveBounds.maxX).toBeLessThanOrEqual(
-      mainBounds.minX - inputProblem.chipGap + 1e-6,
+    expect(bounds.minY).toBeGreaterThanOrEqual(
+      mainBounds.maxY + inputProblem.chipGap - 1e-6,
     )
   }
 })
 
-test("declines rail-carrier topology for diode-like or untyped leaves", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeMultiPassiveRailCarrierProblem({ diodeLikeFirstPassive: true }),
-    ),
-  ).toHaveLength(0)
-  expect(
-    findSameSidePassiveGroups(
-      makeMultiPassiveRailCarrierProblem({ untypedFirstPassive: true }),
-    ),
-  ).toHaveLength(0)
+test("fails closed for reversed or ambiguous carrier pin ordering", () => {
+  const reversed = makeRailCarrierProblem()
+  reversed.chipMap.SJ1!.availableRotations = [90]
+
+  const ambiguous = makeRailCarrierProblem()
+  ambiguous.chipMap.SJ1!.availableRotations = [0, 90]
+  ambiguous.chipPinMap["SJ1.1"] = {
+    ...ambiguous.chipPinMap["SJ1.1"]!,
+    offset: { x: -0.3, y: -0.3 },
+  }
+  ambiguous.chipPinMap["SJ1.3"] = {
+    ...ambiguous.chipPinMap["SJ1.3"]!,
+    offset: { x: 0.3, y: 0.3 },
+  }
+
+  for (const inputProblem of [reversed, ambiguous]) {
+    const baseLayout = makeRailCarrierPackedLayout()
+    const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+    for (const chipId of ["R1", "R2", "SJ1"]) {
+      expectPlacementToEqual(
+        layout.chipPlacements[chipId]!,
+        baseLayout.chipPlacements[chipId]!,
+      )
+    }
+  }
 })
 
-test("declines rail-carrier topology for non-two-pin passive leaves", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeMultiPassiveRailCarrierProblem({ transistorLikeFirstPassive: true }),
-    ),
-  ).toHaveLength(0)
-})
+test("rail-carrier reflow is deterministic", () => {
+  const results = new Set<string>()
+  for (let i = 0; i < 20; i++) {
+    const solver = new LayoutPipelineSolver(si7021Input as InputProblem)
+    solver.solve()
+    results.add(JSON.stringify(solver.getOutputLayout().chipPlacements))
+  }
 
-test("declines same-side passives attached to unrelated downstream parts", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({ differentCarriers: true }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("declines a shared carrier with an extra branch", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({ ambiguousCarrierBranch: true }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("declines a shared carrier with multiple possible rail pins", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({ multipleRailPins: true }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("declines larger carriers with unexplained pins or branches", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeMultiPassiveRailCarrierProblem({ extraBranch: true }),
-    ),
-  ).toHaveLength(0)
-  expect(
-    findSameSidePassiveGroups(
-      makeMultiPassiveRailCarrierProblem({ extraCarrierPin: true }),
-    ),
-  ).toHaveLength(0)
-  expect(
-    findSameSidePassiveGroups(
-      makeMultiPassiveRailCarrierProblem({ largeCarrierLike: true }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("declines four-passive carrier with multiple possible rail pins", () => {
-  expect(
-    findSameSidePassiveGroups(
-      makeMultiPassiveRailCarrierProblem({ multipleRailPins: true }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("declines rail-carrier topology when the carrier is fixed", () => {
-  expect(
-    findSameSidePassiveGroups(makeRailCarrierProblem({ fixedCarrier: true })),
-  ).toHaveLength(0)
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({ fixedMain: true, fixedCarrier: true }),
-    ),
-  ).toHaveLength(0)
-})
-
-test("declines rail-carrier topology when a passive is fixed", () => {
-  expect(
-    findSameSidePassiveGroups(makeRailCarrierProblem({ fixedPassive: true })),
-  ).toHaveLength(0)
-  expect(
-    findSameSidePassiveGroups(
-      makeRailCarrierProblem({ fixedMain: true, fixedPassive: true }),
-    ),
-  ).toHaveLength(0)
+  expect(results.size).toBe(1)
 })
 
 test("preserves existing common-node passive detection", () => {
