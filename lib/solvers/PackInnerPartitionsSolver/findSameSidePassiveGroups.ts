@@ -121,6 +121,23 @@ const isRailCarrierPassiveLeaf = (chip: Chip): boolean =>
 const passiveSetKey = (passiveChipIds: ChipId[]): string =>
   [...passiveChipIds].sort().join("|")
 
+const hasOnlyExpectedStrongConnection = (
+  strongs: Array<{ selfPin: PinId; otherPin: PinId; otherChip: ChipId }>,
+  selfPin: PinId,
+  expectedOtherPin: PinId,
+  expectedOtherChip: ChipId,
+): boolean => {
+  const matchingSelfPinConnections = strongs.filter(
+    (strong) => strong.selfPin === selfPin,
+  )
+  if (matchingSelfPinConnections.length !== 1) return false
+  const connection = matchingSelfPinConnections[0]!
+  return (
+    connection.otherPin === expectedOtherPin &&
+    connection.otherChip === expectedOtherChip
+  )
+}
+
 /**
  * Find same-side passive groups in a partition. Returns one entry per group,
  * with its passives ordered along the main-chip edge.
@@ -179,6 +196,16 @@ export const findSameSidePassiveGroups = (
       if (!mainChip || !mainPin) continue
       if (mainChip.fixedPosition) continue
       if (mainChip.pins.length < MAIN_CHIP_MIN_PINS) continue
+      if (
+        !hasOnlyExpectedStrongConnection(
+          strongs,
+          strongToMain.selfPin,
+          strongToMain.otherPin,
+          mainChipId,
+        )
+      ) {
+        continue
+      }
 
       const passiveCarrierPinId = passiveChip.pins.find(
         (pinId) => pinId !== strongToMain.selfPin,
@@ -193,6 +220,16 @@ export const findSameSidePassiveGroups = (
       const carrierConnection = carrierStrongConnections[0]!
       const carrierChipId = carrierConnection.otherChip
       if (carrierChipId === mainChipId) continue
+      if (
+        !hasOnlyExpectedStrongConnection(
+          strongs,
+          passiveCarrierPinId,
+          carrierConnection.otherPin,
+          carrierChipId,
+        )
+      ) {
+        continue
+      }
       const carrierChip = problem.chipMap[carrierChipId]
       if (!carrierChip || carrierChip.fixedPosition) continue
       if (carrierChip.pins.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE + 1)

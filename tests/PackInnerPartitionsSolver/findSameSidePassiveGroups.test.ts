@@ -17,6 +17,9 @@ const makeRailCarrierProblem = (
     fixedCarrier?: boolean
     fixedPassive?: boolean
     fixedMain?: boolean
+    branchedMainFacingPin?: boolean
+    branchedCarrierFacingPin?: boolean
+    customNet?: boolean
   } = {},
 ): InputProblem => {
   const main = opts.customIds ? "sensor_controller" : "U1"
@@ -24,6 +27,7 @@ const makeRailCarrierProblem = (
   const lowerPassive = opts.customIds ? "pullup_lower" : "R2"
   const carrierA = opts.customIds ? "selectable_bridge_a" : "SJ1"
   const carrierB = opts.customIds ? "selectable_bridge_b" : "SJ2"
+  const railNet = opts.customNet ? "pullup_bus" : "RAIL"
   const lowerCarrier = opts.differentCarriers ? carrierB : carrierA
   const carrierPins =
     opts.ambiguousCarrierBranch || opts.multipleRailPins
@@ -69,7 +73,9 @@ const makeRailCarrierProblem = (
           availableRotations: [0, 90, 180, 270],
         },
       }),
-      ...(opts.ambiguousCarrierBranch && {
+      ...((opts.ambiguousCarrierBranch ||
+        opts.branchedMainFacingPin ||
+        opts.branchedCarrierFacingPin) && {
         branch_load: {
           chipId: "branch_load",
           pins: ["branch_load.1", "branch_load.2"],
@@ -158,7 +164,9 @@ const makeRailCarrierProblem = (
           offset: { x: 0.3, y: 0 },
         },
       }),
-      ...(opts.ambiguousCarrierBranch && {
+      ...((opts.ambiguousCarrierBranch ||
+        opts.branchedMainFacingPin ||
+        opts.branchedCarrierFacingPin) && {
         "branch_load.1": {
           pinId: "branch_load.1",
           side: "y+",
@@ -172,7 +180,7 @@ const makeRailCarrierProblem = (
       }),
     },
     netMap: {
-      RAIL: { netId: "RAIL" },
+      [railNet]: { netId: railNet },
       ...(opts.multipleRailPins && { OTHER_RAIL: { netId: "OTHER_RAIL" } }),
     },
     pinStrongConnMap: {
@@ -183,10 +191,16 @@ const makeRailCarrierProblem = (
       ...(opts.ambiguousCarrierBranch && {
         [`${carrierA}.4-branch_load.1`]: true,
       }),
+      ...(opts.branchedMainFacingPin && {
+        [`${upperPassive}.1-branch_load.1`]: true,
+      }),
+      ...(opts.branchedCarrierFacingPin && {
+        [`${upperPassive}.2-branch_load.1`]: true,
+      }),
     },
     netConnMap: {
-      [`${carrierA}.2-RAIL`]: true,
-      ...(opts.differentCarriers && { [`${carrierB}.2-RAIL`]: true }),
+      [`${carrierA}.2-${railNet}`]: true,
+      ...(opts.differentCarriers && { [`${carrierB}.2-${railNet}`]: true }),
       ...(opts.multipleRailPins && { [`${carrierA}.4-OTHER_RAIL`]: true }),
     },
     chipGap: 0.4,
@@ -737,12 +751,45 @@ test("lays out SI7021 rail-carrier passives with materially lower off-axis error
 
 test("detects rail-carrier topology with arbitrary component ids", () => {
   const groups = findSameSidePassiveGroups(
-    makeRailCarrierProblem({ customIds: true }),
+    makeRailCarrierProblem({ customIds: true, customNet: true }),
   )
 
   expect(groups).toHaveLength(1)
   expect(groups[0]!.railCarrier?.carrierChipId).toBe("selectable_bridge_a")
   expect(groups[0]!.passiveChipIds).toEqual(["pullup_lower", "pullup_upper"])
+})
+
+test("declines rail-carrier topology when a resistor main-facing pin is branched", () => {
+  expect(
+    findSameSidePassiveGroups(
+      makeRailCarrierProblem({ branchedMainFacingPin: true }),
+    ),
+  ).toHaveLength(0)
+  expect(
+    findSameSidePassiveGroups(
+      makeRailCarrierProblem({
+        branchedMainFacingPin: true,
+        customIds: true,
+      }),
+    ),
+  ).toHaveLength(0)
+
+  const renamedOrderVariant = makeRailCarrierProblem({
+    branchedMainFacingPin: true,
+    customIds: true,
+  })
+  renamedOrderVariant.pinStrongConnMap = Object.fromEntries(
+    Object.entries(renamedOrderVariant.pinStrongConnMap).reverse(),
+  )
+  expect(findSameSidePassiveGroups(renamedOrderVariant)).toHaveLength(0)
+})
+
+test("declines rail-carrier topology when a resistor carrier-facing pin is branched", () => {
+  expect(
+    findSameSidePassiveGroups(
+      makeRailCarrierProblem({ branchedCarrierFacingPin: true }),
+    ),
+  ).toHaveLength(0)
 })
 
 test("detects four-passive rail-carrier topology without a pin-count ceiling", () => {
