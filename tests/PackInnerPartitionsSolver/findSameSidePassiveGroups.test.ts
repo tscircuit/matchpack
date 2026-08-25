@@ -17,6 +17,8 @@ const makeRailCarrierProblem = (
     fixedCarrier?: boolean
     fixedPassive?: boolean
     fixedMain?: boolean
+    fixedMainPosition?: { x: number; y: number }
+    fixedMainRotation?: 0 | 90 | 180 | 270
     branchedMainFacingPin?: boolean
     branchedCarrierFacingPin?: boolean
     customNet?: boolean
@@ -40,8 +42,13 @@ const makeRailCarrierProblem = (
         chipId: main,
         pins: [`${main}.1`, `${main}.2`, `${main}.3`, `${main}.4`],
         size: { x: 1.2, y: 0.8 },
-        availableRotations: [0, 90, 180, 270],
-        ...(opts.fixedMain && { fixedPosition: { x: 0, y: 0 } }),
+        availableRotations:
+          opts.fixedMainRotation !== undefined
+            ? [opts.fixedMainRotation]
+            : [0, 90, 180, 270],
+        ...(opts.fixedMain && {
+          fixedPosition: opts.fixedMainPosition ?? { x: 0, y: 0 },
+        }),
       },
       [upperPassive]: {
         chipId: upperPassive,
@@ -759,6 +766,66 @@ test("detects rail-carrier topology with arbitrary component ids", () => {
   expect(groups[0]!.passiveChipIds).toEqual(["pullup_lower", "pullup_upper"])
 })
 
+test("detects rail-carrier topology around a fixed main chip", () => {
+  const groups = findSameSidePassiveGroups(
+    makeRailCarrierProblem({ fixedMain: true }),
+  )
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.mainChipId).toBe("U1")
+  expect(groups[0]!.railCarrier?.carrierChipId).toBe("SJ1")
+  expect(groups[0]!.passiveChipIds).toEqual(["R2", "R1"])
+})
+
+test("reflows rail-carrier passives around fixed main chips without moving them", () => {
+  const cases = [
+    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 0 },
+    { fixedMainPosition: { x: 10, y: 5 }, fixedMainRotation: 0 },
+    { fixedMainPosition: { x: -7, y: -4 }, fixedMainRotation: 0 },
+    { fixedMainPosition: { x: 100, y: -80 }, fixedMainRotation: 0 },
+    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 90 },
+    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 180 },
+    { fixedMainPosition: { x: 0, y: 0 }, fixedMainRotation: 270 },
+  ] as const
+
+  for (const testCase of cases) {
+    const inputProblem = makeRailCarrierProblem({
+      fixedMain: true,
+      fixedMainPosition: testCase.fixedMainPosition,
+      fixedMainRotation: testCase.fixedMainRotation,
+    })
+    const solver = new LayoutPipelineSolver(inputProblem)
+    solver.solve()
+    const layout = solver.getOutputLayout()
+
+    expect(
+      solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
+    ).toBe("ParallelAlignedPassiveSolver")
+    expectPlacementToEqual(layout.chipPlacements.U1!, {
+      ...testCase.fixedMainPosition,
+      ccwRotationDegrees: testCase.fixedMainRotation,
+    })
+    expect(solver.checkForOverlaps(layout)).toHaveLength(0)
+    for (const { distance } of getDistancesFromMovedGroup(
+      inputProblem,
+      layout,
+    )) {
+      expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
+    }
+  }
+})
+
+test("uses fixed main-chip rotation when ordering rail-carrier passives", () => {
+  const groups = findSameSidePassiveGroups(
+    makeRailCarrierProblem({ fixedMain: true, fixedMainRotation: 90 }),
+  )
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.side).toBe("y+")
+  expect(groups[0]!.passiveChipIds).toEqual(["R1", "R2"])
+  expect(groups[0]!.mainChipPinIds).toEqual(["U1.4", "U1.3"])
+})
+
 test("declines rail-carrier topology when a resistor main-facing pin is branched", () => {
   expect(
     findSameSidePassiveGroups(
@@ -792,6 +859,17 @@ test("declines rail-carrier topology when a resistor carrier-facing pin is branc
   ).toHaveLength(0)
 })
 
+test("declines fixed-main rail-carrier topology when a resistor pin is branched", () => {
+  expect(
+    findSameSidePassiveGroups(
+      makeRailCarrierProblem({
+        fixedMain: true,
+        branchedMainFacingPin: true,
+      }),
+    ),
+  ).toHaveLength(0)
+})
+
 test("detects four-passive rail-carrier topology without a pin-count ceiling", () => {
   const groups = findSameSidePassiveGroups(
     makeMultiPassiveRailCarrierProblem({ passiveCount: 4 }),
@@ -818,6 +896,14 @@ test("declines symmetric mirrored rail-carrier topology", () => {
   expect(groups).toHaveLength(0)
 })
 
+test("declines mirrored rail-carrier topology when mirrored endpoints are fixed", () => {
+  const problem = makeMirroredRailCarrierProblem()
+  problem.chipMap.A!.fixedPosition = { x: 0, y: 0 }
+  problem.chipMap.B!.fixedPosition = { x: 4, y: 0 }
+
+  expect(findSameSidePassiveGroups(problem)).toHaveLength(0)
+})
+
 test("keeps dense rail-carrier passives at least chipGap apart", () => {
   const inputProblem = makeDenseRailCarrierGapProblem()
   const solver = new LayoutPipelineSolver(inputProblem)
@@ -832,6 +918,26 @@ test("keeps dense rail-carrier passives at least chipGap apart", () => {
   expect(getBoundsDistance(r1Bounds, r2Bounds)).toBeGreaterThanOrEqual(
     inputProblem.chipGap - 1e-6,
   )
+})
+
+test("keeps dense fixed-main rail-carrier passives at least chipGap apart", () => {
+  const inputProblem = makeDenseRailCarrierGapProblem()
+  inputProblem.chipMap.U1!.fixedPosition = { x: 0, y: 0 }
+  const solver = new LayoutPipelineSolver(inputProblem)
+  solver.solve()
+  const layout = solver.getOutputLayout()
+
+  expect(
+    solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
+  ).toBe("ParallelAlignedPassiveSolver")
+  expectPlacementToEqual(layout.chipPlacements.U1!, {
+    x: 0,
+    y: 0,
+    ccwRotationDegrees: 0,
+  })
+  for (const { distance } of getDistancesFromMovedGroup(inputProblem, layout)) {
+    expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
+  }
 })
 
 test("rejects rail-carrier reflow that would violate chipGap to an unrelated obstacle", () => {
@@ -861,6 +967,22 @@ test("rejects rail-carrier reflow that would violate chipGap to an unrelated obs
 
   const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
   for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
+  }
+})
+
+test("fixed-main obstacle fallback leaves the main and rail group atomically packed", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierObstacleProblem({
+    targetChipId: "R2",
+    clearance: 0.1,
+  })
+  inputProblem.chipMap.U1!.fixedPosition = { x: 0, y: 0 }
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  for (const chipId of ["U1", "R1", "R2", "SJ1"]) {
     expectPlacementToEqual(
       layout.chipPlacements[chipId]!,
       baseLayout.chipPlacements[chipId]!,
@@ -1019,11 +1141,21 @@ test("declines rail-carrier topology when the carrier is fixed", () => {
   expect(
     findSameSidePassiveGroups(makeRailCarrierProblem({ fixedCarrier: true })),
   ).toHaveLength(0)
+  expect(
+    findSameSidePassiveGroups(
+      makeRailCarrierProblem({ fixedMain: true, fixedCarrier: true }),
+    ),
+  ).toHaveLength(0)
 })
 
 test("declines rail-carrier topology when a passive is fixed", () => {
   expect(
     findSameSidePassiveGroups(makeRailCarrierProblem({ fixedPassive: true })),
+  ).toHaveLength(0)
+  expect(
+    findSameSidePassiveGroups(
+      makeRailCarrierProblem({ fixedMain: true, fixedPassive: true }),
+    ),
   ).toHaveLength(0)
 })
 
