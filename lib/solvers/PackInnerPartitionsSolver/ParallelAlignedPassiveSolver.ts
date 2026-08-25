@@ -227,7 +227,7 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       })
     }
 
-    const carrierCandidate = this.placeRailCarrier({
+    const carrierCandidates = this.getRailCarrierPlacementCandidates({
       candidatePlacements,
       carrierChipId: railCarrier.carrierChipId,
       carrierPinIdsByPassiveChipId: railCarrier.carrierPinIdsByPassiveChipId,
@@ -238,26 +238,33 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       outwardAxis,
       alignAxis,
     })
-    if (!carrierCandidate) return
-    candidatePlacements[railCarrier.carrierChipId] = carrierCandidate
+    if (carrierCandidates.length === 0) return
 
     const movedChipIds = [
       ...passiveGroup.passiveChipIds,
       railCarrier.carrierChipId,
     ]
-    if (
-      this.hasChipGapViolationAfterMove(
-        candidatePlacements,
-        placements,
-        movedChipIds,
-        gap,
-      )
-    ) {
-      return
-    }
 
-    for (const chipId of movedChipIds) {
-      placements[chipId] = candidatePlacements[chipId]!
+    for (const carrierCandidate of carrierCandidates) {
+      const completeCandidatePlacements = {
+        ...candidatePlacements,
+        [railCarrier.carrierChipId]: carrierCandidate,
+      }
+      if (
+        this.hasChipGapViolationAfterMove(
+          completeCandidatePlacements,
+          placements,
+          movedChipIds,
+          gap,
+        )
+      ) {
+        continue
+      }
+
+      for (const chipId of movedChipIds) {
+        placements[chipId] = completeCandidatePlacements[chipId]!
+      }
+      return
     }
   }
 
@@ -298,7 +305,7 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     }
   }
 
-  private placeRailCarrier({
+  private getRailCarrierPlacementCandidates({
     candidatePlacements,
     carrierChipId,
     carrierPinIdsByPassiveChipId,
@@ -318,10 +325,10 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     baseCarrierPlacement: Placement
     outwardAxis: "x" | "y"
     alignAxis: "x" | "y"
-  }): Placement | null {
+  }): Placement[] {
     const prob = this.partitionInputProblem
     const carrierChip = prob.chipMap[carrierChipId]
-    if (!carrierChip) return null
+    if (!carrierChip) return []
 
     const passiveBounds = getBoundsFromPoints(
       passiveChipIds.flatMap((chipId) => {
@@ -332,12 +339,12 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         ]
       }),
     )
-    if (!passiveBounds) return null
+    if (!passiveBounds) return []
 
     const rotations = carrierChip.availableRotations ?? [
       baseCarrierPlacement.ccwRotationDegrees,
     ]
-    let bestCandidate: { placement: Placement; score: number } | null = null
+    const candidates: Array<{ placement: Placement; score: number }> = []
 
     for (const ccwRotationDegrees of rotations) {
       const offsets = passiveChipIds.map((passiveChipId) => {
@@ -415,12 +422,16 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         placement[outwardAxis] - getBoundsCenter(passiveBounds)[outwardAxis],
       )
       const score = maxAlignmentError * 100 + outwardDistance
-      if (!bestCandidate || score < bestCandidate.score) {
-        bestCandidate = { placement, score }
-      }
+      candidates.push({ placement, score })
     }
 
-    return bestCandidate?.placement ?? null
+    candidates.sort((a, b) => {
+      const scoreDelta = a.score - b.score
+      if (scoreDelta !== 0) return scoreDelta
+      return a.placement.ccwRotationDegrees - b.placement.ccwRotationDegrees
+    })
+
+    return candidates.map((candidate) => candidate.placement)
   }
 
   private movePastEarlierGroupOverlaps({
