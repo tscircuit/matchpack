@@ -120,7 +120,10 @@ export const findSameSidePassiveGroups = (
         if (!otherPinId || stronglyConnectedPinIds.has(otherPinId)) continue
         const netId = getNetForPin(problem, otherPinId)
         if (!netId) continue
-        candidatesByNet.set(netId, [...(candidatesByNet.get(netId) ?? []), chipId])
+        candidatesByNet.set(netId, [
+          ...(candidatesByNet.get(netId) ?? []),
+          chipId,
+        ])
       }
       for (const passiveChipIds of candidatesByNet.values()) {
         if (passiveChipIds.length < MIN_COMMON_NODE_PASSIVE_GROUP_SIZE) continue
@@ -166,7 +169,8 @@ export const findSameSidePassiveGroups = (
   }
   const railCandidates: RailCandidate[] = []
   for (const [chipId, chip] of Object.entries(problem.chipMap)) {
-    if (!chip.isResistor || chip.fixedPosition || chip.pins.length !== 2) continue
+    if (!chip.isResistor || chip.fixedPosition || chip.pins.length !== 2)
+      continue
     const strongs = strongByChip.get(chipId) ?? []
     if (strongs.length !== 2) continue
 
@@ -177,7 +181,12 @@ export const findSameSidePassiveGroups = (
       if (!carrierStrong) continue
       const carrierChip = problem.chipMap[carrierStrong.otherChip]
       if (!carrierChip || carrierChip.fixedPosition) continue
-      if (carrierChip.isResistor || carrierChip.isCapacitor || carrierChip.isCrystal) continue
+      if (
+        carrierChip.isResistor ||
+        carrierChip.isCapacitor ||
+        carrierChip.isCrystal
+      )
+        continue
       if (carrierChip.pins.length < 3) continue
       if (mainStrong.selfPin === carrierStrong.selfPin) continue
 
@@ -214,7 +223,9 @@ export const findSameSidePassiveGroups = (
     if (new Set(list.map((c) => c.carrierPinId)).size !== list.length) continue
     const carrier = problem.chipMap[list[0]!.carrierChipId]!
     const usedCarrierPins = new Set(list.map((c) => c.carrierPinId))
-    const remainingCarrierPins = carrier.pins.filter((p) => !usedCarrierPins.has(p))
+    const remainingCarrierPins = carrier.pins.filter(
+      (p) => !usedCarrierPins.has(p),
+    )
     if (remainingCarrierPins.length !== 1) continue
     if (!getNetForPin(problem, remainingCarrierPins[0]!)) continue
     list.sort((a, b) => a.edgeCoord - b.edgeCoord)
@@ -243,7 +254,11 @@ export const findSameSidePassiveGroups = (
     if (passiveChip.pins.length !== PASSIVE_PIN_COUNT) continue
     const strongs = strongByChip.get(passiveChipId) ?? []
     if (strongs.length !== 1) continue
-    const { selfPin, otherPin: mainChipPinId, otherChip: mainChipId } = strongs[0]!
+    const {
+      selfPin,
+      otherPin: mainChipPinId,
+      otherChip: mainChipId,
+    } = strongs[0]!
     const mainChip = problem.chipMap[mainChipId]
     if (!mainChip || mainChip.pins.length < MAIN_CHIP_MIN_PINS) continue
     const passiveOtherPinId = passiveChip.pins.find((p) => p !== selfPin)
@@ -277,7 +292,10 @@ export const findSameSidePassiveGroups = (
     candidatesByGroup.set(key, list)
   }
 
-  const groups: SameSidePassiveGroup[] = [...commonNodeGroups, ...railCarrierGroups]
+  const groups: SameSidePassiveGroup[] = [
+    ...commonNodeGroups,
+    ...railCarrierGroups,
+  ]
   for (const list of candidatesByGroup.values()) {
     if (list.length < MIN_PASSIVE_GROUP_SIZE) continue
     list.sort((a, b) => a.edgeCoord - b.edgeCoord)
