@@ -669,6 +669,115 @@ const makeRailCarrierObstacleProblem = ({
   }
 }
 
+const makeRailCarrierRotationRetryProblem = ({
+  rotations = [0, 90],
+  carrierSize = { x: 0.3, y: 1.2 },
+  obstaclePosition = { x: 3.925001, y: -0.25 },
+}: {
+  rotations?: Array<0 | 90 | 180 | 270>
+  carrierSize?: { x: number; y: number }
+  obstaclePosition?: { x: number; y: number } | null
+} = {}): {
+  inputProblem: InputProblem
+  baseLayout: OutputLayout
+} => {
+  const inputProblem: InputProblem = {
+    chipMap: {
+      U1: {
+        chipId: "U1",
+        pins: ["U1.1", "U1.2", "U1.3", "U1.4"],
+        size: { x: 1.2, y: 0.8 },
+        availableRotations: [0],
+        fixedPosition: { x: 0, y: 0 },
+      },
+      R1: {
+        chipId: "R1",
+        pins: ["R1.1", "R1.2"],
+        size: { x: 0.5, y: 1 },
+        availableRotations: [0],
+        isResistor: true,
+      },
+      R2: {
+        chipId: "R2",
+        pins: ["R2.1", "R2.2"],
+        size: { x: 0.5, y: 1 },
+        availableRotations: [0],
+        isResistor: true,
+      },
+      SJ1: {
+        chipId: "SJ1",
+        pins: ["SJ1.1", "SJ1.2", "SJ1.RAIL"],
+        size: carrierSize,
+        availableRotations: rotations,
+      },
+      ...(obstaclePosition && {
+        OBS: {
+          chipId: "OBS",
+          pins: [],
+          size: { x: 0.2, y: 0.2 },
+          availableRotations: [0],
+          fixedPosition: obstaclePosition,
+        },
+      }),
+    },
+    chipPinMap: {
+      "U1.1": { pinId: "U1.1", side: "x-", offset: { x: -1, y: 0.2 } },
+      "U1.2": { pinId: "U1.2", side: "x-", offset: { x: -1, y: 0 } },
+      "U1.3": { pinId: "U1.3", side: "x+", offset: { x: 1, y: -0.2 } },
+      "U1.4": { pinId: "U1.4", side: "x+", offset: { x: 1, y: 0.2 } },
+      "R1.1": { pinId: "R1.1", side: "y+", offset: { x: 0, y: 0.5 } },
+      "R1.2": { pinId: "R1.2", side: "y-", offset: { x: 0, y: -0.5 } },
+      "R2.1": { pinId: "R2.1", side: "y+", offset: { x: 0, y: 0.5 } },
+      "R2.2": { pinId: "R2.2", side: "y-", offset: { x: 0, y: -0.5 } },
+      "SJ1.1": {
+        pinId: "SJ1.1",
+        side: "x-",
+        offset: { x: 0.65, y: 0.2 },
+      },
+      "SJ1.2": {
+        pinId: "SJ1.2",
+        side: "x-",
+        offset: { x: 0.65, y: -0.2 },
+      },
+      "SJ1.RAIL": {
+        pinId: "SJ1.RAIL",
+        side: "x+",
+        offset: { x: 0, y: 0 },
+      },
+    },
+    netMap: { RAIL: { netId: "RAIL" } },
+    pinStrongConnMap: {
+      "U1.4-R1.1": true,
+      "U1.3-R2.1": true,
+      "R1.2-SJ1.1": true,
+      "R2.2-SJ1.2": true,
+    },
+    netConnMap: { "SJ1.RAIL-RAIL": true },
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+
+  return {
+    inputProblem,
+    baseLayout: {
+      chipPlacements: {
+        U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+        R1: { x: 7, y: 7, ccwRotationDegrees: 0 },
+        R2: { x: 8, y: 7, ccwRotationDegrees: 0 },
+        SJ1: { x: 9, y: 7, ccwRotationDegrees: 0 },
+        ...(obstaclePosition && {
+          OBS: {
+            x: obstaclePosition.x,
+            y: obstaclePosition.y,
+            ccwRotationDegrees: 0,
+          },
+        }),
+      },
+      groupPlacements: {},
+    },
+  }
+}
+
 const expectPlacementToEqual = (
   actual: Placement,
   expected: Placement,
@@ -1355,6 +1464,64 @@ test("accepted rail-carrier reflow satisfies chipGap for every moved pair", () =
   ])
   for (const { distance } of distances) {
     expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
+  }
+})
+
+test("retries rail-carrier rotations after the preferred candidate violates chipGap", () => {
+  const preferredOnly = makeRailCarrierRotationRetryProblem({
+    rotations: [0],
+  })
+  const preferredOnlyLayout = alignRailCarrierFromPackedLayout(
+    preferredOnly.inputProblem,
+    preferredOnly.baseLayout,
+  )
+  expectPlacementToEqual(
+    preferredOnlyLayout.chipPlacements.SJ1!,
+    preferredOnly.baseLayout.chipPlacements.SJ1!,
+  )
+
+  const { inputProblem, baseLayout } = makeRailCarrierRotationRetryProblem({
+    rotations: [0, 90],
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(90)
+  expect(layout.chipPlacements.SJ1!.x).toBeCloseTo(3.800001)
+  expect(layout.chipPlacements.SJ1!.y).toBeCloseTo(-1.65)
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expect(layout.chipPlacements[chipId]).not.toEqual(
+      baseLayout.chipPlacements[chipId],
+    )
+  }
+  for (const { distance } of getDistancesFromMovedGroup(inputProblem, layout)) {
+    expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
+  }
+})
+
+test("keeps scored rail-carrier rotation order when earlier input rotations are also clear", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierRotationRetryProblem({
+    rotations: [90, 0],
+    obstaclePosition: null,
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(0)
+  expect(layout.chipPlacements.SJ1!.x).toBeCloseTo(3.350001)
+  expect(layout.chipPlacements.SJ1!.y).toBeCloseTo(-1)
+})
+
+test("keeps rail-carrier group packed when every retried rotation violates chipGap", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierRotationRetryProblem({
+    rotations: [0, 90],
+    obstaclePosition: { x: 3.925001, y: -0.95 },
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
   }
 })
 
