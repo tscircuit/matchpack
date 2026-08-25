@@ -433,6 +433,29 @@ const makeDenseRailCarrierGapProblem = (): InputProblem => {
   return problem
 }
 
+const getRailCarrierGroups = (inputProblem: InputProblem) =>
+  findSameSidePassiveGroups(inputProblem).filter((group) => group.railCarrier)
+
+const replaceStrongConnection = (
+  inputProblem: InputProblem,
+  from: `${string}-${string}`,
+  to: `${string}-${string}`,
+): void => {
+  delete inputProblem.pinStrongConnMap[from]
+  inputProblem.pinStrongConnMap[to] = true
+}
+
+const makeRailCarrierContractProblem = (
+  mutate?: (inputProblem: InputProblem) => void,
+): InputProblem => {
+  const inputProblem = makeMultiPassiveRailCarrierProblem({ passiveCount: 3 })
+  mutate?.(inputProblem)
+  return inputProblem
+}
+
+const reorderRecord = <T>(record: Record<string, T>): Record<string, T> =>
+  Object.fromEntries(Object.entries(record).reverse())
+
 const makeRotatedPackedMainRailCarrierProblem = (): InputProblem => {
   const passiveIds = ["R1", "R2", "R3", "R4"]
   const chipMap: InputProblem["chipMap"] = {
@@ -868,6 +891,299 @@ test("declines fixed-main rail-carrier topology when a resistor pin is branched"
       }),
     ),
   ).toHaveLength(0)
+})
+
+test("enforces rail-carrier identity and cardinality invariants", () => {
+  const cases: Array<{
+    name: string
+    mutate: (inputProblem: InputProblem) => void
+    expectedRailGroups: number
+  }> = [
+    {
+      name: "duplicate main pin",
+      mutate: (inputProblem) => {
+        replaceStrongConnection(inputProblem, "Uwide.2-R2.1", "Uwide.1-R2.1")
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "all resistors share one main pin",
+      mutate: (inputProblem) => {
+        replaceStrongConnection(inputProblem, "Uwide.2-R2.1", "Uwide.1-R2.1")
+        replaceStrongConnection(inputProblem, "Uwide.3-R3.1", "Uwide.1-R3.1")
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "duplicate carrier pin",
+      mutate: (inputProblem) => {
+        replaceStrongConnection(inputProblem, "R2.2-Jwide.2", "R2.2-Jwide.1")
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "all resistors share one carrier pin",
+      mutate: (inputProblem) => {
+        replaceStrongConnection(inputProblem, "R2.2-Jwide.2", "R2.2-Jwide.1")
+        replaceStrongConnection(inputProblem, "R3.2-Jwide.3", "R3.2-Jwide.1")
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "different main chip",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.Uother = {
+          chipId: "Uother",
+          pins: ["Uother.1", "Uother.2", "Uother.3", "Uother.4"],
+          size: { x: 1.6, y: 1.6 },
+          availableRotations: [0, 90, 180, 270],
+        }
+        inputProblem.chipPinMap["Uother.1"] = {
+          pinId: "Uother.1",
+          side: "x+",
+          offset: { x: 1, y: 0 },
+        }
+        replaceStrongConnection(inputProblem, "Uwide.3-R3.1", "Uother.1-R3.1")
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "different carrier chip",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.Jother = {
+          chipId: "Jother",
+          pins: ["Jother.1", "Jother.RAIL"],
+          size: { x: 0.8, y: 0.8 },
+          availableRotations: [0, 90, 180, 270],
+        }
+        inputProblem.chipPinMap["Jother.1"] = {
+          pinId: "Jother.1",
+          side: "x-",
+          offset: { x: -0.4, y: 0 },
+        }
+        inputProblem.chipPinMap["Jother.RAIL"] = {
+          pinId: "Jother.RAIL",
+          side: "y+",
+          offset: { x: 0, y: 0.4 },
+        }
+        inputProblem.netConnMap["Jother.RAIL-RAIL"] = true
+        replaceStrongConnection(inputProblem, "R3.2-Jwide.3", "R3.2-Jother.1")
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "same main and carrier chip",
+      mutate: (inputProblem) => {
+        replaceStrongConnection(inputProblem, "R1.2-Jwide.1", "R1.2-Uwide.4")
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "main-facing branch",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.TP1 = {
+          chipId: "TP1",
+          pins: ["TP1.1"],
+          size: { x: 0.2, y: 0.2 },
+          availableRotations: [0],
+        }
+        inputProblem.chipPinMap["TP1.1"] = {
+          pinId: "TP1.1",
+          side: "x+",
+          offset: { x: 0.1, y: 0 },
+        }
+        inputProblem.pinStrongConnMap["R1.1-TP1.1"] = true
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "carrier-facing branch",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.TP1 = {
+          chipId: "TP1",
+          pins: ["TP1.1"],
+          size: { x: 0.2, y: 0.2 },
+          availableRotations: [0],
+        }
+        inputProblem.chipPinMap["TP1.1"] = {
+          pinId: "TP1.1",
+          side: "x+",
+          offset: { x: 0.1, y: 0 },
+        }
+        inputProblem.pinStrongConnMap["R1.2-TP1.1"] = true
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "carrier claimed pin branch",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.TP1 = {
+          chipId: "TP1",
+          pins: ["TP1.1"],
+          size: { x: 0.2, y: 0.2 },
+          availableRotations: [0],
+        }
+        inputProblem.chipPinMap["TP1.1"] = {
+          pinId: "TP1.1",
+          side: "x+",
+          offset: { x: 0.1, y: 0 },
+        }
+        inputProblem.pinStrongConnMap["Jwide.1-TP1.1"] = true
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "extra unexplained carrier pin",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.Jwide!.pins.push("Jwide.NC")
+        inputProblem.chipPinMap["Jwide.NC"] = {
+          pinId: "Jwide.NC",
+          side: "y-",
+          offset: { x: 0, y: -0.4 },
+        }
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "zero rail pins",
+      mutate: (inputProblem) => {
+        inputProblem.netConnMap = {}
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "multiple rail pins",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.Jwide!.pins.push("Jwide.RAIL2")
+        inputProblem.chipPinMap["Jwide.RAIL2"] = {
+          pinId: "Jwide.RAIL2",
+          side: "y+",
+          offset: { x: 0.2, y: 0.4 },
+        }
+        inputProblem.netMap.RAIL2 = { netId: "RAIL2" }
+        inputProblem.netConnMap["Jwide.RAIL2-RAIL2"] = true
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "rail pin with ambiguous net membership",
+      mutate: (inputProblem) => {
+        inputProblem.netMap.OTHER = { netId: "OTHER" }
+        inputProblem.netConnMap["Jwide.RAIL-OTHER"] = true
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "partial carrier accounting",
+      mutate: (inputProblem) => {
+        delete inputProblem.pinStrongConnMap["R3.2-Jwide.3"]
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "mixed main-chip side",
+      mutate: (inputProblem) => {
+        inputProblem.chipPinMap["Uwide.3"] = {
+          pinId: "Uwide.3",
+          side: "x-",
+          offset: { x: -1, y: 0.2 },
+        }
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "same-side distinct pins with identical edge coordinate",
+      mutate: (inputProblem) => {
+        inputProblem.chipPinMap["Uwide.2"] = {
+          ...inputProblem.chipPinMap["Uwide.2"]!,
+          offset: { ...inputProblem.chipPinMap["Uwide.1"]!.offset },
+        }
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "fixed resistor",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.R1!.fixedPosition = { x: 2, y: 1 }
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "fixed carrier",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.Jwide!.fixedPosition = { x: 3, y: 0 }
+      },
+      expectedRailGroups: 0,
+    },
+    {
+      name: "fixed main remains valid",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap.Uwide!.fixedPosition = { x: 0, y: 0 }
+      },
+      expectedRailGroups: 1,
+    },
+    {
+      name: "reordered maps remain valid",
+      mutate: (inputProblem) => {
+        inputProblem.chipMap = reorderRecord(inputProblem.chipMap)
+        inputProblem.chipPinMap = reorderRecord(inputProblem.chipPinMap)
+        inputProblem.pinStrongConnMap = reorderRecord(
+          inputProblem.pinStrongConnMap,
+        )
+        inputProblem.netConnMap = reorderRecord(inputProblem.netConnMap)
+      },
+      expectedRailGroups: 1,
+    },
+  ]
+
+  for (const testCase of cases) {
+    const groups = getRailCarrierGroups(
+      makeRailCarrierContractProblem(testCase.mutate),
+    )
+    expect(groups, testCase.name).toHaveLength(testCase.expectedRailGroups)
+    if (testCase.expectedRailGroups === 1) {
+      expect(groups[0]!.passiveChipIds, testCase.name).toEqual([
+        "R1",
+        "R2",
+        "R3",
+      ])
+    }
+  }
+})
+
+test("declines mirrored or overlapping rail-carrier membership ambiguity", () => {
+  expect(getRailCarrierGroups(makeMirroredRailCarrierProblem())).toHaveLength(0)
+
+  const overlappingCarrierProblem = makeRailCarrierContractProblem(
+    (inputProblem) => {
+      inputProblem.chipMap.Jother = {
+        chipId: "Jother",
+        pins: ["Jother.1", "Jother.2", "Jother.RAIL"],
+        size: { x: 0.8, y: 0.8 },
+        availableRotations: [0, 90, 180, 270],
+      }
+      inputProblem.chipPinMap["Jother.1"] = {
+        pinId: "Jother.1",
+        side: "x-",
+        offset: { x: -0.4, y: -0.1 },
+      }
+      inputProblem.chipPinMap["Jother.2"] = {
+        pinId: "Jother.2",
+        side: "x-",
+        offset: { x: -0.4, y: 0.1 },
+      }
+      inputProblem.chipPinMap["Jother.RAIL"] = {
+        pinId: "Jother.RAIL",
+        side: "y+",
+        offset: { x: 0, y: 0.4 },
+      }
+      inputProblem.netConnMap["Jother.RAIL-RAIL"] = true
+      inputProblem.pinStrongConnMap["R2.2-Jother.1"] = true
+      replaceStrongConnection(inputProblem, "R3.2-Jwide.3", "R3.2-Jother.2")
+    },
+  )
+
+  expect(getRailCarrierGroups(overlappingCarrierProblem)).toHaveLength(0)
 })
 
 test("detects four-passive rail-carrier topology without a pin-count ceiling", () => {
