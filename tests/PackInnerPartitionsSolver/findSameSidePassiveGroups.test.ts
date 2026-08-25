@@ -918,6 +918,49 @@ test("detects rail-carrier topology after record reordering", () => {
   expect(groups[0]!.passiveChipIds).toEqual(["R2", "R1"])
 })
 
+test("keeps carrier pins paired with passives after edge-order sorting", () => {
+  const reversedEnumeration = makeRailCarrierProblem()
+  const edgeOrdered = makeRailCarrierProblem()
+  edgeOrdered.chipMap = {
+    U1: edgeOrdered.chipMap.U1!,
+    R2: edgeOrdered.chipMap.R2!,
+    R1: edgeOrdered.chipMap.R1!,
+    SJ1: edgeOrdered.chipMap.SJ1!,
+  }
+
+  const reversedGroups = findSameSidePassiveGroups(reversedEnumeration)
+  const edgeOrderedGroups = findSameSidePassiveGroups(edgeOrdered)
+
+  expect(reversedGroups).toHaveLength(1)
+  expect(edgeOrderedGroups).toHaveLength(1)
+  expect(reversedGroups[0]!.passiveChipIds).toEqual(["R2", "R1"])
+  expect(reversedGroups[0]!.railCarrier?.passiveCarrierPinIds).toEqual([
+    "R2.2",
+    "R1.2",
+  ])
+  expect(reversedGroups[0]!.railCarrier?.carrierPinIds).toEqual([
+    "SJ1.1",
+    "SJ1.3",
+  ])
+  expect(reversedGroups[0]!.railCarrier).toEqual(
+    edgeOrderedGroups[0]!.railCarrier,
+  )
+
+  const reversedLayout = alignRailCarrierFromPackedLayout(
+    reversedEnumeration,
+    makeRailCarrierPackedLayout(),
+  )
+  const edgeOrderedLayout = alignRailCarrierFromPackedLayout(
+    edgeOrdered,
+    makeRailCarrierPackedLayout(),
+  )
+
+  expect(reversedLayout.chipPlacements).toEqual(
+    edgeOrderedLayout.chipPlacements,
+  )
+  expect(reversedLayout.chipPlacements.SJ1?.ccwRotationDegrees).toBe(90)
+})
+
 test("declines unsupported rail-carrier topology variants", () => {
   const mutateRailCarrierProblem = (
     mutate: (inputProblem: InputProblem) => void,
@@ -1118,7 +1161,7 @@ test("uses the actual packed main rotation for rail-carrier side and order", () 
     layout.chipPlacements.U1!,
   )
 
-  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(0)
+  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(180)
   for (const passiveChipId of ["R1", "R2", "SJ1"]) {
     const bounds = getChipBounds(
       inputProblem,
@@ -1133,7 +1176,7 @@ test("uses the actual packed main rotation for rail-carrier side and order", () 
 
 test("fails closed for reversed or ambiguous carrier pin ordering", () => {
   const reversed = makeRailCarrierProblem()
-  reversed.chipMap.SJ1!.availableRotations = [90]
+  reversed.chipMap.SJ1!.availableRotations = [270]
 
   const ambiguous = makeRailCarrierProblem()
   ambiguous.chipMap.SJ1!.availableRotations = [0, 90]

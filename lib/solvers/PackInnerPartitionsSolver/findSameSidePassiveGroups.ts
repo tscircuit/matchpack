@@ -211,6 +211,7 @@ export const findSameSidePassiveGroups = (
     const carrierChip = problem.chipMap[first.carrierChipId]
     if (!carrierChip || carrierChip.pins.length !== 3) continue
 
+    sortRailCarrierCandidates(candidates)
     const passiveChipIds = candidates.map(
       (candidate) => candidate.passiveChipId,
     )
@@ -249,7 +250,6 @@ export const findSameSidePassiveGroups = (
     )
     if (!carrierPinsAreExclusive || railPins.length !== 1) continue
 
-    sortRailCarrierCandidates(candidates)
     railCarrierGroups.push({
       mainChipId: first.mainChipId,
       side: first.side,
