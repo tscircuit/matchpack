@@ -194,7 +194,6 @@ export const findSameSidePassiveGroups = (
       const mainChip = problem.chipMap[mainChipId]
       const mainPin = problem.chipPinMap[strongToMain.otherPin]
       if (!mainChip || !mainPin) continue
-      if (mainChip.fixedPosition) continue
       if (mainChip.pins.length < MAIN_CHIP_MIN_PINS) continue
       if (
         !hasOnlyExpectedStrongConnection(
