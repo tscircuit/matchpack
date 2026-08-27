@@ -21,10 +21,10 @@ import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputPro
 type Axis = "x" | "y"
 
 type AlignmentCandidate = {
-  resistorChipId: ChipId
-  resistorPinId: PinId
-  peerChipId: ChipId
-  peerPinId: PinId
+  movableChipId: ChipId
+  movablePinId: PinId
+  anchorChipId: ChipId
+  anchorPinId: PinId
   tangentAxis: Axis
   tangentDelta: number
 }
@@ -71,12 +71,16 @@ const getAbsolutePinPosition = ({
 }
 
 /**
- * Final polish pass for a movable two-pin resistor whose pin already faces a
- * connected two-pin peer. The generic packer minimizes the total distance to
- * every net and can leave a small perpendicular offset on a branched net. This
- * pass removes that offset when the move is local and remains collision-free.
+ * Final polish pass for a connected pair of two-pin passives whose pins already
+ * face each other. The generic packer minimizes the total distance to every net
+ * and can leave a small perpendicular offset on a branched net. This pass
+ * removes that offset when the move is local and remains collision-free.
+ *
+ * The resistor is the movable end of the pair and the anchor is another
+ * two-pin passive, such as a diode. Keeping that movement policy narrow avoids
+ * perturbing established layouts for unrelated passive pairs.
  */
-export class AlignTwoPinResistorsSolver extends BaseSolver {
+export class AlignTwoPinPassivesSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
   private pinOwnerMap: Map<PinId, Chip>
   private stronglyConnectedPinsByPinId: ReturnType<
@@ -130,59 +134,62 @@ export class AlignTwoPinResistorsSolver extends BaseSolver {
   }
 
   private getCandidate(
-    resistor: Chip,
-    resistorPinId: PinId,
-    peerChip: Chip,
-    peerPinId: PinId,
+    movableChip: Chip,
+    movablePinId: PinId,
+    anchorChip: Chip,
+    anchorPinId: PinId,
     chipPlacements: Record<ChipId, Placement>,
   ): AlignmentCandidate | null {
-    const resistorPlacement = chipPlacements[resistor.chipId]
-    const peerPlacement = chipPlacements[peerChip.chipId]
-    const resistorPin = this.params.inputProblem.chipPinMap[resistorPinId]
-    const peerPin = this.params.inputProblem.chipPinMap[peerPinId]
-    if (!resistorPlacement || !peerPlacement || !resistorPin || !peerPin) {
+    const movablePlacement = chipPlacements[movableChip.chipId]
+    const anchorPlacement = chipPlacements[anchorChip.chipId]
+    const movablePin = this.params.inputProblem.chipPinMap[movablePinId]
+    const anchorPin = this.params.inputProblem.chipPinMap[anchorPinId]
+    if (!movablePlacement || !anchorPlacement || !movablePin || !anchorPin) {
       return null
     }
 
-    const resistorSide = rotateSide(
-      resistorPin.side,
-      resistorPlacement.ccwRotationDegrees,
+    const movableSide = rotateSide(
+      movablePin.side,
+      movablePlacement.ccwRotationDegrees,
     )
-    const peerSide = rotateSide(peerPin.side, peerPlacement.ccwRotationDegrees)
-    if (OPPOSITE_SIDE[resistorSide] !== peerSide) return null
+    const anchorSide = rotateSide(
+      anchorPin.side,
+      anchorPlacement.ccwRotationDegrees,
+    )
+    if (OPPOSITE_SIDE[movableSide] !== anchorSide) return null
 
-    const resistorPinPosition = getAbsolutePinPosition({
+    const movablePinPosition = getAbsolutePinPosition({
       inputProblem: this.params.inputProblem,
-      pinId: resistorPinId,
-      placement: resistorPlacement,
+      pinId: movablePinId,
+      placement: movablePlacement,
     })
-    const peerPinPosition = getAbsolutePinPosition({
+    const anchorPinPosition = getAbsolutePinPosition({
       inputProblem: this.params.inputProblem,
-      pinId: peerPinId,
-      placement: peerPlacement,
+      pinId: anchorPinId,
+      placement: anchorPlacement,
     })
-    const sideVector = SIDE_VECTORS[resistorSide]
-    const peerDirection = {
-      x: peerPinPosition.x - resistorPinPosition.x,
-      y: peerPinPosition.y - resistorPinPosition.y,
+    const sideVector = SIDE_VECTORS[movableSide]
+    const anchorDirection = {
+      x: anchorPinPosition.x - movablePinPosition.x,
+      y: anchorPinPosition.y - movablePinPosition.y,
     }
     const outwardDistance =
-      peerDirection.x * sideVector.x + peerDirection.y * sideVector.y
+      anchorDirection.x * sideVector.x + anchorDirection.y * sideVector.y
     if (outwardDistance <= ALIGNMENT_EPSILON) return null
 
-    const tangentAxis: Axis = resistorSide.startsWith("x") ? "y" : "x"
+    const tangentAxis: Axis = movableSide.startsWith("x") ? "y" : "x"
     const tangentDelta =
-      peerPinPosition[tangentAxis] - resistorPinPosition[tangentAxis]
+      anchorPinPosition[tangentAxis] - movablePinPosition[tangentAxis]
     if (Math.abs(tangentDelta) <= ALIGNMENT_EPSILON) return null
     if (Math.abs(tangentDelta) > this.params.inputProblem.partitionGap) {
       return null
     }
 
     return {
-      resistorChipId: resistor.chipId,
-      resistorPinId,
-      peerChipId: peerChip.chipId,
-      peerPinId,
+      movableChipId: movableChip.chipId,
+      movablePinId,
+      anchorChipId: anchorChip.chipId,
+      anchorPinId,
       tangentAxis,
       tangentDelta,
     }
@@ -192,16 +199,16 @@ export class AlignTwoPinResistorsSolver extends BaseSolver {
     candidate: AlignmentCandidate,
     chipPlacements: Record<ChipId, Placement>,
   ): boolean {
-    const resistorPlacement = chipPlacements[candidate.resistorChipId]!
+    const movablePlacement = chipPlacements[candidate.movableChipId]!
     for (const [otherChipId, otherPlacement] of Object.entries(
       chipPlacements,
     )) {
-      if (otherChipId === candidate.resistorChipId) continue
+      if (otherChipId === candidate.movableChipId) continue
       if (
         placementsOverlap({
           inputProblem: this.params.inputProblem,
-          chipIdA: candidate.resistorChipId,
-          placementA: resistorPlacement,
+          chipIdA: candidate.movableChipId,
+          placementA: movablePlacement,
           chipIdB: otherChipId,
           placementB: otherPlacement,
         })
@@ -212,20 +219,20 @@ export class AlignTwoPinResistorsSolver extends BaseSolver {
 
     const segmentStart = getAbsolutePinPosition({
       inputProblem: this.params.inputProblem,
-      pinId: candidate.resistorPinId,
-      placement: resistorPlacement,
+      pinId: candidate.movablePinId,
+      placement: movablePlacement,
     })
     const segmentEnd = getAbsolutePinPosition({
       inputProblem: this.params.inputProblem,
-      pinId: candidate.peerPinId,
-      placement: chipPlacements[candidate.peerChipId]!,
+      pinId: candidate.anchorPinId,
+      placement: chipPlacements[candidate.anchorChipId]!,
     })
     for (const [otherChipId, otherPlacement] of Object.entries(
       chipPlacements,
     )) {
       if (
-        otherChipId === candidate.resistorChipId ||
-        otherChipId === candidate.peerChipId
+        otherChipId === candidate.movableChipId ||
+        otherChipId === candidate.anchorChipId
       ) {
         continue
       }
@@ -240,22 +247,24 @@ export class AlignTwoPinResistorsSolver extends BaseSolver {
     return true
   }
 
-  private alignResistor(
-    resistor: Chip,
+  private alignMovablePassive(
+    movablePassive: Chip,
     chipPlacements: Record<ChipId, Placement>,
   ): void {
     const candidates: AlignmentCandidate[] = []
-    for (const resistorPinId of resistor.pins) {
-      for (const peerPinId of this.getConnectedPinIds(resistorPinId)) {
-        const peerChip = this.pinOwnerMap.get(peerPinId)
-        if (!peerChip || peerChip.chipId === resistor.chipId) continue
-        if (peerChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
-        if (peerChip.isResistor) continue
+    for (const movablePinId of movablePassive.pins) {
+      for (const anchorPinId of this.getConnectedPinIds(movablePinId)) {
+        const anchorPassive = this.pinOwnerMap.get(anchorPinId)
+        if (!anchorPassive || anchorPassive.chipId === movablePassive.chipId) {
+          continue
+        }
+        if (anchorPassive.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+        if (anchorPassive.isResistor || anchorPassive.isCrystal) continue
         const candidate = this.getCandidate(
-          resistor,
-          resistorPinId,
-          peerChip,
-          peerPinId,
+          movablePassive,
+          movablePinId,
+          anchorPassive,
+          anchorPinId,
           chipPlacements,
         )
         if (candidate) candidates.push(candidate)
@@ -266,7 +275,7 @@ export class AlignTwoPinResistorsSolver extends BaseSolver {
       (a, b) => Math.abs(a.tangentDelta) - Math.abs(b.tangentDelta),
     )
     for (const candidate of candidates) {
-      const placement = chipPlacements[resistor.chipId]!
+      const placement = chipPlacements[movablePassive.chipId]!
       const previousTangentPosition = placement[candidate.tangentAxis]
       placement[candidate.tangentAxis] += candidate.tangentDelta
       if (this.candidateIsClear(candidate, chipPlacements)) return
@@ -276,11 +285,19 @@ export class AlignTwoPinResistorsSolver extends BaseSolver {
 
   override _step() {
     const outputLayout = structuredClone(this.params.inputLayout)
-    for (const resistor of Object.values(this.params.inputProblem.chipMap)) {
-      if (!resistor.isResistor || resistor.fixedPosition) continue
-      if (resistor.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
-      if (!outputLayout.chipPlacements[resistor.chipId]) continue
-      this.alignResistor(resistor, outputLayout.chipPlacements)
+    for (const movablePassive of Object.values(
+      this.params.inputProblem.chipMap,
+    )) {
+      if (
+        !movablePassive.isResistor ||
+        movablePassive.isCrystal ||
+        movablePassive.fixedPosition
+      ) {
+        continue
+      }
+      if (movablePassive.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+      if (!outputLayout.chipPlacements[movablePassive.chipId]) continue
+      this.alignMovablePassive(movablePassive, outputLayout.chipPlacements)
     }
     this.outputLayout = outputLayout
     this.solved = true

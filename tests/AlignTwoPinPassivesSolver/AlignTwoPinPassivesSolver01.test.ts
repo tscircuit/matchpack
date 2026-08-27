@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { AlignTwoPinResistorsSolver } from "lib/solvers/AlignTwoPinResistorsSolver/AlignTwoPinResistorsSolver"
+import { AlignTwoPinPassivesSolver } from "lib/solvers/AlignTwoPinPassivesSolver/AlignTwoPinPassivesSolver"
 import type { InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 import inputProblemJson from "../assets/repro-rectifier-series-resistor-alignment.input.json"
@@ -15,9 +15,28 @@ const packedLayout: OutputLayout = {
   groupPlacements: {},
 }
 
-test("aligns a nearby resistor with the connected pin facing it", () => {
-  const solver = new AlignTwoPinResistorsSolver({
+test("aligns nearby two-pin passives whose connected pins face each other", () => {
+  const solver = new AlignTwoPinPassivesSolver({
     inputProblem: structuredClone(inputProblemJson) as InputProblem,
+    inputLayout: structuredClone(packedLayout),
+  })
+  solver.solve()
+
+  expect(solver.outputLayout!.chipPlacements.R_LIMIT).toEqual({
+    x: 2.03,
+    y: 0,
+    ccwRotationDegrees: 0,
+  })
+})
+
+test("selects the same movable passive regardless of chip map order", () => {
+  const inputProblem = structuredClone(inputProblemJson) as InputProblem
+  inputProblem.chipMap = Object.fromEntries(
+    Object.entries(inputProblem.chipMap).reverse(),
+  )
+
+  const solver = new AlignTwoPinPassivesSolver({
+    inputProblem,
     inputLayout: structuredClone(packedLayout),
   })
   solver.solve()
@@ -54,7 +73,7 @@ test("aligns vertical facing pins on their shared x coordinate", () => {
     groupPlacements: {},
   }
 
-  const solver = new AlignTwoPinResistorsSolver({
+  const solver = new AlignTwoPinPassivesSolver({
     inputProblem,
     inputLayout,
   })
@@ -81,7 +100,7 @@ test("keeps the packed position when alignment would violate clearance", () => {
     ccwRotationDegrees: 0,
   }
 
-  const solver = new AlignTwoPinResistorsSolver({
+  const solver = new AlignTwoPinPassivesSolver({
     inputProblem,
     inputLayout,
   })
@@ -92,11 +111,44 @@ test("keeps the packed position when alignment would violate clearance", () => {
   )
 })
 
-test("does not move an explicitly positioned resistor", () => {
+test("does not move an explicitly positioned movable passive", () => {
   const inputProblem = structuredClone(inputProblemJson) as InputProblem
   inputProblem.chipMap.R_LIMIT!.fixedPosition = { x: 2.03, y: -0.98 }
 
-  const solver = new AlignTwoPinResistorsSolver({
+  const solver = new AlignTwoPinPassivesSolver({
+    inputProblem,
+    inputLayout: structuredClone(packedLayout),
+  })
+  solver.solve()
+
+  expect(solver.outputLayout!.chipPlacements.R_LIMIT).toEqual(
+    packedLayout.chipPlacements.R_LIMIT!,
+  )
+  expect(solver.outputLayout!.chipPlacements.D_RECT1).toEqual(
+    packedLayout.chipPlacements.D_RECT1!,
+  )
+})
+
+test("does not disturb a dedicated crystal layout", () => {
+  const inputProblem = structuredClone(inputProblemJson) as InputProblem
+  inputProblem.chipMap.D_RECT1!.isCrystal = true
+
+  const solver = new AlignTwoPinPassivesSolver({
+    inputProblem,
+    inputLayout: structuredClone(packedLayout),
+  })
+  solver.solve()
+
+  expect(solver.outputLayout!.chipPlacements.R_LIMIT).toEqual(
+    packedLayout.chipPlacements.R_LIMIT!,
+  )
+})
+
+test("does not perturb a resistor-to-resistor pair", () => {
+  const inputProblem = structuredClone(inputProblemJson) as InputProblem
+  inputProblem.chipMap.D_RECT1!.isResistor = true
+
+  const solver = new AlignTwoPinPassivesSolver({
     inputProblem,
     inputLayout: structuredClone(packedLayout),
   })
