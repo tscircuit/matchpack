@@ -24,6 +24,7 @@ import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsS
 import { AlignChipConnectedRailLoadsSolver } from "../AlignChipConnectedRailLoadsSolver/AlignChipConnectedRailLoadsSolver"
 import { GroundedLoadPairSolver } from "../GroundedLoadPairSolver/GroundedLoadPairSolver"
 import { PlaceRailConnectedLoadsSolver } from "../PlaceRailConnectedLoadsSolver/PlaceRailConnectedLoadsSolver"
+import { AlignTwoPinResistorsSolver } from "../AlignTwoPinResistorsSolver/AlignTwoPinResistorsSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -71,6 +72,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
   placeRailConnectedLoadsSolver?: PlaceRailConnectedLoadsSolver
   alignChipConnectedRailLoadsSolver?: AlignChipConnectedRailLoadsSolver
+  alignTwoPinResistorsSolver?: AlignTwoPinResistorsSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -150,12 +152,24 @@ export class LayoutPipelineSolver extends BaseSolver {
       },
     ),
     definePipelineStep(
+      "alignTwoPinResistorsSolver",
+      AlignTwoPinResistorsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          inputLayout: this.partitionPackingSolver!.finalLayout!,
+        },
+      ],
+    ),
+    definePipelineStep(
       "alignPowerGroundRowsSolver",
       AlignPowerGroundRowsSolver,
       () => [
         {
           inputProblem: this.inputProblem,
-          inputLayout: this.partitionPackingSolver!.finalLayout!,
+          inputLayout:
+            this.alignTwoPinResistorsSolver!.outputLayout ??
+            this.partitionPackingSolver!.finalLayout!,
         },
       ],
     ),
@@ -301,6 +315,7 @@ export class LayoutPipelineSolver extends BaseSolver {
     const groundedLoadPairViz = this.groundedLoadPairSolver?.visualize()
     const alignPowerGroundRowsViz = this.alignPowerGroundRowsSolver?.visualize()
     const alignTestPointsViz = this.alignTestPointsSolver?.visualize()
+    const alignTwoPinResistorsViz = this.alignTwoPinResistorsSolver?.visualize()
     const placeNetOnlyDecouplingRowsViz =
       this.placeNetOnlyDecouplingRowsSolver?.visualize()
 
@@ -315,6 +330,7 @@ export class LayoutPipelineSolver extends BaseSolver {
       chipPartitionsViz,
       packInnerPartitionsViz,
       partitionPackingViz,
+      alignTwoPinResistorsViz,
       groundedLoadPairViz,
       alignPowerGroundRowsViz,
       placeNetOnlyDecouplingRowsViz,
@@ -370,6 +386,9 @@ export class LayoutPipelineSolver extends BaseSolver {
     }
     if (this.alignPowerGroundRowsSolver?.solved) {
       return this.alignPowerGroundRowsSolver.visualize()
+    }
+    if (this.alignTwoPinResistorsSolver?.solved) {
+      return this.alignTwoPinResistorsSolver.visualize()
     }
     if (this.partitionPackingSolver?.solved) {
       return this.partitionPackingSolver.visualize()
