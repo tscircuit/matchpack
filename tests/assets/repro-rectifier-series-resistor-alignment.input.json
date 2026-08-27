@@ -1,0 +1,110 @@
+{
+  "chipMap": {
+    "D_RECT1": {
+      "chipId": "D_RECT1",
+      "pins": ["D_RECT1.1", "D_RECT1.2"],
+      "size": { "x": 1.04, "y": 0.68 },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D_RECT2": {
+      "chipId": "D_RECT2",
+      "pins": ["D_RECT2.1", "D_RECT2.2"],
+      "size": { "x": 1.04, "y": 0.68 },
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "C_FILTER": {
+      "chipId": "C_FILTER",
+      "pins": ["C_FILTER.1", "C_FILTER.2"],
+      "size": { "x": 0.6, "y": 0.84 },
+      "isCapacitor": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "R_LIMIT": {
+      "chipId": "R_LIMIT",
+      "pins": ["R_LIMIT.1", "R_LIMIT.2"],
+      "size": { "x": 0.6, "y": 0.68 },
+      "isResistor": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "LED1": {
+      "chipId": "LED1",
+      "pins": ["LED1.1", "LED1.2"],
+      "size": { "x": 1.13, "y": 1.18 },
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "D_RECT1.1": {
+      "pinId": "D_RECT1.1",
+      "offset": { "x": -0.52, "y": 0 },
+      "side": "x-"
+    },
+    "D_RECT1.2": {
+      "pinId": "D_RECT1.2",
+      "offset": { "x": 0.52, "y": 0 },
+      "side": "x+"
+    },
+    "D_RECT2.1": {
+      "pinId": "D_RECT2.1",
+      "offset": { "x": -0.52, "y": 0 },
+      "side": "x-"
+    },
+    "D_RECT2.2": {
+      "pinId": "D_RECT2.2",
+      "offset": { "x": 0.52, "y": 0 },
+      "side": "x+"
+    },
+    "C_FILTER.1": {
+      "pinId": "C_FILTER.1",
+      "offset": { "x": -0.3, "y": 0 },
+      "side": "x-"
+    },
+    "C_FILTER.2": {
+      "pinId": "C_FILTER.2",
+      "offset": { "x": 0.3, "y": 0 },
+      "side": "x+"
+    },
+    "R_LIMIT.1": {
+      "pinId": "R_LIMIT.1",
+      "offset": { "x": -0.3, "y": 0 },
+      "side": "x-"
+    },
+    "R_LIMIT.2": {
+      "pinId": "R_LIMIT.2",
+      "offset": { "x": 0.3, "y": 0 },
+      "side": "x+"
+    },
+    "LED1.1": {
+      "pinId": "LED1.1",
+      "offset": { "x": -0.565, "y": 0 },
+      "side": "x-"
+    },
+    "LED1.2": {
+      "pinId": "LED1.2",
+      "offset": { "x": 0.565, "y": 0 },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "ANT_B": { "netId": "ANT_B" },
+    "RECT_POS": { "netId": "RECT_POS" },
+    "RECT_NEG": { "netId": "RECT_NEG" },
+    "LED_POS": { "netId": "LED_POS" }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "D_RECT1.1-ANT_B": true,
+    "D_RECT2.2-ANT_B": true,
+    "D_RECT1.2-RECT_POS": true,
+    "C_FILTER.1-RECT_POS": true,
+    "R_LIMIT.1-RECT_POS": true,
+    "D_RECT2.1-RECT_NEG": true,
+    "C_FILTER.2-RECT_NEG": true,
+    "LED1.2-RECT_NEG": true,
+    "R_LIMIT.2-LED_POS": true,
+    "LED1.1-LED_POS": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
