@@ -1,9 +1,14 @@
-import { boundsDistance, getBoundFromCenteredRect } from "@tscircuit/math-utils"
+import {
+  boundsDistance,
+  doesSegmentIntersectRect,
+  getBoundFromCenteredRect,
+} from "@tscircuit/math-utils"
 import type {
   Chip,
   ChipId,
   ChipPin,
   InputProblem,
+  NetId,
   PinId,
 } from "../types/InputProblem"
 import type { Placement } from "../types/OutputLayout"
@@ -156,6 +161,168 @@ export const tryOffsetChips = ({
     placement.y -= dy
   }
   return false
+}
+
+/**
+ * Removes a small vertical offset between a resistor and a horizontally facing
+ * two-pin component on a branched net. Only the resistor is moved.
+ */
+export const alignHorizontalSeriesResistors = ({
+  inputProblem,
+  chipPlacements,
+  pinToNetworkMap,
+}: {
+  inputProblem: InputProblem
+  chipPlacements: Record<ChipId, Placement>
+  pinToNetworkMap: Map<PinId, NetId>
+}): void => {
+  const pinOwnerMap = createPinOwnerMap(inputProblem)
+  const pinIdsByNetwork = new Map<NetId, PinId[]>()
+  for (const [pinId, netId] of pinToNetworkMap) {
+    pinIdsByNetwork.set(netId, [...(pinIdsByNetwork.get(netId) ?? []), pinId])
+  }
+
+  for (const resistor of Object.values(inputProblem.chipMap)) {
+    if (
+      !resistor.isResistor ||
+      resistor.fixedPosition ||
+      resistor.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT
+    ) {
+      continue
+    }
+    const resistorPlacement = chipPlacements[resistor.chipId]
+    if (!resistorPlacement) continue
+
+    let bestCandidate: {
+      anchorChipId: ChipId
+      anchorPinId: PinId
+      resistorPinId: PinId
+      yDelta: number
+    } | null = null
+    for (const resistorPinId of resistor.pins) {
+      const netId = pinToNetworkMap.get(resistorPinId)
+      const connectedPinIds = netId ? pinIdsByNetwork.get(netId) : undefined
+      // Align only the branch-facing pin of a resistor whose other pin
+      // continues through a simple two-pin series connection.
+      if (!connectedPinIds || connectedPinIds.length < 3) continue
+
+      const otherPinId = resistor.pins.find((pinId) => pinId !== resistorPinId)!
+      const otherNetId = pinToNetworkMap.get(otherPinId)
+      if ((pinIdsByNetwork.get(otherNetId!)?.length ?? 0) !== 2) continue
+
+      for (const anchorPinId of connectedPinIds) {
+        const anchor = pinOwnerMap.get(anchorPinId)
+        if (
+          !anchor ||
+          anchor.chipId === resistor.chipId ||
+          anchor.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT ||
+          anchor.isResistor ||
+          anchor.isCapacitor ||
+          anchor.isCrystal ||
+          anchor.isTestPoint
+        ) {
+          continue
+        }
+        const anchorPlacement = chipPlacements[anchor.chipId]
+        if (!anchorPlacement) continue
+
+        const resistorPin = inputProblem.chipPinMap[resistorPinId]!
+        const anchorPin = inputProblem.chipPinMap[anchorPinId]!
+        const resistorOffset = rotatePinOffset(
+          resistorPin.offset,
+          resistorPlacement.ccwRotationDegrees,
+        )
+        const anchorOffset = rotatePinOffset(
+          anchorPin.offset,
+          anchorPlacement.ccwRotationDegrees,
+        )
+        if (
+          Math.abs(resistorOffset.y) > ALIGNMENT_TOLERANCE ||
+          Math.abs(anchorOffset.y) > ALIGNMENT_TOLERANCE ||
+          resistorOffset.x * anchorOffset.x >= 0
+        ) {
+          continue
+        }
+
+        const resistorPinPosition = getAbsolutePinPosition(
+          resistorPin,
+          resistorPlacement,
+        )
+        const anchorPinPosition = getAbsolutePinPosition(
+          anchorPin,
+          anchorPlacement,
+        )
+        if (
+          (anchorPinPosition.x - resistorPinPosition.x) * resistorOffset.x <=
+            ALIGNMENT_TOLERANCE ||
+          (resistorPinPosition.x - anchorPinPosition.x) * anchorOffset.x <=
+            ALIGNMENT_TOLERANCE
+        ) {
+          continue
+        }
+
+        const yDelta = anchorPinPosition.y - resistorPinPosition.y
+        if (
+          Math.abs(yDelta) > ALIGNMENT_TOLERANCE &&
+          Math.abs(yDelta) <= inputProblem.partitionGap &&
+          (!bestCandidate || Math.abs(yDelta) < Math.abs(bestCandidate.yDelta))
+        ) {
+          bestCandidate = {
+            anchorChipId: anchor.chipId,
+            anchorPinId,
+            resistorPinId,
+            yDelta,
+          }
+        }
+      }
+    }
+
+    if (
+      !bestCandidate ||
+      !tryOffsetChips({
+        chipIds: [resistor.chipId],
+        dx: 0,
+        dy: bestCandidate.yDelta,
+        chipPlacements,
+        inputProblem,
+      })
+    ) {
+      continue
+    }
+
+    const segmentStart = getAbsolutePinPosition(
+      inputProblem.chipPinMap[bestCandidate.resistorPinId]!,
+      resistorPlacement,
+    )
+    const segmentEnd = getAbsolutePinPosition(
+      inputProblem.chipPinMap[bestCandidate.anchorPinId]!,
+      chipPlacements[bestCandidate.anchorChipId]!,
+    )
+    const traceIsBlocked = Object.entries(chipPlacements).some(
+      ([chipId, placement]) => {
+        if (
+          chipId === resistor.chipId ||
+          chipId === bestCandidate.anchorChipId
+        ) {
+          return false
+        }
+        const size = getRotatedSize(
+          inputProblem.chipMap[chipId]!.size,
+          placement.ccwRotationDegrees,
+        )
+        return doesSegmentIntersectRect(
+          segmentStart,
+          segmentEnd,
+          getBoundFromCenteredRect({
+            center: placement,
+            width: size.x,
+            height: size.y,
+          }),
+        )
+      },
+    )
+    if (traceIsBlocked) resistorPlacement.y -= bestCandidate.yDelta
+  }
 }
 
 export const applyDirectPassiveTraceClearance = ({
