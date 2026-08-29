@@ -10,6 +10,7 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
+import { alignResistorsWithFacingTwoPinComponents } from "../../utils/alignResistorsWithFacingTwoPinComponents"
 
 export interface PartitionPackingSolverInput {
   packedPartitions: PackedPartition[]
@@ -32,6 +33,7 @@ export class PartitionPackingSolver extends BaseSolver {
   inputProblem: InputProblem
   finalLayout: OutputLayout | null = null
   packSolver2: PackSolver2 | null = null
+  private pinToNetworkMap: Map<PinId, NetId> | null = null
 
   constructor(input: PartitionPackingSolverInput) {
     super()
@@ -128,6 +130,11 @@ export class PartitionPackingSolver extends BaseSolver {
     return pinToNetworkMap
   }
 
+  private getConnectivityMap(): Map<PinId, NetId> {
+    this.pinToNetworkMap ??= this.buildConnectivityMap()
+    return this.pinToNetworkMap
+  }
+
   private organizePackedPartitions(): PartitionGroup[] {
     const partitionGroups: PartitionGroup[] = []
 
@@ -182,7 +189,7 @@ export class PartitionPackingSolver extends BaseSolver {
   }
 
   private createPackInput(groups: PartitionGroup[]): PackInput {
-    const pinToNetworkMap = this.buildConnectivityMap()
+    const pinToNetworkMap = this.getConnectivityMap()
 
     const packComponents = groups.map((group) => {
       const packedPartition = this.packedPartitions[group.partitionIndex]!
@@ -308,10 +315,16 @@ export class PartitionPackingSolver extends BaseSolver {
       }
     }
 
-    return {
+    const layout: OutputLayout = {
       chipPlacements: newChipPlacements,
       groupPlacements: {},
     }
+    alignResistorsWithFacingTwoPinComponents({
+      inputProblem: this.inputProblem,
+      chipPlacements: layout.chipPlacements,
+      pinToNetworkMap: this.getConnectivityMap(),
+    })
+    return layout
   }
 
   private getCombinedPackedPartitionsProblem(): InputProblem {
