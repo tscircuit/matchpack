@@ -38,5 +38,40 @@ test("board 8822 schematic layout", async () => {
     )
   }
 
+  expect(
+    solver.alignChipConnectedPowerFiltersSolver?.powerFilters,
+  ).toMatchObject([
+    {
+      mainChipId: "U1",
+      mainPinId: "U1.1",
+      railComponentChipId: "L1",
+      capacitorChipId: "C_VDDA",
+    },
+  ])
+  const layoutBeforePowerFilterAlignment =
+    solver.alignChipConnectedRailLoadsSolver!.outputLayout!
+  const railComponentPlacementBeforeAlignment =
+    layoutBeforePowerFilterAlignment.chipPlacements.L1!
+  const capacitorPlacementBeforeAlignment =
+    layoutBeforePowerFilterAlignment.chipPlacements.C_VDDA!
+  const finalRailComponentPlacement = finalLayout.chipPlacements.L1!
+  const finalCapacitorPlacement = finalLayout.chipPlacements.C_VDDA!
+
+  expect(finalRailComponentPlacement.x).toBeLessThan(
+    finalLayout.chipPlacements.U1!.x,
+  )
+  expect(finalCapacitorPlacement.x).toBeLessThan(
+    finalLayout.chipPlacements.U1!.x,
+  )
+  expect(finalRailComponentPlacement.x - finalCapacitorPlacement.x).toBeCloseTo(
+    railComponentPlacementBeforeAlignment.x -
+      capacitorPlacementBeforeAlignment.x,
+  )
+  expect(finalRailComponentPlacement.y - finalCapacitorPlacement.y).toBeCloseTo(
+    railComponentPlacementBeforeAlignment.y -
+      capacitorPlacementBeforeAlignment.y,
+  )
+  expect(solver.checkForOverlaps(finalLayout)).toEqual([])
+
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })
