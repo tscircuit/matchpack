@@ -197,8 +197,7 @@ export class DecouplingCapRowSolver extends BaseSolver {
         }
         placement[rowAxis] =
           previousPlacement[rowAxis] +
-          rowDirection *
-            (extents[index - 1]! / 2 + gap + extents[index]! / 2)
+          rowDirection * (extents[index - 1]! / 2 + gap + extents[index]! / 2)
         placement[pinAxis] = railCoordinate + this.getRailOffset(chip, pinAxis)
         chipPlacements[chip.chipId] = placement
       }
@@ -214,8 +213,7 @@ export class DecouplingCapRowSolver extends BaseSolver {
         }
         placement[rowAxis] =
           nextPlacement[rowAxis] -
-          rowDirection *
-            (extents[index]! / 2 + gap + extents[index + 1]! / 2)
+          rowDirection * (extents[index]! / 2 + gap + extents[index + 1]! / 2)
         placement[pinAxis] = railCoordinate + this.getRailOffset(chip, pinAxis)
         chipPlacements[chip.chipId] = placement
       }
