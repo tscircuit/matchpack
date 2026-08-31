@@ -322,6 +322,7 @@ export const getGroundedLoadPairs = (
   // Chip-anchored chains take priority over standalone rail chains.
   for (const upperChip of Object.values(inputProblem.chipMap)) {
     if (upperChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    if (upperChip.isCrystal) continue
     if (upperChip.fixedPosition) continue
     if (pairedChipIds.has(upperChip.chipId)) continue
 
@@ -334,6 +335,7 @@ export const getGroundedLoadPairs = (
 
   for (const upperChip of Object.values(inputProblem.chipMap)) {
     if (upperChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    if (upperChip.isCrystal) continue
     if (upperChip.fixedPosition) continue
     if (pairedChipIds.has(upperChip.chipId)) continue
 
@@ -346,6 +348,7 @@ export const getGroundedLoadPairs = (
 
   for (const upperChip of Object.values(inputProblem.chipMap)) {
     if (upperChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    if (upperChip.isCrystal) continue
     if (upperChip.fixedPosition) continue
     if (pairedChipIds.has(upperChip.chipId)) continue
 
