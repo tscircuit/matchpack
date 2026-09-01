@@ -56,22 +56,24 @@ test("board 8822 schematic layout", async () => {
     )
   }
 
-  expect(
-    solver.alignChipConnectedPowerFiltersSolver?.powerFilters,
-  ).toMatchObject([
+  expect(solver.alignChipConnectedSameNodePairsSolver?.pairs).toMatchObject([
     {
       mainChipId: "U1",
       mainPinId: "U1.1",
-      railComponentChipId: "L1",
-      capacitorChipId: "C_VDDA",
+      components: [{ chip: { chipId: "L1" } }, { chip: { chipId: "C_VDDA" } }],
+    },
+    {
+      mainChipId: "U1",
+      mainPinId: "U1.9",
+      components: [{ chip: { chipId: "R_EN" } }, { chip: { chipId: "C_EN" } }],
     },
   ])
-  const layoutBeforePowerFilterAlignment =
+  const layoutBeforeSameNodeAlignment =
     solver.alignChipConnectedRailLoadsSolver!.outputLayout!
   const railComponentPlacementBeforeAlignment =
-    layoutBeforePowerFilterAlignment.chipPlacements.L1!
+    layoutBeforeSameNodeAlignment.chipPlacements.L1!
   const capacitorPlacementBeforeAlignment =
-    layoutBeforePowerFilterAlignment.chipPlacements.C_VDDA!
+    layoutBeforeSameNodeAlignment.chipPlacements.C_VDDA!
   const finalRailComponentPlacement = finalLayout.chipPlacements.L1!
   const finalCapacitorPlacement = finalLayout.chipPlacements.C_VDDA!
 
@@ -89,23 +91,20 @@ test("board 8822 schematic layout", async () => {
     railComponentPlacementBeforeAlignment.y -
       capacitorPlacementBeforeAlignment.y,
   )
+  const filteredPowerPinY = getAbsolutePinY({
+    pinId: "U1.1",
+    placement: finalLayout.chipPlacements.U1!,
+  })
+  const upperPowerFilterPinY = getAbsolutePinY({
+    pinId: "L1.2",
+    placement: finalRailComponentPlacement,
+  })
+  expect(upperPowerFilterPinY - filteredPowerPinY).toBeCloseTo(TRACE_CLEARANCE)
 
-  expect(
-    solver.alignChipConnectedPullUpRcNetworksSolver?.pullUpRcNetworks,
-  ).toMatchObject([
-    {
-      mainChipId: "U1",
-      mainPinId: "U1.9",
-      resistorChipId: "R_EN",
-      capacitorChipId: "C_EN",
-    },
-  ])
-  const layoutBeforePullUpRcAlignment =
-    solver.alignChipConnectedPowerFiltersSolver!.outputLayout!
-  const resistorPlacementBeforePullUpRcAlignment =
-    layoutBeforePullUpRcAlignment.chipPlacements.R_EN!
-  const capacitorPlacementBeforePullUpRcAlignment =
-    layoutBeforePullUpRcAlignment.chipPlacements.C_EN!
+  const resistorPlacementBeforeSameNodeAlignment =
+    layoutBeforeSameNodeAlignment.chipPlacements.R_EN!
+  const resetCapacitorPlacementBeforeSameNodeAlignment =
+    layoutBeforeSameNodeAlignment.chipPlacements.C_EN!
   const finalResistorPlacement = finalLayout.chipPlacements.R_EN!
   const finalResetCapacitorPlacement = finalLayout.chipPlacements.C_EN!
   const mainPinY = getAbsolutePinY({
@@ -125,12 +124,12 @@ test("board 8822 schematic layout", async () => {
   )
   expect(resistorMainPinY - mainPinY).toBeCloseTo(TRACE_CLEARANCE)
   expect(finalResistorPlacement.x - finalResetCapacitorPlacement.x).toBeCloseTo(
-    resistorPlacementBeforePullUpRcAlignment.x -
-      capacitorPlacementBeforePullUpRcAlignment.x,
+    resistorPlacementBeforeSameNodeAlignment.x -
+      resetCapacitorPlacementBeforeSameNodeAlignment.x,
   )
   expect(finalResistorPlacement.y - finalResetCapacitorPlacement.y).toBeCloseTo(
-    resistorPlacementBeforePullUpRcAlignment.y -
-      capacitorPlacementBeforePullUpRcAlignment.y,
+    resistorPlacementBeforeSameNodeAlignment.y -
+      resetCapacitorPlacementBeforeSameNodeAlignment.y,
   )
   expect(solver.checkForOverlaps(finalLayout)).toEqual([])
 
