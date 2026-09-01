@@ -3,15 +3,15 @@ import type { InputProblem } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
-import { alignChipConnectedPowerFilters } from "./alignChipConnectedPowerFilters"
+import { alignChipConnectedSameNodePairs } from "./alignChipConnectedSameNodePairs"
 import {
-  getChipConnectedPowerFilters,
-  type ChipConnectedPowerFilter,
-} from "./getChipConnectedPowerFilters"
+  getChipConnectedSameNodePairs,
+  type ChipConnectedSameNodePair,
+} from "./getChipConnectedSameNodePairs"
 
-export class AlignChipConnectedPowerFiltersSolver extends BaseSolver {
+export class AlignChipConnectedSameNodePairsSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
-  powerFilters: ChipConnectedPowerFilter[] = []
+  pairs: ChipConnectedSameNodePair[] = []
 
   constructor(
     private params: {
@@ -23,9 +23,9 @@ export class AlignChipConnectedPowerFiltersSolver extends BaseSolver {
   }
 
   override _step() {
-    this.powerFilters = getChipConnectedPowerFilters(this.params.inputProblem)
-    this.outputLayout = alignChipConnectedPowerFilters({
-      powerFilters: this.powerFilters,
+    this.pairs = getChipConnectedSameNodePairs(this.params.inputProblem)
+    this.outputLayout = alignChipConnectedSameNodePairs({
+      pairs: this.pairs,
       inputProblem: this.params.inputProblem,
       inputLayout: this.params.inputLayout,
     })

@@ -12,7 +12,7 @@ import {
 } from "../../utils/offsetCollinearConnections"
 import { rotatePinOffset } from "../../utils/rotatePinOffset"
 import { getPlacementBounds } from "../AlignTestPointsSolver/placementsOverlap"
-import type { ChipConnectedPullUpRcNetwork } from "./getChipConnectedPullUpRcNetworks"
+import type { ChipConnectedSameNodePair } from "./getChipConnectedSameNodePairs"
 
 type HorizontalDirection = -1 | 1
 
@@ -61,33 +61,28 @@ const getChipBounds = (
   return getPlacementBounds({ placement, size: chip.size })
 }
 
-const getRcNetworkBounds = (
-  { pullUpRcNetwork }: { pullUpRcNetwork: ChipConnectedPullUpRcNetwork },
+const getPairBounds = (
+  { pair }: { pair: ChipConnectedSameNodePair },
   context: LayoutContext,
 ): Bounds | null => {
-  const resistorBounds = getChipBounds(
-    { chipId: pullUpRcNetwork.resistorChipId },
-    context,
+  const componentBounds = pair.components.map(({ chip }) =>
+    getChipBounds({ chipId: chip.chipId }, context),
   )
-  const capacitorBounds = getChipBounds(
-    { chipId: pullUpRcNetwork.capacitorChipId },
-    context,
-  )
-  if (!resistorBounds || !capacitorBounds) return null
+  if (componentBounds.some((bounds) => !bounds)) return null
   return getBoundsFromPoints(
-    [resistorBounds, capacitorBounds].flatMap((chipBounds) => [
-      { x: chipBounds.minX, y: chipBounds.minY },
-      { x: chipBounds.maxX, y: chipBounds.maxY },
+    componentBounds.flatMap((bounds) => [
+      { x: bounds!.minX, y: bounds!.minY },
+      { x: bounds!.maxX, y: bounds!.maxY },
     ]),
   )
 }
 
 const getMainPinHorizontalDirection = (
-  { pullUpRcNetwork }: { pullUpRcNetwork: ChipConnectedPullUpRcNetwork },
+  { pair }: { pair: ChipConnectedSameNodePair },
   { inputProblem, layout }: LayoutContext,
 ): HorizontalDirection | null => {
-  const mainPin = inputProblem.chipPinMap[pullUpRcNetwork.mainPinId]
-  const mainChipPlacement = layout.chipPlacements[pullUpRcNetwork.mainChipId]
+  const mainPin = inputProblem.chipPinMap[pair.mainPinId]
+  const mainChipPlacement = layout.chipPlacements[pair.mainChipId]
   if (!mainPin || !mainChipPlacement) return null
   const mainPinDirection = rotatePinOffset(
     getSideDirection(mainPin.side),
@@ -98,71 +93,62 @@ const getMainPinHorizontalDirection = (
   return 1
 }
 
-const getRcNetworkTargetOffsetX = (
+const getTargetOffsetX = (
   {
     direction,
     mainChipBounds,
-    rcNetworkBounds,
+    pairBounds,
   }: {
     direction: HorizontalDirection
     mainChipBounds: Bounds
-    rcNetworkBounds: Bounds
+    pairBounds: Bounds
   },
   { inputProblem }: LayoutContext,
 ): number => {
   if (direction < 0) {
-    return mainChipBounds.minX - inputProblem.chipGap - rcNetworkBounds.maxX
+    return mainChipBounds.minX - inputProblem.chipGap - pairBounds.maxX
   }
-  return mainChipBounds.maxX + inputProblem.chipGap - rcNetworkBounds.minX
+  return mainChipBounds.maxX + inputProblem.chipGap - pairBounds.minX
 }
 
-const getResistorMainPinTargetOffsetY = (
-  { pullUpRcNetwork }: { pullUpRcNetwork: ChipConnectedPullUpRcNetwork },
+const getTargetOffsetY = (
+  { pair }: { pair: ChipConnectedSameNodePair },
   { inputProblem, layout }: LayoutContext,
 ): number | null => {
-  const mainPin = inputProblem.chipPinMap[pullUpRcNetwork.mainPinId]
-  const resistorMainPin =
-    inputProblem.chipPinMap[pullUpRcNetwork.resistorMainPinId]
-  const mainChipPlacement = layout.chipPlacements[pullUpRcNetwork.mainChipId]
-  const resistorPlacement =
-    layout.chipPlacements[pullUpRcNetwork.resistorChipId]
-  if (!mainPin || !resistorMainPin) return null
-  if (!mainChipPlacement || !resistorPlacement) return null
-
+  const mainPin = inputProblem.chipPinMap[pair.mainPinId]
+  const mainChipPlacement = layout.chipPlacements[pair.mainChipId]
+  if (!mainPin || !mainChipPlacement) return null
   const mainPinPosition = getAbsolutePinPosition({
     pin: mainPin,
     placement: mainChipPlacement,
   })
-  const resistorMainPinPosition = getAbsolutePinPosition({
-    pin: resistorMainPin,
-    placement: resistorPlacement,
-  })
-  return mainPinPosition.y + TRACE_CLEARANCE - resistorMainPinPosition.y
+
+  let upperConnectedPinY = Number.NEGATIVE_INFINITY
+  for (const component of pair.components) {
+    const pin = inputProblem.chipPinMap[component.connectedPinId]
+    const placement = layout.chipPlacements[component.chip.chipId]
+    if (!pin || !placement) return null
+    const pinPosition = getAbsolutePinPosition({ pin, placement })
+    upperConnectedPinY = Math.max(upperConnectedPinY, pinPosition.y)
+  }
+
+  return mainPinPosition.y + TRACE_CLEARANCE - upperConnectedPinY
 }
 
-const placePullUpRcNetworkBesideMainPin = (
-  { pullUpRcNetwork }: { pullUpRcNetwork: ChipConnectedPullUpRcNetwork },
+const placePairBesideMainPin = (
+  { pair }: { pair: ChipConnectedSameNodePair },
   context: LayoutContext,
 ): void => {
-  const direction = getMainPinHorizontalDirection({ pullUpRcNetwork }, context)
+  const direction = getMainPinHorizontalDirection({ pair }, context)
   if (!direction) return
-  const mainChipBounds = getChipBounds(
-    { chipId: pullUpRcNetwork.mainChipId },
-    context,
-  )
-  const rcNetworkBounds = getRcNetworkBounds({ pullUpRcNetwork }, context)
-  const targetOffsetY = getResistorMainPinTargetOffsetY(
-    { pullUpRcNetwork },
-    context,
-  )
-  if (!mainChipBounds || !rcNetworkBounds || targetOffsetY === null) return
+  const mainChipBounds = getChipBounds({ chipId: pair.mainChipId }, context)
+  const pairBounds = getPairBounds({ pair }, context)
+  const targetOffsetY = getTargetOffsetY({ pair }, context)
+  if (!mainChipBounds || !pairBounds || targetOffsetY === null) return
 
-  const rcNetworkChipIds = [
-    pullUpRcNetwork.resistorChipId,
-    pullUpRcNetwork.capacitorChipId,
-  ]
-  const targetOffsetX = getRcNetworkTargetOffsetX(
-    { direction, mainChipBounds, rcNetworkBounds },
+  const pairChipIds = pair.components.map(({ chip }) => chip.chipId)
+  const targetOffsetX = getTargetOffsetX(
+    { direction, mainChipBounds, pairBounds },
     context,
   )
   const clearanceStepCount = Object.keys(context.layout.chipPlacements).length
@@ -176,8 +162,8 @@ const placePullUpRcNetworkBesideMainPin = (
       targetOffsetX +
       direction * context.inputProblem.partitionGap * clearanceStep
     const wasPlaced = tryOffsetChips({
-      chipIds: rcNetworkChipIds,
-      clearanceGroupChipIds: rcNetworkChipIds,
+      chipIds: pairChipIds,
+      clearanceGroupChipIds: pairChipIds,
       dx: offsetX,
       dy: targetOffsetY,
       chipPlacements: context.layout.chipPlacements,
@@ -187,20 +173,20 @@ const placePullUpRcNetworkBesideMainPin = (
   }
 }
 
-export const alignChipConnectedPullUpRcNetworks = ({
-  pullUpRcNetworks,
+export const alignChipConnectedSameNodePairs = ({
+  pairs,
   inputProblem,
   inputLayout,
 }: {
-  pullUpRcNetworks: ChipConnectedPullUpRcNetwork[]
+  pairs: ChipConnectedSameNodePair[]
   inputProblem: InputProblem
   inputLayout: OutputLayout
 }): OutputLayout => {
   const layout = structuredClone(inputLayout)
   const context = { inputProblem, layout }
 
-  for (const pullUpRcNetwork of pullUpRcNetworks) {
-    placePullUpRcNetworkBesideMainPin({ pullUpRcNetwork }, context)
+  for (const pair of pairs) {
+    placePairBesideMainPin({ pair }, context)
   }
 
   return layout
