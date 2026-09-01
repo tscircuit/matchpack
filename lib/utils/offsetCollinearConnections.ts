@@ -12,7 +12,7 @@ import type { GroundedLoadPair } from "../solvers/GroundedLoadPairSolver/getGrou
 import { createPinOwnerMap } from "./createPinOwnerMap"
 import type { ChipConnectedRailLoadPair } from "../solvers/AlignChipConnectedRailLoadsSolver/getChipConnectedRailLoadPairs"
 
-const TRACE_CLEARANCE = 0.2
+export const TRACE_CLEARANCE = 0.2
 const ALIGNMENT_TOLERANCE = 1e-6
 const TWO_PIN_COMPONENT_PIN_COUNT = 2
 
