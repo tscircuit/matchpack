@@ -24,7 +24,8 @@
  * pins and the row is placed directly. Caps keep their fixed rotation and their
  * chipMap order (which follows the main chip's pin order), are pitched by chip.size
  * so value labels keep their room, and are aligned so every positive pin lands on
- * one rail.
+ * one rail. If exactly one cap is fixed, it anchors the row without being moved;
+ * the remaining caps are laid out on both sides of that anchor.
  *
  * Sibling to SingleInnerPartitionPackingSolver and ParallelAlignedPassiveSolver;
  * PackInnerPartitionsSolver dispatches to it by partition type.
@@ -65,7 +66,9 @@ const getPinAxis = (
 
 /**
  * A decoupling cap partition this solver can lay out as a rail row: at least two
- * free 2-pin caps that agree on a pin axis, so the row has one direction.
+ * 2-pin caps that agree on a pin axis, with at most one fixed cap. A single fixed
+ * cap can safely anchor the row; multiple fixed caps may encode constraints that a
+ * one-dimensional row cannot satisfy, so those fall back to the generic packer.
  */
 export const canLayoutDecouplingCapRow = (
   partition: PartitionInputProblem,
@@ -74,11 +77,10 @@ export const canLayoutDecouplingCapRow = (
 
   const chips = Object.values(partition.chipMap)
   if (chips.length < 2) return false
+  if (chips.filter((chip) => chip.fixedPosition).length > 1) return false
 
   let sharedPinAxis: "x" | "y" | null = null
   for (const chip of chips) {
-    if (chip.fixedPosition) return false
-
     const pinAxis = getPinAxis(chip, partition)
     if (!pinAxis) return false
     if (sharedPinAxis && sharedPinAxis !== pinAxis) return false
@@ -125,6 +127,14 @@ export class DecouplingCapRowSolver extends BaseSolver {
     return -rotatePinOffset(pin.offset, this.getRotation(chip))[pinAxis]
   }
 
+  private getRowDirection(rowAxis: "x" | "y"): 1 | -1 {
+    const mainChipSide = this.partitionInputProblem.decouplingMainChipSide
+    const placeFirstChipAtPositiveEnd =
+      (rowAxis === "x" && mainChipSide === "x-") ||
+      (rowAxis === "y" && mainChipSide === "y-")
+    return placeFirstChipAtPositiveEnd ? -1 : 1
+  }
+
   override _step() {
     const problem = this.partitionInputProblem
     const chips = Object.values(problem.chipMap)
@@ -136,40 +146,78 @@ export class DecouplingCapRowSolver extends BaseSolver {
     if (pinAxis === "y") rowAxis = "x"
 
     const gap = problem.decouplingCapsGap ?? problem.chipGap
-
     const extents = chips.map(
       (chip) => getRotatedSize(chip.size, this.getRotation(chip))[rowAxis],
     )
-    const rowLength =
-      extents.reduce((sum, extent) => sum + extent, 0) +
-      gap * (chips.length - 1)
-
+    const rowDirection = this.getRowDirection(rowAxis)
+    const fixedIndex = chips.findIndex((chip) => chip.fixedPosition)
     const chipPlacements: Record<ChipId, Placement> = {}
-    let cursor = -rowLength / 2
-    let rowDirection = 1
-    const mainChipSide = problem.decouplingMainChipSide
-    const placeFirstChipAtPositiveEnd =
-      (rowAxis === "x" && mainChipSide === "x-") ||
-      (rowAxis === "y" && mainChipSide === "y-")
-    if (placeFirstChipAtPositiveEnd) {
-      cursor = rowLength / 2
-      rowDirection = -1
-    }
 
-    chips.forEach((chip, index) => {
-      const extent = extents[index]!
+    if (fixedIndex === -1) {
+      const rowLength =
+        extents.reduce((sum, extent) => sum + extent, 0) +
+        gap * (chips.length - 1)
+      let cursor = rowDirection === 1 ? -rowLength / 2 : rowLength / 2
 
-      const placement: Placement = {
-        x: 0,
-        y: 0,
-        ccwRotationDegrees: this.getRotation(chip),
+      chips.forEach((chip, index) => {
+        const extent = extents[index]!
+        const placement: Placement = {
+          x: 0,
+          y: 0,
+          ccwRotationDegrees: this.getRotation(chip),
+        }
+        placement[rowAxis] = cursor + (rowDirection * extent) / 2
+        placement[pinAxis] = this.getRailOffset(chip, pinAxis)
+        chipPlacements[chip.chipId] = placement
+        cursor += rowDirection * (extent + gap)
+      })
+    } else {
+      const anchor = chips[fixedIndex]!
+      const anchorPosition = anchor.fixedPosition!
+      const anchorPlacement: Placement = {
+        x: anchorPosition.x,
+        y: anchorPosition.y,
+        ccwRotationDegrees: this.getRotation(anchor),
       }
-      placement[rowAxis] = cursor + (rowDirection * extent) / 2
-      placement[pinAxis] = this.getRailOffset(chip, pinAxis)
-      chipPlacements[chip.chipId] = placement
+      chipPlacements[anchor.chipId] = anchorPlacement
 
-      cursor += rowDirection * (extent + gap)
-    })
+      // getRailOffset is the center coordinate needed to put the rail at zero.
+      // Therefore the anchor's actual rail coordinate is center - offset.
+      const railCoordinate =
+        anchorPosition[pinAxis] - this.getRailOffset(anchor, pinAxis)
+
+      for (let index = fixedIndex + 1; index < chips.length; index++) {
+        const chip = chips[index]!
+        const previousChip = chips[index - 1]!
+        const previousPlacement = chipPlacements[previousChip.chipId]!
+        const placement: Placement = {
+          x: 0,
+          y: 0,
+          ccwRotationDegrees: this.getRotation(chip),
+        }
+        placement[rowAxis] =
+          previousPlacement[rowAxis] +
+          rowDirection * (extents[index - 1]! / 2 + gap + extents[index]! / 2)
+        placement[pinAxis] = railCoordinate + this.getRailOffset(chip, pinAxis)
+        chipPlacements[chip.chipId] = placement
+      }
+
+      for (let index = fixedIndex - 1; index >= 0; index--) {
+        const chip = chips[index]!
+        const nextChip = chips[index + 1]!
+        const nextPlacement = chipPlacements[nextChip.chipId]!
+        const placement: Placement = {
+          x: 0,
+          y: 0,
+          ccwRotationDegrees: this.getRotation(chip),
+        }
+        placement[rowAxis] =
+          nextPlacement[rowAxis] -
+          rowDirection * (extents[index]! / 2 + gap + extents[index + 1]! / 2)
+        placement[pinAxis] = railCoordinate + this.getRailOffset(chip, pinAxis)
+        chipPlacements[chip.chipId] = placement
+      }
+    }
 
     this.layout = { chipPlacements, groupPlacements: {} }
     this.solved = true
