@@ -37,6 +37,5 @@ test("board 8822 schematic layout", async () => {
       placementBeforeGroundedLoadPlacement.ccwRotationDegrees,
     )
   }
-
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })
