@@ -168,7 +168,6 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
         cursorX += getGapBetweenAlignedChips(
           { firstChipId: previousChipId, secondChipId: chipId },
           this.inputProblem,
-          this.chipIdToPartition,
         )
       }
 
@@ -257,6 +256,7 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
 
   private getClearanceConstraints(
     alignedGroupChipIds: Set<ChipId>,
+    allAlignedChipIds: Set<ChipId>,
     referencePlacements: Record<string, Placement>,
   ): ClearanceConstraint[] {
     const constraints: ClearanceConstraint[] = []
@@ -266,7 +266,7 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
       if (!movingPlacement) continue
 
       for (const stationaryChipId of Object.keys(this.inputProblem.chipMap)) {
-        if (alignedGroupChipIds.has(stationaryChipId)) continue
+        if (allAlignedChipIds.has(stationaryChipId)) continue
         const stationaryPlacement = referencePlacements[stationaryChipId]
         if (!stationaryPlacement) continue
 
@@ -331,9 +331,11 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     chipPlacements: Record<string, Placement>,
     referencePlacements: Record<string, Placement>,
     alignedGroupChipIds: Set<ChipId>,
+    allAlignedChipIds: Set<ChipId>,
   ): boolean {
     const constraints = this.getClearanceConstraints(
       alignedGroupChipIds,
+      allAlignedChipIds,
       referencePlacements,
     )
     const candidateOffsets = [
@@ -351,18 +353,6 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
           ...movingPlacement,
           x: movingPlacement.x + offsetX,
         }
-        const candidateGap = this.getAxisGaps({
-          chipIdA: constraint.movingChipId,
-          placementA: candidateMovingPlacement,
-          chipIdB: constraint.stationaryChipId,
-          placementB: stationaryPlacement,
-        })
-
-        // Horizontal side only matters when horizontal separation is needed.
-        // Rows that remain vertically clear may pass above or below each other.
-        if (candidateGap.y >= constraint.minimumGap - CLEARANCE_EPSILON) {
-          return true
-        }
 
         if (
           constraint.referenceHorizontalSide === "left" &&
@@ -377,7 +367,13 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
           return false
         }
 
-        return candidateGap.x >= constraint.minimumGap - CLEARANCE_EPSILON
+        return this.placementsHaveMinimumGap({
+          chipIdA: constraint.movingChipId,
+          placementA: candidateMovingPlacement,
+          chipIdB: constraint.stationaryChipId,
+          placementB: stationaryPlacement,
+          minimumGap: constraint.minimumGap,
+        })
       })
       if (!satisfiesAllConstraints) continue
 
@@ -431,6 +427,7 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     const chipPlacements: Record<string, Placement> = {
       ...this.inputLayout.chipPlacements,
     }
+    const allAlignedChipIds = new Set(groups.flatMap((group) => group.chipIds))
 
     for (const group of groups) {
       const candidatePlacements = { ...chipPlacements }
@@ -440,6 +437,7 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
         candidatePlacements,
         chipPlacements,
         new Set(group.chipIds),
+        allAlignedChipIds,
       )
       if (clearanceWasRestored) {
         Object.assign(chipPlacements, candidatePlacements)
