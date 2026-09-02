@@ -1,0 +1,1264 @@
+import { expect, test } from "bun:test"
+import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
+import { ParallelAlignedPassiveSolver } from "lib/solvers/PackInnerPartitionsSolver/ParallelAlignedPassiveSolver"
+import { findSameSidePassiveGroups } from "lib/solvers/PackInnerPartitionsSolver/findSameSidePassiveGroups"
+import type { OutputLayout, Placement } from "lib/types/OutputLayout"
+import type { ChipPin, InputProblem } from "lib/types/InputProblem"
+import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
+import si7021Input from "../../pages/repros/repro-si7021/si7021-matchpack-input.json"
+import commonNodeInput from "../assets/repro-core-repro70-common-node-placement.input.json"
+
+const makeRailCarrierProblem = (
+  opts: {
+    customIds?: boolean
+    differentCarriers?: boolean
+    ambiguousCarrierBranch?: boolean
+    multipleRailPins?: boolean
+    fixedCarrier?: boolean
+    fixedPassive?: boolean
+    fixedMain?: boolean
+    fixedMainPosition?: { x: number; y: number }
+    fixedMainRotation?: 0 | 90 | 180 | 270
+    branchedMainFacingPin?: boolean
+    branchedCarrierFacingPin?: boolean
+    customNet?: boolean
+  } = {},
+): InputProblem => {
+  const main = opts.customIds ? "sensor_controller" : "U1"
+  const upperPassive = opts.customIds ? "pullup_upper" : "R1"
+  const lowerPassive = opts.customIds ? "pullup_lower" : "R2"
+  const carrierA = opts.customIds ? "selectable_bridge_a" : "SJ1"
+  const carrierB = opts.customIds ? "selectable_bridge_b" : "SJ2"
+  const railNet = opts.customNet ? "pullup_bus" : "RAIL"
+  const lowerCarrier = opts.differentCarriers ? carrierB : carrierA
+  const carrierPins =
+    opts.ambiguousCarrierBranch || opts.multipleRailPins
+      ? [`${carrierA}.1`, `${carrierA}.2`, `${carrierA}.3`, `${carrierA}.4`]
+      : [`${carrierA}.1`, `${carrierA}.2`, `${carrierA}.3`]
+
+  return {
+    chipMap: {
+      [main]: {
+        chipId: main,
+        pins: [`${main}.1`, `${main}.2`, `${main}.3`, `${main}.4`],
+        size: { x: 1.2, y: 0.8 },
+        availableRotations:
+          opts.fixedMainRotation !== undefined
+            ? [opts.fixedMainRotation]
+            : [0, 90, 180, 270],
+        ...(opts.fixedMain && {
+          fixedPosition: opts.fixedMainPosition ?? { x: 0, y: 0 },
+        }),
+      },
+      [upperPassive]: {
+        chipId: upperPassive,
+        pins: [`${upperPassive}.1`, `${upperPassive}.2`],
+        size: { x: 0.5, y: 1 },
+        availableRotations: [0, 90, 180, 270],
+        isResistor: true,
+        ...(opts.fixedPassive && { fixedPosition: { x: 2, y: 1 } }),
+      },
+      [lowerPassive]: {
+        chipId: lowerPassive,
+        pins: [`${lowerPassive}.1`, `${lowerPassive}.2`],
+        size: { x: 0.5, y: 1 },
+        availableRotations: [0, 90, 180, 270],
+        isResistor: true,
+      },
+      [carrierA]: {
+        chipId: carrierA,
+        pins: carrierPins,
+        size: { x: 0.6, y: 0.6 },
+        availableRotations: [0, 90, 180, 270],
+        ...(opts.fixedCarrier && { fixedPosition: { x: 3, y: 0 } }),
+      },
+      ...(opts.differentCarriers && {
+        [carrierB]: {
+          chipId: carrierB,
+          pins: [`${carrierB}.1`, `${carrierB}.2`, `${carrierB}.3`],
+          size: { x: 0.6, y: 0.6 },
+          availableRotations: [0, 90, 180, 270],
+        },
+      }),
+      ...((opts.ambiguousCarrierBranch ||
+        opts.branchedMainFacingPin ||
+        opts.branchedCarrierFacingPin) && {
+        branch_load: {
+          chipId: "branch_load",
+          pins: ["branch_load.1", "branch_load.2"],
+          size: { x: 0.5, y: 1 },
+          availableRotations: [0, 90, 180, 270],
+        },
+      }),
+    },
+    chipPinMap: {
+      [`${main}.1`]: {
+        pinId: `${main}.1`,
+        side: "x-",
+        offset: { x: -1, y: 0.2 },
+      },
+      [`${main}.2`]: {
+        pinId: `${main}.2`,
+        side: "x-",
+        offset: { x: -1, y: 0 },
+      },
+      [`${main}.3`]: {
+        pinId: `${main}.3`,
+        side: "x+",
+        offset: { x: 1, y: -0.2 },
+      },
+      [`${main}.4`]: {
+        pinId: `${main}.4`,
+        side: "x+",
+        offset: { x: 1, y: 0.2 },
+      },
+      [`${upperPassive}.1`]: {
+        pinId: `${upperPassive}.1`,
+        side: "y+",
+        offset: { x: 0, y: 0.5 },
+      },
+      [`${upperPassive}.2`]: {
+        pinId: `${upperPassive}.2`,
+        side: "y-",
+        offset: { x: 0, y: -0.5 },
+      },
+      [`${lowerPassive}.1`]: {
+        pinId: `${lowerPassive}.1`,
+        side: "y+",
+        offset: { x: 0, y: 0.5 },
+      },
+      [`${lowerPassive}.2`]: {
+        pinId: `${lowerPassive}.2`,
+        side: "y-",
+        offset: { x: 0, y: -0.5 },
+      },
+      [`${carrierA}.1`]: {
+        pinId: `${carrierA}.1`,
+        side: "x-",
+        offset: { x: -0.3, y: 0 },
+      },
+      [`${carrierA}.2`]: {
+        pinId: `${carrierA}.2`,
+        side: "y+",
+        offset: { x: 0, y: 0.3 },
+      },
+      [`${carrierA}.3`]: {
+        pinId: `${carrierA}.3`,
+        side: "x+",
+        offset: { x: 0.3, y: 0 },
+      },
+      ...(carrierPins.includes(`${carrierA}.4`) && {
+        [`${carrierA}.4`]: {
+          pinId: `${carrierA}.4`,
+          side: "y-",
+          offset: { x: 0, y: -0.3 },
+        },
+      }),
+      ...(opts.differentCarriers && {
+        [`${carrierB}.1`]: {
+          pinId: `${carrierB}.1`,
+          side: "x-",
+          offset: { x: -0.3, y: 0 },
+        },
+        [`${carrierB}.2`]: {
+          pinId: `${carrierB}.2`,
+          side: "y+",
+          offset: { x: 0, y: 0.3 },
+        },
+        [`${carrierB}.3`]: {
+          pinId: `${carrierB}.3`,
+          side: "x+",
+          offset: { x: 0.3, y: 0 },
+        },
+      }),
+      ...((opts.ambiguousCarrierBranch ||
+        opts.branchedMainFacingPin ||
+        opts.branchedCarrierFacingPin) && {
+        "branch_load.1": {
+          pinId: "branch_load.1",
+          side: "y+",
+          offset: { x: 0, y: 0.5 },
+        },
+        "branch_load.2": {
+          pinId: "branch_load.2",
+          side: "y-",
+          offset: { x: 0, y: -0.5 },
+        },
+      }),
+    },
+    netMap: {
+      [railNet]: { netId: railNet },
+      ...(opts.multipleRailPins && { OTHER_RAIL: { netId: "OTHER_RAIL" } }),
+    },
+    pinStrongConnMap: {
+      [`${main}.4-${upperPassive}.1`]: true,
+      [`${main}.3-${lowerPassive}.1`]: true,
+      [`${upperPassive}.2-${carrierA}.3`]: true,
+      [`${lowerPassive}.2-${lowerCarrier}.1`]: true,
+      ...(opts.ambiguousCarrierBranch && {
+        [`${carrierA}.4-branch_load.1`]: true,
+      }),
+      ...(opts.branchedMainFacingPin && {
+        [`${upperPassive}.1-branch_load.1`]: true,
+      }),
+      ...(opts.branchedCarrierFacingPin && {
+        [`${upperPassive}.2-branch_load.1`]: true,
+      }),
+    },
+    netConnMap: {
+      [`${carrierA}.2-${railNet}`]: true,
+      ...(opts.differentCarriers && { [`${carrierB}.2-${railNet}`]: true }),
+      ...(opts.multipleRailPins && { [`${carrierA}.4-OTHER_RAIL`]: true }),
+    },
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+}
+
+const makeMultiPassiveRailCarrierProblem = (
+  opts: {
+    passiveCount?: number
+    extraBranch?: boolean
+    multipleRailPins?: boolean
+    extraCarrierPin?: boolean
+    diodeLikeFirstPassive?: boolean
+    untypedFirstPassive?: boolean
+    transistorLikeFirstPassive?: boolean
+    largeCarrierLike?: boolean
+  } = {},
+): InputProblem => {
+  const passiveCount = opts.passiveCount ?? 4
+  const mainPins = Array.from({ length: Math.max(passiveCount, 4) }, (_, i) => {
+    return `Uwide.${i + 1}`
+  })
+  const passiveIds = Array.from({ length: passiveCount }, (_, i) => {
+    if (i === 0 && opts.diodeLikeFirstPassive) return "Dprotect"
+    if (i === 0 && opts.untypedFirstPassive) return "leaf"
+    if (i === 0 && opts.transistorLikeFirstPassive) return "Q1"
+    return `R${i + 1}`
+  })
+  const carrierPassivePins = passiveIds.map((_, i) => `Jwide.${i + 1}`)
+  const railPins = opts.multipleRailPins
+    ? ["Jwide.RAIL1", "Jwide.RAIL2"]
+    : ["Jwide.RAIL"]
+  const extraCarrierPins = [
+    ...(opts.extraBranch ? ["Jwide.BRANCH"] : []),
+    ...(opts.extraCarrierPin ? ["Jwide.NC"] : []),
+    ...(opts.largeCarrierLike
+      ? Array.from({ length: 12 }, (_, i) => `Jwide.EXTRA${i + 1}`)
+      : []),
+  ]
+  const carrierPins = [...carrierPassivePins, ...railPins, ...extraCarrierPins]
+  const chipMap: InputProblem["chipMap"] = {
+    Uwide: {
+      chipId: "Uwide",
+      pins: mainPins,
+      size: { x: 1.6, y: 1.6 },
+      availableRotations: [0, 90, 180, 270],
+    },
+    Jwide: {
+      chipId: "Jwide",
+      pins: carrierPins,
+      size: { x: 0.8, y: 0.8 },
+      availableRotations: [0, 90, 180, 270],
+    },
+  }
+  const chipPinMap: InputProblem["chipPinMap"] = {}
+  const pinStrongConnMap: InputProblem["pinStrongConnMap"] = {}
+  const netConnMap: InputProblem["netConnMap"] = {}
+
+  for (const [index, pinId] of mainPins.entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: "x+",
+      offset: { x: 1, y: index * 0.35 - passiveCount * 0.175 },
+    }
+  }
+  for (const [index, passiveId] of passiveIds.entries()) {
+    const firstPassiveHasUnsupportedType =
+      index === 0 &&
+      (opts.diodeLikeFirstPassive ||
+        opts.untypedFirstPassive ||
+        opts.transistorLikeFirstPassive)
+    const passivePins =
+      opts.transistorLikeFirstPassive && index === 0
+        ? [`${passiveId}.1`, `${passiveId}.2`, `${passiveId}.3`]
+        : [`${passiveId}.1`, `${passiveId}.2`]
+    chipMap[passiveId] = {
+      chipId: passiveId,
+      pins: passivePins,
+      size: { x: 0.5, y: 1 },
+      availableRotations: [0, 90, 180, 270],
+      ...(!firstPassiveHasUnsupportedType && { isResistor: true }),
+    }
+    chipPinMap[`${passiveId}.1`] = {
+      pinId: `${passiveId}.1`,
+      side: "y+",
+      offset: { x: 0, y: 0.5 },
+    }
+    chipPinMap[`${passiveId}.2`] = {
+      pinId: `${passiveId}.2`,
+      side: "y-",
+      offset: { x: 0, y: -0.5 },
+    }
+    if (passivePins.length === 3) {
+      chipPinMap[`${passiveId}.3`] = {
+        pinId: `${passiveId}.3`,
+        side: "x+",
+        offset: { x: 0.25, y: 0 },
+      }
+    }
+    pinStrongConnMap[`Uwide.${index + 1}-${passiveId}.1`] = true
+    pinStrongConnMap[`${passiveId}.2-Jwide.${index + 1}`] = true
+  }
+
+  for (const [index, pinId] of carrierPins.entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: pinId.includes("RAIL") ? "y+" : "x-",
+      offset: {
+        x: pinId.includes("RAIL") ? 0 : -0.4,
+        y: index * 0.2 - carrierPins.length * 0.1,
+      },
+    }
+  }
+  for (const [index, railPinId] of railPins.entries()) {
+    netConnMap[`${railPinId}-RAIL${index || ""}`] = true
+  }
+  if (opts.extraBranch) {
+    chipMap.branch_load = {
+      chipId: "branch_load",
+      pins: ["branch_load.1", "branch_load.2"],
+      size: { x: 0.5, y: 1 },
+      availableRotations: [0, 90, 180, 270],
+    }
+    chipPinMap["branch_load.1"] = {
+      pinId: "branch_load.1",
+      side: "y+",
+      offset: { x: 0, y: 0.5 },
+    }
+    chipPinMap["branch_load.2"] = {
+      pinId: "branch_load.2",
+      side: "y-",
+      offset: { x: 0, y: -0.5 },
+    }
+    pinStrongConnMap["Jwide.BRANCH-branch_load.1"] = true
+  }
+
+  return {
+    chipMap,
+    chipPinMap,
+    netMap: {
+      RAIL: { netId: "RAIL" },
+      ...(opts.multipleRailPins && { RAIL1: { netId: "RAIL1" } }),
+    },
+    pinStrongConnMap,
+    netConnMap,
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+}
+
+const makeMirroredRailCarrierProblem = (): InputProblem => {
+  const problem = makeRailCarrierProblem()
+  problem.chipMap.A = {
+    chipId: "A",
+    pins: ["A.1", "A.2", "A.3", "A.4"],
+    size: { x: 1.2, y: 1.2 },
+    availableRotations: [0, 90, 180, 270],
+  }
+  problem.chipMap.B = {
+    chipId: "B",
+    pins: ["B.1", "B.2", "B.3", "B.4"],
+    size: { x: 1.2, y: 1.2 },
+    availableRotations: [0, 90, 180, 270],
+  }
+  delete problem.chipMap.U1
+  delete problem.chipMap.SJ1
+  problem.chipMap.R3 = {
+    chipId: "R3",
+    pins: ["R3.1", "R3.2"],
+    size: { x: 0.5, y: 1 },
+    availableRotations: [0, 90, 180, 270],
+    isResistor: true,
+  }
+  problem.chipPinMap = {
+    "A.1": { pinId: "A.1", side: "x+", offset: { x: 0.6, y: -0.3 } },
+    "A.2": { pinId: "A.2", side: "x+", offset: { x: 0.6, y: 0 } },
+    "A.3": { pinId: "A.3", side: "y+", offset: { x: 0, y: 0.6 } },
+    "A.4": { pinId: "A.4", side: "x+", offset: { x: 0.6, y: 0.3 } },
+    "B.1": { pinId: "B.1", side: "x-", offset: { x: -0.6, y: -0.3 } },
+    "B.2": { pinId: "B.2", side: "x-", offset: { x: -0.6, y: 0 } },
+    "B.3": { pinId: "B.3", side: "y+", offset: { x: 0, y: 0.6 } },
+    "B.4": { pinId: "B.4", side: "x-", offset: { x: -0.6, y: 0.3 } },
+    "R1.1": { pinId: "R1.1", side: "y+", offset: { x: 0, y: 0.5 } },
+    "R1.2": { pinId: "R1.2", side: "y-", offset: { x: 0, y: -0.5 } },
+    "R2.1": { pinId: "R2.1", side: "y+", offset: { x: 0, y: 0.5 } },
+    "R2.2": { pinId: "R2.2", side: "y-", offset: { x: 0, y: -0.5 } },
+    "R3.1": { pinId: "R3.1", side: "y+", offset: { x: 0, y: 0.5 } },
+    "R3.2": { pinId: "R3.2", side: "y-", offset: { x: 0, y: -0.5 } },
+  }
+  problem.netMap = {
+    A_RAIL: { netId: "A_RAIL" },
+    B_RAIL: { netId: "B_RAIL" },
+  }
+  problem.pinStrongConnMap = {
+    "A.1-R1.1": true,
+    "A.2-R2.1": true,
+    "A.4-R3.1": true,
+    "R1.2-B.1": true,
+    "R2.2-B.2": true,
+    "R3.2-B.4": true,
+  }
+  problem.netConnMap = {
+    "A.3-A_RAIL": true,
+    "B.3-B_RAIL": true,
+  }
+  return problem
+}
+
+const makeDenseRailCarrierGapProblem = (): InputProblem => {
+  const problem = makeRailCarrierProblem()
+  problem.chipGap = 0.5
+  problem.chipPinMap["U1.3"] = {
+    pinId: "U1.3",
+    side: "x+",
+    offset: { x: 1, y: -0.025 },
+  }
+  problem.chipPinMap["U1.4"] = {
+    pinId: "U1.4",
+    side: "x+",
+    offset: { x: 1, y: 0.025 },
+  }
+  return problem
+}
+
+const getRailCarrierGroups = (inputProblem: InputProblem) =>
+  findSameSidePassiveGroups(inputProblem).filter((group) => group.railCarrier)
+
+const replaceStrongConnection = (
+  inputProblem: InputProblem,
+  from: `${string}-${string}`,
+  to: `${string}-${string}`,
+): void => {
+  delete inputProblem.pinStrongConnMap[from]
+  inputProblem.pinStrongConnMap[to] = true
+}
+
+const makeRailCarrierContractProblem = (
+  mutate?: (inputProblem: InputProblem) => void,
+): InputProblem => {
+  const inputProblem = makeMultiPassiveRailCarrierProblem({ passiveCount: 3 })
+  mutate?.(inputProblem)
+  return inputProblem
+}
+
+const reorderRecord = <T>(record: Record<string, T>): Record<string, T> =>
+  Object.fromEntries(Object.entries(record).reverse())
+
+const makeRotatedPackedMainRailCarrierProblem = (): InputProblem => {
+  const passiveIds = ["R1", "R2", "R3", "R4"]
+  const chipMap: InputProblem["chipMap"] = {
+    A: {
+      chipId: "A",
+      pins: ["A.1", "A.2", "A.3", "A.4"],
+      size: { x: 0.8, y: 2.4 },
+      availableRotations: [0, 90, 180, 270],
+    },
+    B: {
+      chipId: "B",
+      pins: ["B.1", "B.2", "B.3", "B.4", "B.RAIL"],
+      size: { x: 0.8, y: 2.4 },
+      availableRotations: [0, 90],
+    },
+  }
+  for (const passiveId of passiveIds) {
+    chipMap[passiveId] = {
+      chipId: passiveId,
+      pins: [`${passiveId}.1`, `${passiveId}.2`],
+      size: { x: 0.5, y: 1 },
+      availableRotations: [0, 90, 180, 270],
+      isResistor: true,
+    }
+  }
+
+  const chipPinMap: InputProblem["chipPinMap"] = {
+    "B.RAIL": { pinId: "B.RAIL", side: "y+", offset: { x: 0, y: 1.2 } },
+  }
+  for (const [index, pinId] of ["A.1", "A.2", "A.3", "A.4"].entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: "y+",
+      offset: { x: (index - 1.5) * 0.2, y: 1.2 },
+    }
+  }
+  for (const [index, pinId] of ["B.1", "B.2", "B.3", "B.4"].entries()) {
+    chipPinMap[pinId] = {
+      pinId,
+      side: "x-",
+      offset: { x: -0.4, y: (index - 1.5) * 0.3 },
+    }
+  }
+  for (const passiveId of passiveIds) {
+    chipPinMap[`${passiveId}.1`] = {
+      pinId: `${passiveId}.1`,
+      side: "y+",
+      offset: { x: 0, y: 0.5 },
+    }
+    chipPinMap[`${passiveId}.2`] = {
+      pinId: `${passiveId}.2`,
+      side: "y-",
+      offset: { x: 0, y: -0.5 },
+    }
+  }
+
+  return {
+    chipMap,
+    chipPinMap,
+    netMap: { RAIL: { netId: "RAIL" } },
+    pinStrongConnMap: Object.fromEntries(
+      passiveIds.flatMap((passiveId, index) => [
+        [`A.${index + 1}-${passiveId}.1`, true],
+        [`${passiveId}.2-B.${index + 1}`, true],
+      ]),
+    ),
+    netConnMap: { "B.RAIL-RAIL": true },
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+}
+
+type Bounds = { minX: number; minY: number; maxX: number; maxY: number }
+
+const getChipBounds = (
+  inputProblem: InputProblem,
+  chipId: string,
+  placement: Placement,
+): Bounds => {
+  const chip = inputProblem.chipMap[chipId]!
+  const size = getRotatedSize(chip.size, placement.ccwRotationDegrees)
+  const points = [
+    { x: placement.x - size.x / 2, y: placement.y - size.y / 2 },
+    { x: placement.x + size.x / 2, y: placement.y + size.y / 2 },
+  ]
+  for (const pinId of chip.pins) {
+    const pin = inputProblem.chipPinMap[pinId]
+    if (!pin) continue
+    const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+    points.push({ x: placement.x + offset.x, y: placement.y + offset.y })
+  }
+  return {
+    minX: Math.min(...points.map((point) => point.x)),
+    minY: Math.min(...points.map((point) => point.y)),
+    maxX: Math.max(...points.map((point) => point.x)),
+    maxY: Math.max(...points.map((point) => point.y)),
+  }
+}
+
+const getBoundsDistance = (a: Bounds, b: Bounds): number => {
+  const dx = Math.max(0, a.minX - b.maxX, b.minX - a.maxX)
+  const dy = Math.max(0, a.minY - b.maxY, b.minY - a.maxY)
+  return Math.hypot(dx, dy)
+}
+
+const getConnectedPinsByPinId = (
+  inputProblem: InputProblem,
+): Record<string, ChipPin[]> => {
+  const connectedPinsByPinId: Record<string, ChipPin[]> = {}
+  for (const [connKey, connected] of Object.entries(
+    inputProblem.pinStrongConnMap,
+  )) {
+    if (!connected) continue
+    const [a, b] = connKey.split("-")
+    const pinA = a && inputProblem.chipPinMap[a]
+    const pinB = b && inputProblem.chipPinMap[b]
+    if (!a || !b || !pinA || !pinB) continue
+    connectedPinsByPinId[a] = [...(connectedPinsByPinId[a] ?? []), pinB]
+    connectedPinsByPinId[b] = [...(connectedPinsByPinId[b] ?? []), pinA]
+  }
+  return connectedPinsByPinId
+}
+
+const makeRailCarrierPackedLayout = (): OutputLayout => ({
+  chipPlacements: {
+    U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+    R1: { x: 7, y: 7, ccwRotationDegrees: 0 },
+    R2: { x: 8, y: 7, ccwRotationDegrees: 0 },
+    SJ1: { x: 9, y: 7, ccwRotationDegrees: 0 },
+  },
+  groupPlacements: {},
+})
+
+const alignRailCarrierFromPackedLayout = (
+  inputProblem: InputProblem,
+  baseLayout: OutputLayout,
+): OutputLayout => {
+  const solver = new ParallelAlignedPassiveSolver({
+    partitionInputProblem: inputProblem,
+    pinIdToStronglyConnectedPins: getConnectedPinsByPinId(inputProblem),
+  })
+  return (
+    solver as unknown as {
+      alignPassiveGroups(base: OutputLayout): OutputLayout
+    }
+  ).alignPassiveGroups(baseLayout)
+}
+
+const withFixedObstacle = ({
+  inputProblem,
+  x,
+  y,
+}: {
+  inputProblem: InputProblem
+  x: number
+  y: number
+}): InputProblem => {
+  const next = structuredClone(inputProblem)
+  next.chipMap.OBS = {
+    chipId: "OBS",
+    pins: [],
+    size: { x: 0.2, y: 0.2 },
+    availableRotations: [0],
+    fixedPosition: { x, y },
+  }
+  return next
+}
+
+const makeRailCarrierObstacleProblem = ({
+  targetChipId,
+  clearance,
+  chipGap = 0.5,
+}: {
+  targetChipId: "R2" | "SJ1"
+  clearance: number
+  chipGap?: number
+}): {
+  inputProblem: InputProblem
+  baseLayout: OutputLayout
+  unobstructedLayout: OutputLayout
+} => {
+  const inputProblem = makeDenseRailCarrierGapProblem()
+  inputProblem.chipGap = chipGap
+  const baseLayout = makeRailCarrierPackedLayout()
+  const unobstructedLayout = alignRailCarrierFromPackedLayout(
+    inputProblem,
+    baseLayout,
+  )
+  const targetBounds = getChipBounds(
+    inputProblem,
+    targetChipId,
+    unobstructedLayout.chipPlacements[targetChipId]!,
+  )
+  const obstacleX = targetBounds.maxX + clearance + 0.1
+  const obstacleY = (targetBounds.minY + targetBounds.maxY) / 2
+
+  return {
+    inputProblem: withFixedObstacle({
+      inputProblem,
+      x: obstacleX,
+      y: obstacleY,
+    }),
+    baseLayout: {
+      chipPlacements: {
+        ...baseLayout.chipPlacements,
+        OBS: { x: obstacleX, y: obstacleY, ccwRotationDegrees: 0 },
+      },
+      groupPlacements: {},
+    },
+    unobstructedLayout,
+  }
+}
+
+const makeRailCarrierBlockedPlacementProblem = ({
+  rotations = [0, 90],
+  carrierSize = { x: 0.3, y: 1.2 },
+  obstaclePosition = { x: 3.925001, y: -0.25 },
+}: {
+  rotations?: Array<0 | 90 | 180 | 270>
+  carrierSize?: { x: number; y: number }
+  obstaclePosition?: { x: number; y: number } | null
+} = {}): {
+  inputProblem: InputProblem
+  baseLayout: OutputLayout
+} => {
+  const inputProblem: InputProblem = {
+    chipMap: {
+      U1: {
+        chipId: "U1",
+        pins: ["U1.1", "U1.2", "U1.3", "U1.4"],
+        size: { x: 1.2, y: 0.8 },
+        availableRotations: [0],
+      },
+      R1: {
+        chipId: "R1",
+        pins: ["R1.1", "R1.2"],
+        size: { x: 0.5, y: 1 },
+        availableRotations: [0],
+        isResistor: true,
+      },
+      R2: {
+        chipId: "R2",
+        pins: ["R2.1", "R2.2"],
+        size: { x: 0.5, y: 1 },
+        availableRotations: [0],
+        isResistor: true,
+      },
+      SJ1: {
+        chipId: "SJ1",
+        pins: ["SJ1.1", "SJ1.2", "SJ1.RAIL"],
+        size: carrierSize,
+        availableRotations: rotations,
+      },
+      ...(obstaclePosition && {
+        OBS: {
+          chipId: "OBS",
+          pins: [],
+          size: { x: 0.2, y: 0.2 },
+          availableRotations: [0],
+          fixedPosition: obstaclePosition,
+        },
+      }),
+    },
+    chipPinMap: {
+      "U1.1": { pinId: "U1.1", side: "x-", offset: { x: -1, y: 0.2 } },
+      "U1.2": { pinId: "U1.2", side: "x-", offset: { x: -1, y: 0 } },
+      "U1.3": { pinId: "U1.3", side: "x+", offset: { x: 1, y: -0.2 } },
+      "U1.4": { pinId: "U1.4", side: "x+", offset: { x: 1, y: 0.2 } },
+      "R1.1": { pinId: "R1.1", side: "y+", offset: { x: 0, y: 0.5 } },
+      "R1.2": { pinId: "R1.2", side: "y-", offset: { x: 0, y: -0.5 } },
+      "R2.1": { pinId: "R2.1", side: "y+", offset: { x: 0, y: 0.5 } },
+      "R2.2": { pinId: "R2.2", side: "y-", offset: { x: 0, y: -0.5 } },
+      "SJ1.1": {
+        pinId: "SJ1.1",
+        side: "x-",
+        offset: { x: 0.65, y: 0.2 },
+      },
+      "SJ1.2": {
+        pinId: "SJ1.2",
+        side: "x-",
+        offset: { x: 0.65, y: -0.2 },
+      },
+      "SJ1.RAIL": {
+        pinId: "SJ1.RAIL",
+        side: "x+",
+        offset: { x: 0, y: 0 },
+      },
+    },
+    netMap: { RAIL: { netId: "RAIL" } },
+    pinStrongConnMap: {
+      "U1.4-R1.1": true,
+      "U1.3-R2.1": true,
+      "R1.2-SJ1.1": true,
+      "R2.2-SJ1.2": true,
+    },
+    netConnMap: { "SJ1.RAIL-RAIL": true },
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+
+  return {
+    inputProblem,
+    baseLayout: {
+      chipPlacements: {
+        U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+        R1: { x: 7, y: 7, ccwRotationDegrees: 0 },
+        R2: { x: 8, y: 7, ccwRotationDegrees: 0 },
+        SJ1: { x: 9, y: 7, ccwRotationDegrees: 0 },
+        ...(obstaclePosition && {
+          OBS: {
+            x: obstaclePosition.x,
+            y: obstaclePosition.y,
+            ccwRotationDegrees: 0,
+          },
+        }),
+      },
+      groupPlacements: {},
+    },
+  }
+}
+
+const expectPlacementToEqual = (
+  actual: Placement,
+  expected: Placement,
+): void => {
+  expect(actual.x).toBe(expected.x)
+  expect(actual.y).toBe(expected.y)
+  expect(actual.ccwRotationDegrees).toBe(expected.ccwRotationDegrees)
+}
+
+const getDistancesFromMovedGroup = (
+  inputProblem: InputProblem,
+  layout: OutputLayout,
+): Array<{ pair: string; distance: number }> => {
+  const movedChipIds = ["R1", "R2", "SJ1"]
+  const pairs: Array<{ pair: string; distance: number }> = []
+  for (const chipId of movedChipIds) {
+    const chipBounds = getChipBounds(
+      inputProblem,
+      chipId,
+      layout.chipPlacements[chipId]!,
+    )
+    for (const [otherChipId, otherPlacement] of Object.entries(
+      layout.chipPlacements,
+    )) {
+      if (otherChipId === chipId) continue
+      if (
+        movedChipIds.includes(otherChipId) &&
+        movedChipIds.indexOf(otherChipId) < movedChipIds.indexOf(chipId)
+      ) {
+        continue
+      }
+      const otherBounds = getChipBounds(
+        inputProblem,
+        otherChipId,
+        otherPlacement,
+      )
+      pairs.push({
+        pair: `${chipId}-${otherChipId}`,
+        distance: getBoundsDistance(chipBounds, otherBounds),
+      })
+    }
+  }
+  return pairs
+}
+
+const getStrongEdgeMetrics = (inputProblem: InputProblem) => {
+  const solver = new LayoutPipelineSolver(inputProblem)
+  solver.solve()
+  const layout = solver.getOutputLayout()
+  const pinToChip = new Map<string, string>()
+  for (const [chipId, chip] of Object.entries(inputProblem.chipMap)) {
+    for (const pinId of chip.pins) pinToChip.set(pinId, chipId)
+  }
+
+  const edges = Object.keys(inputProblem.pinStrongConnMap)
+    .map((connKey) => connKey.split("-") as [string, string])
+    .filter(
+      ([a, b]) => inputProblem.chipPinMap[a] && inputProblem.chipPinMap[b],
+    )
+    .map(([a, b]) => {
+      const chipA = pinToChip.get(a)!
+      const chipB = pinToChip.get(b)!
+      const placementA = layout.chipPlacements[chipA]!
+      const placementB = layout.chipPlacements[chipB]!
+      const offsetA = rotatePinOffset(
+        inputProblem.chipPinMap[a]!.offset,
+        placementA.ccwRotationDegrees,
+      )
+      const offsetB = rotatePinOffset(
+        inputProblem.chipPinMap[b]!.offset,
+        placementB.ccwRotationDegrees,
+      )
+      const dx = placementB.x + offsetB.x - (placementA.x + offsetA.x)
+      const dy = placementB.y + offsetB.y - (placementA.y + offsetA.y)
+      return {
+        edge: `${a}-${b}`,
+        manhattan: Math.abs(dx) + Math.abs(dy),
+        offAxis: Math.min(Math.abs(dx), Math.abs(dy)),
+      }
+    })
+
+  return {
+    solver,
+    edges,
+    totalManhattan: edges.reduce((sum, edge) => sum + edge.manhattan, 0),
+    maxOffAxis: Math.max(...edges.map((edge) => edge.offAxis)),
+  }
+}
+
+test("detects the original SI7021 passive rail-carrier topology", () => {
+  const groups = findSameSidePassiveGroups(si7021Input as InputProblem)
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.railCarrier?.carrierChipId).toBe("SJ1")
+  expect(groups[0]!.passiveChipIds).toEqual(["R2", "R1"])
+})
+
+test("lays out SI7021 rail-carrier passives with materially lower off-axis error", () => {
+  const { solver, totalManhattan, maxOffAxis } = getStrongEdgeMetrics(
+    si7021Input as InputProblem,
+  )
+
+  expect(
+    solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
+  ).toBe("ParallelAlignedPassiveSolver")
+  expect(solver.checkForOverlaps(solver.getOutputLayout())).toHaveLength(0)
+  expect(totalManhattan).toBeLessThan(5.9)
+  expect(maxOffAxis).toBeLessThanOrEqual(0.125)
+})
+
+test("detects rail-carrier topology with arbitrary component ids", () => {
+  const groups = findSameSidePassiveGroups(
+    makeRailCarrierProblem({ customIds: true, customNet: true }),
+  )
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.railCarrier?.carrierChipId).toBe("selectable_bridge_a")
+  expect(groups[0]!.passiveChipIds).toEqual(["pullup_lower", "pullup_upper"])
+})
+
+test("detects rail-carrier topology after record reordering", () => {
+  const inputProblem = makeRailCarrierProblem()
+  inputProblem.chipMap = Object.fromEntries(
+    Object.entries(inputProblem.chipMap).reverse(),
+  )
+  inputProblem.chipPinMap = Object.fromEntries(
+    Object.entries(inputProblem.chipPinMap).reverse(),
+  )
+  inputProblem.pinStrongConnMap = Object.fromEntries(
+    Object.entries(inputProblem.pinStrongConnMap).reverse(),
+  )
+  inputProblem.netConnMap = Object.fromEntries(
+    Object.entries(inputProblem.netConnMap).reverse(),
+  )
+
+  const groups = findSameSidePassiveGroups(inputProblem)
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.passiveChipIds).toEqual(["R2", "R1"])
+})
+
+test("keeps carrier pins paired with passives after edge-order sorting", () => {
+  const reversedEnumeration = makeRailCarrierProblem()
+  const edgeOrdered = makeRailCarrierProblem()
+  edgeOrdered.chipMap = {
+    U1: edgeOrdered.chipMap.U1!,
+    R2: edgeOrdered.chipMap.R2!,
+    R1: edgeOrdered.chipMap.R1!,
+    SJ1: edgeOrdered.chipMap.SJ1!,
+  }
+
+  const reversedGroups = findSameSidePassiveGroups(reversedEnumeration)
+  const edgeOrderedGroups = findSameSidePassiveGroups(edgeOrdered)
+
+  expect(reversedGroups).toHaveLength(1)
+  expect(edgeOrderedGroups).toHaveLength(1)
+  expect(reversedGroups[0]!.passiveChipIds).toEqual(["R2", "R1"])
+  expect(reversedGroups[0]!.railCarrier?.passiveCarrierPinIds).toEqual([
+    "R2.2",
+    "R1.2",
+  ])
+  expect(reversedGroups[0]!.railCarrier?.carrierPinIds).toEqual([
+    "SJ1.1",
+    "SJ1.3",
+  ])
+  expect(reversedGroups[0]!.railCarrier).toEqual(
+    edgeOrderedGroups[0]!.railCarrier,
+  )
+
+  const reversedLayout = alignRailCarrierFromPackedLayout(
+    reversedEnumeration,
+    makeRailCarrierPackedLayout(),
+  )
+  const edgeOrderedLayout = alignRailCarrierFromPackedLayout(
+    edgeOrdered,
+    makeRailCarrierPackedLayout(),
+  )
+
+  expect(reversedLayout.chipPlacements).toEqual(
+    edgeOrderedLayout.chipPlacements,
+  )
+  expect(reversedLayout.chipPlacements.SJ1?.ccwRotationDegrees).toBe(90)
+})
+
+test("declines unsupported rail-carrier topology variants", () => {
+  const mutateRailCarrierProblem = (
+    mutate: (inputProblem: InputProblem) => void,
+  ) => {
+    const inputProblem = makeRailCarrierProblem()
+    mutate(inputProblem)
+    return inputProblem
+  }
+  const cases: Array<{ name: string; inputProblem: InputProblem }> = [
+    {
+      name: "three resistors",
+      inputProblem: makeMultiPassiveRailCarrierProblem({ passiveCount: 3 }),
+    },
+    {
+      name: "four resistors",
+      inputProblem: makeMultiPassiveRailCarrierProblem({ passiveCount: 4 }),
+    },
+    {
+      name: "five resistors",
+      inputProblem: makeMultiPassiveRailCarrierProblem({ passiveCount: 5 }),
+    },
+    {
+      name: "four-pin carrier",
+      inputProblem: makeRailCarrierProblem({ multipleRailPins: true }),
+    },
+    {
+      name: "fixed main",
+      inputProblem: makeRailCarrierProblem({ fixedMain: true }),
+    },
+    {
+      name: "fixed resistor",
+      inputProblem: makeRailCarrierProblem({ fixedPassive: true }),
+    },
+    {
+      name: "fixed carrier",
+      inputProblem: makeRailCarrierProblem({ fixedCarrier: true }),
+    },
+    {
+      name: "duplicate main pin",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        replaceStrongConnection(inputProblem, "U1.3-R2.1", "U1.4-R2.1")
+      }),
+    },
+    {
+      name: "duplicate carrier pin",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        replaceStrongConnection(inputProblem, "SJ1.1-R2.2", "SJ1.3-R2.2")
+      }),
+    },
+    {
+      name: "branched main-facing pin",
+      inputProblem: makeRailCarrierProblem({ branchedMainFacingPin: true }),
+    },
+    {
+      name: "branched carrier-facing pin",
+      inputProblem: makeRailCarrierProblem({ branchedCarrierFacingPin: true }),
+    },
+    {
+      name: "no rail pin",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.netConnMap = {}
+      }),
+    },
+    {
+      name: "rail pin with two nets",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.netMap.OTHER = { netId: "OTHER" }
+        inputProblem.netConnMap["SJ1.2-OTHER"] = true
+      }),
+    },
+    {
+      name: "untyped passive",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.chipMap.R1!.isResistor = false
+      }),
+    },
+    {
+      name: "non-two-pin passive",
+      inputProblem: mutateRailCarrierProblem((inputProblem) => {
+        inputProblem.chipMap.R1!.pins.push("R1.3")
+        inputProblem.chipPinMap["R1.3"] = {
+          pinId: "R1.3",
+          side: "x+",
+          offset: { x: 0.25, y: 0 },
+        }
+      }),
+    },
+    {
+      name: "different carriers",
+      inputProblem: makeRailCarrierProblem({ differentCarriers: true }),
+    },
+  ]
+
+  for (const testCase of cases) {
+    expect(
+      getRailCarrierGroups(testCase.inputProblem),
+      testCase.name,
+    ).toHaveLength(0)
+  }
+})
+
+test("keeps dense rail-carrier passives at least chipGap apart", () => {
+  const inputProblem = makeDenseRailCarrierGapProblem()
+  const solver = new LayoutPipelineSolver(inputProblem)
+  solver.solve()
+  const layout = solver.getOutputLayout()
+  const r1Bounds = getChipBounds(inputProblem, "R1", layout.chipPlacements.R1!)
+  const r2Bounds = getChipBounds(inputProblem, "R2", layout.chipPlacements.R2!)
+
+  expect(
+    solver.packInnerPartitionsSolver?.completedSolvers[0]?.constructor.name,
+  ).toBe("ParallelAlignedPassiveSolver")
+  expect(getBoundsDistance(r1Bounds, r2Bounds)).toBeGreaterThanOrEqual(
+    inputProblem.chipGap - 1e-6,
+  )
+})
+
+test("rejects rail-carrier reflow that would violate chipGap to an unrelated obstacle", () => {
+  const { inputProblem, baseLayout, unobstructedLayout } =
+    makeRailCarrierObstacleProblem({
+      targetChipId: "R2",
+      clearance: 0.1,
+    })
+  const obstacleBounds = getChipBounds(
+    inputProblem,
+    "OBS",
+    baseLayout.chipPlacements.OBS!,
+  )
+  const proposedR1Distance = getBoundsDistance(
+    getChipBounds(inputProblem, "R1", unobstructedLayout.chipPlacements.R1!),
+    obstacleBounds,
+  )
+  const proposedR2Distance = getBoundsDistance(
+    getChipBounds(inputProblem, "R2", unobstructedLayout.chipPlacements.R2!),
+    obstacleBounds,
+  )
+
+  expect(proposedR1Distance).toBeGreaterThan(0)
+  expect(proposedR1Distance).toBeLessThan(inputProblem.chipGap)
+  expect(proposedR2Distance).toBeGreaterThan(0)
+  expect(proposedR2Distance).toBeLessThan(inputProblem.chipGap)
+
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
+  }
+})
+
+test("accepted rail-carrier reflow satisfies chipGap for every moved pair", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierObstacleProblem({
+    targetChipId: "SJ1",
+    clearance: 0.6,
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  const distances = getDistancesFromMovedGroup(inputProblem, layout)
+
+  expect(distances.map((entry) => entry.pair).sort()).toEqual([
+    "R1-OBS",
+    "R1-R2",
+    "R1-SJ1",
+    "R1-U1",
+    "R2-OBS",
+    "R2-SJ1",
+    "R2-U1",
+    "SJ1-OBS",
+    "SJ1-U1",
+  ])
+  for (const { distance } of distances) {
+    expect(distance).toBeGreaterThanOrEqual(inputProblem.chipGap - 1e-6)
+  }
+})
+
+test("does not retry another carrier rotation when the unique one is unsafe", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierBlockedPlacementProblem({
+    rotations: [270],
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
+  }
+})
+
+test("uses the actual packed main rotation for rail-carrier side and order", () => {
+  const inputProblem = makeRailCarrierProblem()
+  const baseLayout = makeRailCarrierPackedLayout()
+  baseLayout.chipPlacements.U1 = { x: 0, y: 0, ccwRotationDegrees: 90 }
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  const mainBounds = getChipBounds(
+    inputProblem,
+    "U1",
+    layout.chipPlacements.U1!,
+  )
+
+  expect(layout.chipPlacements.SJ1!.ccwRotationDegrees).toBe(180)
+  for (const passiveChipId of ["R1", "R2", "SJ1"]) {
+    const bounds = getChipBounds(
+      inputProblem,
+      passiveChipId,
+      layout.chipPlacements[passiveChipId]!,
+    )
+    expect(bounds.minY).toBeGreaterThanOrEqual(
+      mainBounds.maxY + inputProblem.chipGap - 1e-6,
+    )
+  }
+})
+
+test("fails closed for reversed or ambiguous carrier pin ordering", () => {
+  const reversed = makeRailCarrierProblem()
+  reversed.chipMap.SJ1!.availableRotations = [270]
+
+  const ambiguous = makeRailCarrierProblem()
+  ambiguous.chipMap.SJ1!.availableRotations = [0, 90]
+  ambiguous.chipPinMap["SJ1.1"] = {
+    ...ambiguous.chipPinMap["SJ1.1"]!,
+    offset: { x: -0.3, y: -0.3 },
+  }
+  ambiguous.chipPinMap["SJ1.3"] = {
+    ...ambiguous.chipPinMap["SJ1.3"]!,
+    offset: { x: 0.3, y: 0.3 },
+  }
+
+  for (const inputProblem of [reversed, ambiguous]) {
+    const baseLayout = makeRailCarrierPackedLayout()
+    const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+    for (const chipId of ["R1", "R2", "SJ1"]) {
+      expectPlacementToEqual(
+        layout.chipPlacements[chipId]!,
+        baseLayout.chipPlacements[chipId]!,
+      )
+    }
+  }
+})
+
+test("rail-carrier reflow is deterministic", () => {
+  const results = new Set<string>()
+  for (let i = 0; i < 20; i++) {
+    const solver = new LayoutPipelineSolver(si7021Input as InputProblem)
+    solver.solve()
+    results.add(JSON.stringify(solver.getOutputLayout().chipPlacements))
+  }
+
+  expect(results.size).toBe(1)
+})
+
+test("preserves existing common-node passive detection", () => {
+  const groups = findSameSidePassiveGroups(commonNodeInput as InputProblem)
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.railCarrier).toBeUndefined()
+  expect(groups[0]!.passiveChipIds).toEqual(["C1", "C3"])
+})
+
+test("preserves existing three-passive same-side detection", () => {
+  const problem = makeRailCarrierProblem()
+  problem.chipMap.C3 = {
+    chipId: "C3",
+    pins: ["C3.1", "C3.2"],
+    size: { x: 0.5, y: 1 },
+    availableRotations: [0, 90, 180, 270],
+  }
+  problem.chipMap.U1!.pins.push("U1.5")
+  problem.chipPinMap["U1.5"] = {
+    pinId: "U1.5",
+    side: "x+",
+    offset: { x: 1, y: 0.6 },
+  }
+  problem.chipPinMap["C3.1"] = {
+    pinId: "C3.1",
+    side: "y+",
+    offset: { x: 0, y: 0.5 },
+  }
+  problem.chipPinMap["C3.2"] = {
+    pinId: "C3.2",
+    side: "y-",
+    offset: { x: 0, y: -0.5 },
+  }
+  problem.pinStrongConnMap = {
+    "U1.4-R1.1": true,
+    "U1.3-R2.1": true,
+    "U1.5-C3.1": true,
+  }
+  problem.netConnMap = {
+    "R1.2-SHARED": true,
+    "R2.2-SHARED": true,
+    "C3.2-SHARED": true,
+  }
+  problem.netMap = { SHARED: { netId: "SHARED" } }
+
+  const groups = findSameSidePassiveGroups(problem)
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.railCarrier).toBeUndefined()
+  expect(groups[0]!.passiveChipIds).toEqual(["R2", "R1", "C3"])
+})
