@@ -1,26 +1,51 @@
 import type { GraphicsObject } from "graphics-debug"
 import { BaseSolver } from "lib/solvers/BaseSolver"
 import { visualizeInputProblem } from "lib/solvers/LayoutPipelineSolver/visualizeInputProblem"
-import type { Chip, ChipId, InputProblem } from "lib/types/InputProblem"
+import type {
+  Chip,
+  ChipId,
+  InputProblem,
+  PartitionInputProblem,
+} from "lib/types/InputProblem"
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
+import { getRotatedSize } from "lib/utils/rotatePinOffset"
 import { getGapBetweenAlignedChips } from "./getGapBetweenAlignedChips"
 
 type AlignmentGroup = {
   chipIds: ChipId[]
 }
 
+type ClearanceConstraint = {
+  movingChipId: ChipId
+  stationaryChipId: ChipId
+  minimumGap: number
+  referenceHorizontalSide?: "left" | "right"
+}
+
+const CLEARANCE_EPSILON = 1e-6
+
 export class AlignPowerGroundRowsSolver extends BaseSolver {
   inputProblem: InputProblem
   inputLayout: OutputLayout
+  partitions?: PartitionInputProblem[]
   outputLayout: OutputLayout | null = null
+  private chipIdToPartition = new Map<ChipId, PartitionInputProblem>()
 
   constructor(params: {
     inputProblem: InputProblem
     inputLayout: OutputLayout
+    partitions?: PartitionInputProblem[]
   }) {
     super()
     this.inputProblem = params.inputProblem
     this.inputLayout = params.inputLayout
+    this.partitions = params.partitions
+
+    for (const partition of this.partitions ?? []) {
+      for (const chipId of Object.keys(partition.chipMap)) {
+        this.chipIdToPartition.set(chipId, partition)
+      }
+    }
   }
 
   override _step() {
@@ -172,51 +197,215 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     }
   }
 
+  private getMinimumGap(chipIdA: ChipId, chipIdB: ChipId): number {
+    const partitionA = this.chipIdToPartition.get(chipIdA)
+    const partitionB = this.chipIdToPartition.get(chipIdB)
+
+    if (partitionA && partitionB && partitionA !== partitionB) {
+      return this.inputProblem.partitionGap
+    }
+
+    if (
+      partitionA?.partitionType === "decoupling_caps" &&
+      partitionA === partitionB
+    ) {
+      return this.inputProblem.decouplingCapsGap ?? this.inputProblem.chipGap
+    }
+
+    return this.inputProblem.chipGap
+  }
+
+  private getAxisGaps({
+    chipIdA,
+    placementA,
+    chipIdB,
+    placementB,
+  }: {
+    chipIdA: ChipId
+    placementA: Placement
+    chipIdB: ChipId
+    placementB: Placement
+  }): { x: number; y: number } {
+    const chipA = this.inputProblem.chipMap[chipIdA]!
+    const chipB = this.inputProblem.chipMap[chipIdB]!
+    const sizeA = getRotatedSize(chipA.size, placementA.ccwRotationDegrees)
+    const sizeB = getRotatedSize(chipB.size, placementB.ccwRotationDegrees)
+
+    return {
+      x: Math.abs(placementA.x - placementB.x) - (sizeA.x + sizeB.x) / 2,
+      y: Math.abs(placementA.y - placementB.y) - (sizeA.y + sizeB.y) / 2,
+    }
+  }
+
+  private placementsHaveMinimumGap({
+    minimumGap,
+    ...placements
+  }: {
+    chipIdA: ChipId
+    placementA: Placement
+    chipIdB: ChipId
+    placementB: Placement
+    minimumGap: number
+  }): boolean {
+    const gap = this.getAxisGaps(placements)
+    return (
+      gap.x >= minimumGap - CLEARANCE_EPSILON ||
+      gap.y >= minimumGap - CLEARANCE_EPSILON
+    )
+  }
+
+  private getClearanceConstraints(
+    alignedGroupChipIds: Set<ChipId>,
+    allAlignedChipIds: Set<ChipId>,
+    referencePlacements: Record<string, Placement>,
+  ): ClearanceConstraint[] {
+    const constraints: ClearanceConstraint[] = []
+
+    for (const movingChipId of alignedGroupChipIds) {
+      const movingPlacement = referencePlacements[movingChipId]
+      if (!movingPlacement) continue
+
+      for (const stationaryChipId of Object.keys(this.inputProblem.chipMap)) {
+        if (allAlignedChipIds.has(stationaryChipId)) continue
+        const stationaryPlacement = referencePlacements[stationaryChipId]
+        if (!stationaryPlacement) continue
+
+        const minimumGap = this.getMinimumGap(movingChipId, stationaryChipId)
+        const referenceHasMinimumGap = this.placementsHaveMinimumGap({
+          chipIdA: movingChipId,
+          placementA: movingPlacement,
+          chipIdB: stationaryChipId,
+          placementB: stationaryPlacement,
+          minimumGap,
+        })
+        if (referenceHasMinimumGap) {
+          constraints.push({
+            movingChipId,
+            stationaryChipId,
+            minimumGap,
+            referenceHorizontalSide:
+              Math.abs(movingPlacement.x - stationaryPlacement.x) <=
+              CLEARANCE_EPSILON
+                ? undefined
+                : movingPlacement.x < stationaryPlacement.x
+                  ? "left"
+                  : "right",
+          })
+        }
+      }
+    }
+
+    return constraints
+  }
+
+  private getRestoringXOffsets(
+    constraint: ClearanceConstraint,
+    chipPlacements: Record<string, Placement>,
+  ): number[] {
+    const { movingChipId, stationaryChipId, minimumGap } = constraint
+    const movingPlacement = chipPlacements[movingChipId]!
+    const stationaryPlacement = chipPlacements[stationaryChipId]!
+    const movingSize = getRotatedSize(
+      this.inputProblem.chipMap[movingChipId]!.size,
+      movingPlacement.ccwRotationDegrees,
+    )
+    const stationarySize = getRotatedSize(
+      this.inputProblem.chipMap[stationaryChipId]!.size,
+      stationaryPlacement.ccwRotationDegrees,
+    )
+    const clearance = (movingSize.x + stationarySize.x) / 2 + minimumGap
+    const leftOffset = stationaryPlacement.x - clearance - movingPlacement.x
+    const rightOffset = stationaryPlacement.x + clearance - movingPlacement.x
+
+    if (constraint.referenceHorizontalSide === "left") return [leftOffset]
+    if (constraint.referenceHorizontalSide === "right") return [rightOffset]
+    return [leftOffset, rightOffset]
+  }
+
   /**
-   * Row alignment is a final polish pass over an already-packed layout. It can
-   * improve readability, but it must not create a new physical collision between
-   * chip rectangles, so the aligned candidate is checked before it is accepted.
+   * Preserve the gaps established by partition packing without changing the
+   * row's vertical alignment. A rigid horizontal move also preserves ordering;
+   * if no such move is valid, the group keeps its packed placement.
    */
+  private tryRestoreStationaryClearance(
+    chipPlacements: Record<string, Placement>,
+    referencePlacements: Record<string, Placement>,
+    alignedGroupChipIds: Set<ChipId>,
+    allAlignedChipIds: Set<ChipId>,
+  ): boolean {
+    const constraints = this.getClearanceConstraints(
+      alignedGroupChipIds,
+      allAlignedChipIds,
+      referencePlacements,
+    )
+    const candidateOffsets = [
+      0,
+      ...constraints.flatMap((constraint) =>
+        this.getRestoringXOffsets(constraint, chipPlacements),
+      ),
+    ].sort((a, b) => Math.abs(a) - Math.abs(b))
+
+    for (const offsetX of candidateOffsets) {
+      const satisfiesAllConstraints = constraints.every((constraint) => {
+        const movingPlacement = chipPlacements[constraint.movingChipId]!
+        const stationaryPlacement = chipPlacements[constraint.stationaryChipId]!
+        const candidateMovingPlacement = {
+          ...movingPlacement,
+          x: movingPlacement.x + offsetX,
+        }
+
+        if (
+          constraint.referenceHorizontalSide === "left" &&
+          candidateMovingPlacement.x >= stationaryPlacement.x
+        ) {
+          return false
+        }
+        if (
+          constraint.referenceHorizontalSide === "right" &&
+          candidateMovingPlacement.x <= stationaryPlacement.x
+        ) {
+          return false
+        }
+
+        return this.placementsHaveMinimumGap({
+          chipIdA: constraint.movingChipId,
+          placementA: candidateMovingPlacement,
+          chipIdB: constraint.stationaryChipId,
+          placementB: stationaryPlacement,
+          minimumGap: constraint.minimumGap,
+        })
+      })
+      if (!satisfiesAllConstraints) continue
+
+      for (const chipId of alignedGroupChipIds) {
+        chipPlacements[chipId]!.x += offsetX
+      }
+      return true
+    }
+
+    return false
+  }
+
   private hasChipOverlap(chipPlacements: Record<string, Placement>): boolean {
     const chipIds = Object.keys(this.inputProblem.chipMap)
 
     for (let i = 0; i < chipIds.length; i++) {
       const chipIdA = chipIds[i]!
-      const chipA = this.inputProblem.chipMap[chipIdA]!
       const placementA = chipPlacements[chipIdA]
       if (!placementA) continue
 
-      const isRotatedA =
-        placementA.ccwRotationDegrees === 90 ||
-        placementA.ccwRotationDegrees === 270
-      let widthA = chipA.size.x
-      let heightA = chipA.size.y
-      if (isRotatedA) {
-        widthA = chipA.size.y
-        heightA = chipA.size.x
-      }
-
       for (let j = i + 1; j < chipIds.length; j++) {
         const chipIdB = chipIds[j]!
-        const chipB = this.inputProblem.chipMap[chipIdB]!
         const placementB = chipPlacements[chipIdB]
         if (!placementB) continue
 
-        const isRotatedB =
-          placementB.ccwRotationDegrees === 90 ||
-          placementB.ccwRotationDegrees === 270
-        let widthB = chipB.size.x
-        let heightB = chipB.size.y
-        if (isRotatedB) {
-          widthB = chipB.size.y
-          heightB = chipB.size.x
-        }
-
-        const overlapsX =
-          Math.abs(placementA.x - placementB.x) < (widthA + widthB) / 2
-        const overlapsY =
-          Math.abs(placementA.y - placementB.y) < (heightA + heightB) / 2
-        if (overlapsX && overlapsY) return true
+        const gap = this.getAxisGaps({
+          chipIdA,
+          placementA,
+          chipIdB,
+          placementB,
+        })
+        if (gap.x < 0 && gap.y < 0) return true
       }
     }
 
@@ -227,12 +416,32 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     const groups = this.getAlignmentGroups()
     if (!groups) return null
 
+    // Preserve the existing all-or-nothing collision guard before attempting
+    // any clearance-preserving translation of individual rows.
+    const rawAlignedPlacements = { ...this.inputLayout.chipPlacements }
+    for (const group of groups) {
+      this.alignGroup(rawAlignedPlacements, group.chipIds)
+    }
+    if (this.hasChipOverlap(rawAlignedPlacements)) return null
+
     const chipPlacements: Record<string, Placement> = {
       ...this.inputLayout.chipPlacements,
     }
+    const allAlignedChipIds = new Set(groups.flatMap((group) => group.chipIds))
 
     for (const group of groups) {
-      this.alignGroup(chipPlacements, group.chipIds)
+      const candidatePlacements = { ...chipPlacements }
+      this.alignGroup(candidatePlacements, group.chipIds)
+
+      const clearanceWasRestored = this.tryRestoreStationaryClearance(
+        candidatePlacements,
+        chipPlacements,
+        new Set(group.chipIds),
+        allAlignedChipIds,
+      )
+      if (clearanceWasRestored) {
+        Object.assign(chipPlacements, candidatePlacements)
+      }
     }
 
     if (this.hasChipOverlap(chipPlacements)) return null
@@ -251,12 +460,17 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
   }
 
   override getConstructorParams(): [
-    { inputProblem: InputProblem; inputLayout: OutputLayout },
+    {
+      inputProblem: InputProblem
+      inputLayout: OutputLayout
+      partitions?: PartitionInputProblem[]
+    },
   ] {
     return [
       {
         inputProblem: this.inputProblem,
         inputLayout: this.inputLayout,
+        partitions: this.partitions,
       },
     ]
   }
