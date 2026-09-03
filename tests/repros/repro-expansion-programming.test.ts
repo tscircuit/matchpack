@@ -7,5 +7,7 @@ test("expansion and programming schematic section", async () => {
   const solver = new LayoutPipelineSolver(input as InputProblem)
   solver.solve()
 
+  const placements = solver.getOutputLayout().chipPlacements
+  expect(placements.J4!.y).toBeCloseTo(placements.J5!.y)
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })

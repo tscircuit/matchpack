@@ -222,6 +222,23 @@ export class PartitionPackingSolver extends BaseSolver {
       for (const chipId of group.chipIds) {
         const chipPlacement = packedPartition.layout.chipPlacements[chipId]!
         const chip = packedPartition.inputProblem.chipMap[chipId]!
+        const firstPinSide =
+          packedPartition.inputProblem.chipPinMap[chip.pins[0]!]?.side
+        const hasMatchingPinColumn =
+          chip.pins.length > 2 &&
+          (firstPinSide === "x-" || firstPinSide === "x+") &&
+          chip.pins.every(
+            (pinId) =>
+              packedPartition.inputProblem.chipPinMap[pinId]?.side ===
+              firstPinSide,
+          ) &&
+          Object.values(this.inputProblem.chipMap).some(
+            (otherChip) =>
+              otherChip.chipId !== chipId &&
+              otherChip.pins.length === chip.pins.length &&
+              otherChip.size.x === chip.size.x &&
+              otherChip.size.y === chip.size.y,
+          )
 
         for (const pinId of chip.pins) {
           const chipPin = packedPartition.inputProblem.chipPinMap[pinId]
@@ -241,6 +258,17 @@ export class PartitionPackingSolver extends BaseSolver {
           const absolutePinY = chipPlacement.y + rotatedPinOffset.y
           const networkId =
             pinToNetworkMap.get(pinId) ?? `${pinId}_disconnected`
+          const offset = {
+            x: absolutePinX - centerX,
+            y: absolutePinY - centerY,
+          }
+          const net = this.inputProblem.netMap[networkId]
+          if (
+            hasMatchingPinColumn &&
+            (net?.isGround || net?.isPositiveVoltageSource)
+          ) {
+            offset.y = 0
+          }
 
           // Only add one pad per network to avoid overlapping
           if (!addedNetworks.has(networkId)) {
@@ -249,7 +277,7 @@ export class PartitionPackingSolver extends BaseSolver {
               padId: `${group.partitionIndex}_pin_${pinId}`,
               networkId,
               type: "rect" as const,
-              offset: { x: absolutePinX - centerX, y: absolutePinY - centerY },
+              offset,
               size: { x: 0.01, y: 0.01 },
             })
           }
