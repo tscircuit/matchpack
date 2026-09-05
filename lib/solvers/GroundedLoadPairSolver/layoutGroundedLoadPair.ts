@@ -1,4 +1,5 @@
 import {
+  boundsAreaOverlap,
   getBoundFromCenteredRect,
   getBoundsCenter,
   getBoundsFromPoints,
@@ -63,6 +64,41 @@ const getChipBounds = ({
     width: size.x,
     height: size.y,
   })
+}
+
+const pairOverlapsOtherChips = ({
+  groundedLoadPair,
+  chipPlacements,
+  inputProblem,
+}: {
+  groundedLoadPair: GroundedLoadPair
+  chipPlacements: Record<string, Placement>
+  inputProblem: InputProblem
+}) => {
+  const pairChipIds = new Set([
+    groundedLoadPair.upperChip.chipId,
+    groundedLoadPair.lowerChip.chipId,
+  ])
+
+  for (const pairChipId of pairChipIds) {
+    const pairChip = inputProblem.chipMap[pairChipId]
+    const pairPlacement = chipPlacements[pairChipId]
+    if (!pairChip || !pairPlacement) return true
+    const pairChipBounds = getChipBounds({
+      chip: pairChip,
+      placement: pairPlacement,
+    })
+
+    for (const [chipId, placement] of Object.entries(chipPlacements)) {
+      if (pairChipIds.has(chipId)) continue
+      const chip = inputProblem.chipMap[chipId]
+      if (!chip) continue
+      const chipBounds = getChipBounds({ chip, placement })
+      if (boundsAreaOverlap(pairChipBounds, chipBounds) > 0) return true
+    }
+  }
+
+  return false
 }
 
 const movePairBelowObstacles = ({
@@ -225,4 +261,18 @@ export const layoutGroundedLoadPair = ({
 
   // Keep the pair rigid while restoring chipGap from previously packed bodies.
   movePairBelowObstacles({ groundedLoadPair, chipPlacements, inputProblem })
+
+  // Standalone pairs are reflowed as rows later. Chip-anchored pairs are not,
+  // so keep their packed positions if this local stack creates a collision.
+  if (
+    groundedLoadPair.mainChipId &&
+    pairOverlapsOtherChips({
+      groundedLoadPair,
+      chipPlacements,
+      inputProblem,
+    })
+  ) {
+    chipPlacements[groundedLoadPair.upperChip.chipId] = upperPlacement
+    chipPlacements[groundedLoadPair.lowerChip.chipId] = lowerPlacement
+  }
 }

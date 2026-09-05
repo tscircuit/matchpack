@@ -4,9 +4,9 @@ import type { InputProblem } from "../../lib/types/InputProblem"
 import input from "../assets/repro-adjacent-led-output-overlap.input.json"
 
 // Captured from the exact TrafficLightController TSX in @tscircuit/core.
-// Matchpack reports a solved layout even though neighboring resistor/LED output
-// branches physically overlap according to its own input bounds.
-test("adjacent LED output branches overlap after layout", async () => {
+// Adjacent resistor/LED output branches must remain collision-free after the
+// grounded-load placement pass.
+test("adjacent LED output branches remain collision-free", async () => {
   const solver = new LayoutPipelineSolver(input as InputProblem)
   solver.solve()
 
@@ -14,7 +14,7 @@ test("adjacent LED output branches overlap after layout", async () => {
   expect(solver.failed).toBe(false)
 
   const overlaps = solver.checkForOverlaps(solver.getOutputLayout())
-  expect(overlaps).toHaveLength(3)
+  expect(overlaps).toHaveLength(0)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path, {
     svgWidth: 1200,
