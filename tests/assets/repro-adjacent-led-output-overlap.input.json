@@ -1,0 +1,686 @@
+{
+  "chipMap": {
+    "U1": {
+      "chipId": "U1",
+      "pins": ["U1.1", "U1.2", "U1.3", "U1.4", "U1.5", "U1.6", "U1.7", "U1.8"],
+      "size": {
+        "x": 1.6,
+        "y": 1.7999999999999998
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "U2": {
+      "chipId": "U2",
+      "pins": [
+        "U2.1",
+        "U2.2",
+        "U2.3",
+        "U2.4",
+        "U2.5",
+        "U2.6",
+        "U2.7",
+        "U2.8",
+        "U2.9",
+        "U2.10",
+        "U2.11",
+        "U2.12",
+        "U2.13",
+        "U2.14",
+        "U2.15",
+        "U2.16"
+      ],
+      "size": {
+        "x": 2.4000000000000004,
+        "y": 2.5999999999999996
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "J1": {
+      "chipId": "J1",
+      "pins": ["J1.1", "J1.2"],
+      "size": {
+        "x": 0.4,
+        "y": 1.4
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "RT1": {
+      "chipId": "RT1",
+      "pins": ["RT1.1", "RT1.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "RT2": {
+      "chipId": "RT2",
+      "pins": ["RT2.1", "RT2.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "CT": {
+      "chipId": "CT",
+      "pins": ["CT.1", "CT.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "CCTRL": {
+      "chipId": "CCTRL",
+      "pins": ["CCTRL.1", "CCTRL.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "CDEC1": {
+      "chipId": "CDEC1",
+      "pins": ["CDEC1.1", "CDEC1.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "CDEC2": {
+      "chipId": "CDEC2",
+      "pins": ["CDEC2.1", "CDEC2.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "D1": {
+      "chipId": "D1",
+      "pins": ["D1.1", "D1.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.18
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R1": {
+      "chipId": "R1",
+      "pins": ["R1.1", "R1.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D2": {
+      "chipId": "D2",
+      "pins": ["D2.1", "D2.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.18
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R2": {
+      "chipId": "R2",
+      "pins": ["R2.1", "R2.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "D3": {
+      "chipId": "D3",
+      "pins": ["D3.1", "D3.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.18
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [90]
+    },
+    "R3": {
+      "chipId": "R3",
+      "pins": ["R3.1", "R3.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": 0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": 0.10000000000000003
+      },
+      "side": "x-"
+    },
+    "U1.3": {
+      "pinId": "U1.3",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": -0.09999999999999998
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": -1.2000000000000002,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": -0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "U1.6": {
+      "pinId": "U1.6",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": -0.10000000000000003
+      },
+      "side": "x+"
+    },
+    "U1.7": {
+      "pinId": "U1.7",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": 0.09999999999999998
+      },
+      "side": "x+"
+    },
+    "U1.8": {
+      "pinId": "U1.8",
+      "offset": {
+        "x": 1.2000000000000002,
+        "y": 0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "U2.1": {
+      "pinId": "U2.1",
+      "offset": {
+        "x": -1.6,
+        "y": 0.7
+      },
+      "side": "x-"
+    },
+    "U2.2": {
+      "pinId": "U2.2",
+      "offset": {
+        "x": -1.6,
+        "y": 0.49999999999999994
+      },
+      "side": "x-"
+    },
+    "U2.3": {
+      "pinId": "U2.3",
+      "offset": {
+        "x": -1.6,
+        "y": 0.29999999999999993
+      },
+      "side": "x-"
+    },
+    "U2.4": {
+      "pinId": "U2.4",
+      "offset": {
+        "x": -1.6,
+        "y": 0.09999999999999987
+      },
+      "side": "x-"
+    },
+    "U2.5": {
+      "pinId": "U2.5",
+      "offset": {
+        "x": -1.6,
+        "y": -0.10000000000000009
+      },
+      "side": "x-"
+    },
+    "U2.6": {
+      "pinId": "U2.6",
+      "offset": {
+        "x": -1.6,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U2.7": {
+      "pinId": "U2.7",
+      "offset": {
+        "x": -1.6,
+        "y": -0.5
+      },
+      "side": "x-"
+    },
+    "U2.8": {
+      "pinId": "U2.8",
+      "offset": {
+        "x": -1.6,
+        "y": -0.7
+      },
+      "side": "x-"
+    },
+    "U2.9": {
+      "pinId": "U2.9",
+      "offset": {
+        "x": 1.6,
+        "y": -0.7
+      },
+      "side": "x+"
+    },
+    "U2.10": {
+      "pinId": "U2.10",
+      "offset": {
+        "x": 1.6,
+        "y": -0.49999999999999994
+      },
+      "side": "x+"
+    },
+    "U2.11": {
+      "pinId": "U2.11",
+      "offset": {
+        "x": 1.6,
+        "y": -0.29999999999999993
+      },
+      "side": "x+"
+    },
+    "U2.12": {
+      "pinId": "U2.12",
+      "offset": {
+        "x": 1.6,
+        "y": -0.09999999999999987
+      },
+      "side": "x+"
+    },
+    "U2.13": {
+      "pinId": "U2.13",
+      "offset": {
+        "x": 1.6,
+        "y": 0.10000000000000009
+      },
+      "side": "x+"
+    },
+    "U2.14": {
+      "pinId": "U2.14",
+      "offset": {
+        "x": 1.6,
+        "y": 0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "U2.15": {
+      "pinId": "U2.15",
+      "offset": {
+        "x": 1.6,
+        "y": 0.5
+      },
+      "side": "x+"
+    },
+    "U2.16": {
+      "pinId": "U2.16",
+      "offset": {
+        "x": 1.6,
+        "y": 0.7
+      },
+      "side": "x+"
+    },
+    "J1.1": {
+      "pinId": "J1.1",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "J1.2": {
+      "pinId": "J1.2",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "RT1.1": {
+      "pinId": "RT1.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "RT1.2": {
+      "pinId": "RT1.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "RT2.1": {
+      "pinId": "RT2.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "RT2.2": {
+      "pinId": "RT2.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "CT.1": {
+      "pinId": "CT.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "CT.2": {
+      "pinId": "CT.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "CCTRL.1": {
+      "pinId": "CCTRL.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "CCTRL.2": {
+      "pinId": "CCTRL.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "CDEC1.1": {
+      "pinId": "CDEC1.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "CDEC1.2": {
+      "pinId": "CDEC1.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "CDEC2.1": {
+      "pinId": "CDEC2.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "CDEC2.2": {
+      "pinId": "CDEC2.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D1.1": {
+      "pinId": "D1.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D1.2": {
+      "pinId": "D1.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R1.1": {
+      "pinId": "R1.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R1.2": {
+      "pinId": "R1.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D2.1": {
+      "pinId": "D2.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D2.2": {
+      "pinId": "D2.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R2.1": {
+      "pinId": "R2.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R2.2": {
+      "pinId": "R2.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "D3.1": {
+      "pinId": "D3.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "D3.2": {
+      "pinId": "D3.2",
+      "offset": {
+        "x": 0.54,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R3.1": {
+      "pinId": "R3.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R3.2": {
+      "pinId": "R3.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": {
+      "netId": "TRAFFIC_LIGHT_CONTROLLER_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "TRAFFIC_LIGHT_CONTROLLER_connectivity_net3": {
+      "netId": "TRAFFIC_LIGHT_CONTROLLER_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": {
+      "netId": "TRAFFIC_LIGHT_CONTROLLER_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    }
+  },
+  "pinStrongConnMap": {
+    "U1.3-U2.14": true,
+    "U2.14-U1.3": true,
+    "U1.5-CCTRL.1": true,
+    "CCTRL.1-U1.5": true,
+    "RT1.2-U1.7": true,
+    "U1.7-RT1.2": true,
+    "U1.7-RT2.1": true,
+    "RT2.1-U1.7": true,
+    "U2.2-R2.1": true,
+    "R2.1-U2.2": true,
+    "U2.3-R1.1": true,
+    "R1.1-U2.3": true,
+    "U2.4-R3.1": true,
+    "R3.1-U2.4": true,
+    "U2.7-U2.15": true,
+    "U2.15-U2.7": true,
+    "R1.2-D1.2": true,
+    "D1.2-R1.2": true,
+    "R2.2-D2.2": true,
+    "D2.2-R2.2": true,
+    "R3.2-D3.2": true,
+    "D3.2-R3.2": true
+  },
+  "netConnMap": {
+    "U1.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "U2.8-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "U2.13-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "J1.2-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "CT.2-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "CCTRL.2-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "CDEC1.2-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "CDEC2.2-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "D1.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "D2.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "D3.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net1": true,
+    "U1.2-TRAFFIC_LIGHT_CONTROLLER_connectivity_net3": true,
+    "U1.6-TRAFFIC_LIGHT_CONTROLLER_connectivity_net3": true,
+    "RT2.2-TRAFFIC_LIGHT_CONTROLLER_connectivity_net3": true,
+    "CT.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net3": true,
+    "U1.4-TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": true,
+    "U1.8-TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": true,
+    "U2.16-TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": true,
+    "J1.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": true,
+    "RT1.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": true,
+    "CDEC1.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": true,
+    "CDEC2.1-TRAFFIC_LIGHT_CONTROLLER_connectivity_net0": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
