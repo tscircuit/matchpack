@@ -24,7 +24,6 @@ import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsS
 import { AlignChipConnectedRailLoadsSolver } from "../AlignChipConnectedRailLoadsSolver/AlignChipConnectedRailLoadsSolver"
 import { GroundedLoadPairSolver } from "../GroundedLoadPairSolver/GroundedLoadPairSolver"
 import { PlaceRailConnectedLoadsSolver } from "../PlaceRailConnectedLoadsSolver/PlaceRailConnectedLoadsSolver"
-import { AlignGroundedLoadPairsSolver } from "../AlignGroundedLoadPairsSolver/AlignGroundedLoadPairsSolver"
 import { AlignRegulatorCapacitorRowSolver } from "../AlignRegulatorCapacitorRowSolver/AlignRegulatorCapacitorRowSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
@@ -67,7 +66,6 @@ export class LayoutPipelineSolver extends BaseSolver {
   chipPartitionsSolver?: ChipPartitionsSolver
   packInnerPartitionsSolver?: PackInnerPartitionsSolver
   partitionPackingSolver?: PartitionPackingSolver
-  alignGroundedLoadPairsSolver?: AlignGroundedLoadPairsSolver
   groundedLoadPairSolver?: GroundedLoadPairSolver
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
   alignTestPointsSolver?: AlignTestPointsSolver
@@ -214,22 +212,10 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
-    definePipelineStep(
-      "alignGroundedLoadPairsSolver",
-      AlignGroundedLoadPairsSolver,
-      () => [
-        {
-          inputProblem: this.inputProblem,
-          inputLayout: this.alignRegulatorCapacitorRowSolver!.outputLayout!,
-          groundedLoadPairs: this.groundedLoadPairSolver!.groundedLoadPairs,
-        },
-      ],
-    ),
     definePipelineStep("alignTestPointsSolver", AlignTestPointsSolver, () => [
       {
         inputProblem: this.inputProblem,
         inputLayout:
-          this.alignGroundedLoadPairsSolver!.outputLayout ??
           this.alignRegulatorCapacitorRowSolver!.outputLayout ??
           this.alignChipConnectedRailLoadsSolver!.outputLayout ??
           this.placeRailConnectedLoadsSolver!.outputLayout ??

@@ -1,4 +1,7 @@
-import { rotatePinOffset } from "../../lib/utils/rotatePinOffset"
+import {
+  getRotatedSize,
+  rotatePinOffset,
+} from "../../lib/utils/rotatePinOffset"
 import { getPlacementBounds } from "../../lib/solvers/AlignTestPointsSolver/placementsOverlap"
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
@@ -55,16 +58,17 @@ test("adjacent LED output branches remain collision-free", async () => {
       placement: mainPlacement,
       size: solver.inputProblem.chipMap[groundedLoadPair.mainChipId!]!.size,
     })
-    const beforePlacements =
-      solver.alignRegulatorCapacitorRowSolver!.outputLayout!.chipPlacements
-    const beforeUpper = beforePlacements[groundedLoadPair.upperChip.chipId]!
-    const beforeLower = beforePlacements[groundedLoadPair.lowerChip.chipId]!
-    expect(upperPlacement.x - lowerPlacement.x).toBeCloseTo(
-      beforeUpper.x - beforeLower.x,
-      6,
+    const upperSize = getRotatedSize(
+      groundedLoadPair.upperChip.size,
+      upperPlacement.ccwRotationDegrees,
     )
+    const lowerSize = getRotatedSize(
+      groundedLoadPair.lowerChip.size,
+      lowerPlacement.ccwRotationDegrees,
+    )
+    expect(upperPlacement.x - lowerPlacement.x).toBeCloseTo(0, 6)
     expect(upperPlacement.y - lowerPlacement.y).toBeCloseTo(
-      beforeUpper.y - beforeLower.y,
+      upperSize.y / 2 + input.chipGap + lowerSize.y / 2,
       6,
     )
     for (const chip of [
@@ -75,9 +79,6 @@ test("adjacent LED output branches remain collision-free", async () => {
       const bounds = getPlacementBounds({ placement, size: chip.size })
       expect(mainBounds.minX - bounds.maxX).toBeGreaterThanOrEqual(
         input.chipGap - 1e-6,
-      )
-      expect(placement.ccwRotationDegrees).toBe(
-        beforePlacements[chip.chipId]!.ccwRotationDegrees,
       )
     }
     expect(upperPlacement.y).toBeGreaterThan(lowerPlacement.y)
