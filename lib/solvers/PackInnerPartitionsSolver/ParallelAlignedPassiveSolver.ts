@@ -8,8 +8,9 @@
  * horizontal row just outside the main-chip edge — pushed left/right/up/down
  * depending on which edge the group attaches to — ordered by the connecting
  * main-chip pin and kept at least chipGap from neighbouring components. Every
- * other component stays exactly where calculate-packing placed it, and each
- * passive keeps its (fixed, typically vertical) rotation.
+ * other component stays exactly where calculate-packing placed it. Simple
+ * same-side rows keep each passive's packed rotation; rail-carrier rows select
+ * a unique passive rotation whose pins face the main chip and carrier.
  *
  * Sibling to SingleInnerPartitionPackingSolver; PackInnerPartitionsSolver
  * dispatches to it by partition contents. If a group cannot be re-flowed cleanly
@@ -45,6 +46,7 @@ import {
 import { applyDirectPassiveTraceClearance } from "../../utils/offsetCollinearConnections"
 
 const CLEARANCE_EPSILON = 1e-6
+const ORIENTATION_EPSILON = 1e-6
 const MAX_RESOLVE_ITERATIONS = 16
 
 const signWithEpsilon = (value: number): -1 | 0 | 1 => {
@@ -76,6 +78,14 @@ const edgeCoordForSide = (
 ): number => {
   if (side === "x-" || side === "x+") return offset.y
   return offset.x
+}
+
+const outwardProjection = (
+  offset: { x: number; y: number },
+  side: Side,
+): number => {
+  const outward = OUTWARD_BY_SIDE[side]
+  return offset.x * outward.x + offset.y * outward.y
 }
 
 type RailCarrierLayoutItem = {
@@ -225,16 +235,23 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       const passiveMainPin = prob.chipPinMap[item!.passiveMainPinId]
       if (!mainPinPosition || !passiveMainPin) return
 
-      const passiveSize = getRotatedSize(
-        passiveChip.size,
-        packedPlacement.ccwRotationDegrees,
-      )
+      const passiveRotation = this.getUniqueCompatiblePassiveRotation({
+        passiveChipId: item!.chipId,
+        passiveMainPinId: item!.passiveMainPinId,
+        passiveCarrierPinId: item!.passiveCarrierPinId,
+        side,
+        basePlacement: packedPlacement,
+      })
+      if (passiveRotation === null) return
+
+      const passiveSize = getRotatedSize(passiveChip.size, passiveRotation)
       const passiveMainPinOffset = rotatePinOffset(
         passiveMainPin.offset,
-        packedPlacement.ccwRotationDegrees,
+        passiveRotation,
       )
       const nextPlacement: Placement = {
         ...packedPlacement,
+        ccwRotationDegrees: passiveRotation,
         [alignAxis]:
           mainPinPosition[alignAxis] - passiveMainPinOffset[alignAxis],
       }
@@ -308,6 +325,50 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     for (const chipId of movedChipIds) {
       placements[chipId] = completeCandidatePlacements[chipId]!
     }
+  }
+
+  private getUniqueCompatiblePassiveRotation({
+    passiveChipId,
+    passiveMainPinId,
+    passiveCarrierPinId,
+    side,
+    basePlacement,
+  }: {
+    passiveChipId: ChipId
+    passiveMainPinId: PinId
+    passiveCarrierPinId: PinId
+    side: Side
+    basePlacement: Placement
+  }): number | null {
+    const passiveChip = this.partitionInputProblem.chipMap[passiveChipId]
+    const passiveMainPin =
+      this.partitionInputProblem.chipPinMap[passiveMainPinId]
+    const passiveCarrierPin =
+      this.partitionInputProblem.chipPinMap[passiveCarrierPinId]
+    if (!passiveChip || !passiveMainPin || !passiveCarrierPin) return null
+
+    const rotations = [
+      ...new Set(
+        passiveChip.availableRotations ?? [basePlacement.ccwRotationDegrees],
+      ),
+    ]
+    const compatibleRotations = rotations.filter((ccwRotationDegrees) => {
+      const mainProjection = outwardProjection(
+        rotatePinOffset(passiveMainPin.offset, ccwRotationDegrees),
+        side,
+      )
+      const carrierProjection = outwardProjection(
+        rotatePinOffset(passiveCarrierPin.offset, ccwRotationDegrees),
+        side,
+      )
+      return (
+        mainProjection < -ORIENTATION_EPSILON &&
+        carrierProjection > ORIENTATION_EPSILON &&
+        carrierProjection - mainProjection > ORIENTATION_EPSILON
+      )
+    })
+
+    return compatibleRotations.length === 1 ? compatibleRotations[0]! : null
   }
 
   private getUniqueRailCarrierPlacement({

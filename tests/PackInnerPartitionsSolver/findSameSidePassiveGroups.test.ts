@@ -5,8 +5,16 @@ import { findSameSidePassiveGroups } from "lib/solvers/PackInnerPartitionsSolver
 import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import type { ChipPin, InputProblem } from "lib/types/InputProblem"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
+import type { Side } from "lib/types/Side"
 import si7021Input from "../../pages/repros/repro-si7021/si7021-matchpack-input.json"
 import commonNodeInput from "../assets/repro-core-repro70-common-node-placement.input.json"
+
+const OUTWARD_BY_SIDE: Record<Side, { x: number; y: number }> = {
+  "x-": { x: -1, y: 0 },
+  "x+": { x: 1, y: 0 },
+  "y-": { x: 0, y: -1 },
+  "y+": { x: 0, y: 1 },
+}
 
 const makeRailCarrierProblem = (
   opts: {
@@ -589,6 +597,21 @@ const makeRailCarrierPackedLayout = (): OutputLayout => ({
   groupPlacements: {},
 })
 
+const makeRailCarrierPackedLayoutWithPassiveRotation = (
+  passiveRotation: 0 | 90 | 180 | 270,
+): OutputLayout => {
+  const layout = makeRailCarrierPackedLayout()
+  layout.chipPlacements.R1 = {
+    ...layout.chipPlacements.R1!,
+    ccwRotationDegrees: passiveRotation,
+  }
+  layout.chipPlacements.R2 = {
+    ...layout.chipPlacements.R2!,
+    ccwRotationDegrees: passiveRotation,
+  }
+  return layout
+}
+
 const alignRailCarrierFromPackedLayout = (
   inputProblem: InputProblem,
   baseLayout: OutputLayout,
@@ -602,6 +625,88 @@ const alignRailCarrierFromPackedLayout = (
       alignPassiveGroups(base: OutputLayout): OutputLayout
     }
   ).alignPassiveGroups(baseLayout)
+}
+
+const setRailCarrierMainSide = (
+  inputProblem: InputProblem,
+  side: Side,
+): void => {
+  const offsetsBySide: Record<
+    Side,
+    Record<"U1.3" | "U1.4", { x: number; y: number }>
+  > = {
+    "x+": {
+      "U1.3": { x: 1, y: -0.2 },
+      "U1.4": { x: 1, y: 0.2 },
+    },
+    "x-": {
+      "U1.3": { x: -1, y: -0.2 },
+      "U1.4": { x: -1, y: 0.2 },
+    },
+    "y+": {
+      "U1.3": { x: -0.2, y: 1 },
+      "U1.4": { x: 0.2, y: 1 },
+    },
+    "y-": {
+      "U1.3": { x: -0.2, y: -1 },
+      "U1.4": { x: 0.2, y: -1 },
+    },
+  }
+
+  for (const [pinId, offset] of Object.entries(offsetsBySide[side])) {
+    inputProblem.chipPinMap[pinId] = {
+      ...inputProblem.chipPinMap[pinId]!,
+      side,
+      offset,
+    }
+  }
+}
+
+const getPassivePinProjection = ({
+  inputProblem,
+  layout,
+  chipId,
+  pinId,
+  side,
+}: {
+  inputProblem: InputProblem
+  layout: OutputLayout
+  chipId: string
+  pinId: string
+  side: Side
+}): number => {
+  const placement = layout.chipPlacements[chipId]!
+  const pin = inputProblem.chipPinMap[pinId]!
+  const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+  const outward = OUTWARD_BY_SIDE[side]
+  return offset.x * outward.x + offset.y * outward.y
+}
+
+const expectRailCarrierPassivesToFaceOutward = (
+  inputProblem: InputProblem,
+  layout: OutputLayout,
+): void => {
+  const group = getRailCarrierGroups(inputProblem)[0]!
+  expect(group).toBeDefined()
+  for (const [index, chipId] of group.passiveChipIds.entries()) {
+    const mainProjection = getPassivePinProjection({
+      inputProblem,
+      layout,
+      chipId,
+      pinId: group.railCarrier!.passiveMainPinIds[index]!,
+      side: group.side,
+    })
+    const carrierProjection = getPassivePinProjection({
+      inputProblem,
+      layout,
+      chipId,
+      pinId: group.railCarrier!.passiveCarrierPinIds[index]!,
+      side: group.side,
+    })
+    expect(mainProjection, chipId).toBeLessThan(-1e-6)
+    expect(carrierProjection, chipId).toBeGreaterThan(1e-6)
+    expect(carrierProjection - mainProjection, chipId).toBeGreaterThan(1e-6)
+  }
 }
 
 const withFixedObstacle = ({
@@ -959,6 +1064,127 @@ test("keeps carrier pins paired with passives after edge-order sorting", () => {
     edgeOrderedLayout.chipPlacements,
   )
   expect(reversedLayout.chipPlacements.SJ1?.ccwRotationDegrees).toBe(90)
+})
+
+test("selects inward-to-outward passive rotations before committing rail-carrier reflow", () => {
+  const inputProblem = makeRailCarrierProblem()
+  const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(270)
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  expect(layout.chipPlacements.R1!.x).not.toBe(baseLayout.chipPlacements.R1!.x)
+  expect(layout.chipPlacements.R2!.x).not.toBe(baseLayout.chipPlacements.R2!.x)
+  expect(layout.chipPlacements.R1!.ccwRotationDegrees).toBe(90)
+  expect(layout.chipPlacements.R2!.ccwRotationDegrees).toBe(90)
+  expectRailCarrierPassivesToFaceOutward(inputProblem, layout)
+})
+
+test("orients rail-carrier passives by physical side", () => {
+  const cases: Array<{
+    side: Side
+    packedRotation: 0 | 90 | 180 | 270
+    expectedRotation: 0 | 90 | 180 | 270
+  }> = [
+    { side: "x+", packedRotation: 270, expectedRotation: 90 },
+    { side: "x-", packedRotation: 90, expectedRotation: 270 },
+    { side: "y+", packedRotation: 0, expectedRotation: 180 },
+    { side: "y-", packedRotation: 180, expectedRotation: 0 },
+  ]
+
+  for (const testCase of cases) {
+    const inputProblem = makeRailCarrierProblem()
+    setRailCarrierMainSide(inputProblem, testCase.side)
+    const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(
+      testCase.packedRotation,
+    )
+    const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+    expect(layout.chipPlacements.R1!.ccwRotationDegrees, testCase.side).toBe(
+      testCase.expectedRotation,
+    )
+    expect(layout.chipPlacements.R2!.ccwRotationDegrees, testCase.side).toBe(
+      testCase.expectedRotation,
+    )
+    expectRailCarrierPassivesToFaceOutward(inputProblem, layout)
+  }
+})
+
+test("fails closed atomically when no compatible passive rotation exists", () => {
+  const inputProblem = makeRailCarrierProblem()
+  inputProblem.chipMap.R1!.availableRotations = [0, 180]
+  inputProblem.chipMap.R2!.availableRotations = [0, 180]
+  const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(0)
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
+  }
+})
+
+test("fails closed atomically when passive rotation choice is ambiguous", () => {
+  const inputProblem = makeRailCarrierProblem()
+  inputProblem.chipPinMap["R1.1"] = {
+    ...inputProblem.chipPinMap["R1.1"]!,
+    offset: { x: -0.5, y: -0.5 },
+  }
+  inputProblem.chipPinMap["R1.2"] = {
+    ...inputProblem.chipPinMap["R1.2"]!,
+    offset: { x: 0.5, y: 0.5 },
+  }
+  inputProblem.chipPinMap["R2.1"] = {
+    ...inputProblem.chipPinMap["R2.1"]!,
+    offset: { x: -0.5, y: -0.5 },
+  }
+  inputProblem.chipPinMap["R2.2"] = {
+    ...inputProblem.chipPinMap["R2.2"]!,
+    offset: { x: 0.5, y: 0.5 },
+  }
+  inputProblem.chipMap.R1!.availableRotations = [0, 270]
+  inputProblem.chipMap.R2!.availableRotations = [0, 270]
+  const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(0)
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
+  }
+})
+
+test("handles passive rotation subsets, reversed pin roles, and rotated rectangular bounds", () => {
+  const inputProblem = makeRailCarrierProblem()
+  for (const passiveChipId of ["R1", "R2"]) {
+    inputProblem.chipMap[passiveChipId]!.size = { x: 0.4, y: 1.2 }
+    inputProblem.chipMap[passiveChipId]!.availableRotations = [270]
+  }
+  replaceStrongConnection(inputProblem, "U1.4-R1.1", "U1.4-R1.2")
+  replaceStrongConnection(inputProblem, "U1.3-R2.1", "U1.3-R2.2")
+  replaceStrongConnection(inputProblem, "R1.2-SJ1.3", "R1.1-SJ1.3")
+  replaceStrongConnection(inputProblem, "R2.2-SJ1.1", "R2.1-SJ1.1")
+  const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(90)
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  const mainBounds = getChipBounds(
+    inputProblem,
+    "U1",
+    layout.chipPlacements.U1!,
+  )
+
+  expect(layout.chipPlacements.R1!.ccwRotationDegrees).toBe(270)
+  expect(layout.chipPlacements.R2!.ccwRotationDegrees).toBe(270)
+  expectRailCarrierPassivesToFaceOutward(inputProblem, layout)
+  for (const chipId of ["R1", "R2"]) {
+    const bounds = getChipBounds(
+      inputProblem,
+      chipId,
+      layout.chipPlacements[chipId]!,
+    )
+    expect(bounds.minX).toBeGreaterThanOrEqual(
+      mainBounds.maxX + inputProblem.chipGap - 1e-6,
+    )
+  }
 })
 
 test("declines unsupported rail-carrier topology variants", () => {
