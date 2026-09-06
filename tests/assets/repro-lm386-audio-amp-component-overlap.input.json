@@ -1,0 +1,533 @@
+{
+  "chipMap": {
+    "U1": {
+      "chipId": "U1",
+      "pins": [
+        "U1.1",
+        "U1.2",
+        "U1.3",
+        "U1.4",
+        "U1.5",
+        "U1.6",
+        "U1.7",
+        "U1.8"
+      ],
+      "size": {
+        "x": 1.7000000000000002,
+        "y": 1.7999999999999998
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        0
+      ]
+    },
+    "C_IN": {
+      "chipId": "C_IN",
+      "pins": [
+        "C_IN.1",
+        "C_IN.2"
+      ],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        0,
+        90,
+        180,
+        270
+      ]
+    },
+    "R_VOL": {
+      "chipId": "R_VOL",
+      "pins": [
+        "R_VOL.1",
+        "R_VOL.2"
+      ],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [
+        270
+      ]
+    },
+    "C_GAIN": {
+      "chipId": "C_GAIN",
+      "pins": [
+        "C_GAIN.1",
+        "C_GAIN.2"
+      ],
+      "size": {
+        "x": 0.72,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        0,
+        90,
+        180,
+        270
+      ]
+    },
+    "R_GAIN": {
+      "chipId": "R_GAIN",
+      "pins": [
+        "R_GAIN.1",
+        "R_GAIN.2"
+      ],
+      "size": {
+        "x": 0.72,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [
+        0,
+        90,
+        180,
+        270
+      ]
+    },
+    "C_BYPASS": {
+      "chipId": "C_BYPASS",
+      "pins": [
+        "C_BYPASS.1",
+        "C_BYPASS.2"
+      ],
+      "size": {
+        "x": 0.96,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        270
+      ]
+    },
+    "C_VS": {
+      "chipId": "C_VS",
+      "pins": [
+        "C_VS.1",
+        "C_VS.2"
+      ],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        270
+      ]
+    },
+    "C_DEC": {
+      "chipId": "C_DEC",
+      "pins": [
+        "C_DEC.1",
+        "C_DEC.2"
+      ],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        270
+      ]
+    },
+    "R_ZOBEL": {
+      "chipId": "R_ZOBEL",
+      "pins": [
+        "R_ZOBEL.1",
+        "R_ZOBEL.2"
+      ],
+      "size": {
+        "x": 0.84,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [
+        0,
+        90,
+        180,
+        270
+      ]
+    },
+    "C_ZOBEL": {
+      "chipId": "C_ZOBEL",
+      "pins": [
+        "C_ZOBEL.1",
+        "C_ZOBEL.2"
+      ],
+      "size": {
+        "x": 0.84,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        270
+      ]
+    },
+    "C_OUT": {
+      "chipId": "C_OUT",
+      "pins": [
+        "C_OUT.1",
+        "C_OUT.2"
+      ],
+      "size": {
+        "x": 0.6,
+        "y": 0.84
+      },
+      "isCapacitor": true,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [
+        0,
+        90,
+        180,
+        270
+      ]
+    },
+    "R_LOAD": {
+      "chipId": "R_LOAD",
+      "pins": [
+        "R_LOAD.1",
+        "R_LOAD.2"
+      ],
+      "size": {
+        "x": 0.72,
+        "y": 0.6799999999999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [
+        270
+      ]
+    }
+  },
+  "chipPinMap": {
+    "U1.1": {
+      "pinId": "U1.1",
+      "offset": {
+        "x": -1.25,
+        "y": 0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.2": {
+      "pinId": "U1.2",
+      "offset": {
+        "x": -1.25,
+        "y": 0.10000000000000003
+      },
+      "side": "x-"
+    },
+    "U1.3": {
+      "pinId": "U1.3",
+      "offset": {
+        "x": -1.25,
+        "y": -0.09999999999999998
+      },
+      "side": "x-"
+    },
+    "U1.4": {
+      "pinId": "U1.4",
+      "offset": {
+        "x": -1.25,
+        "y": -0.30000000000000004
+      },
+      "side": "x-"
+    },
+    "U1.5": {
+      "pinId": "U1.5",
+      "offset": {
+        "x": 1.25,
+        "y": -0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "U1.6": {
+      "pinId": "U1.6",
+      "offset": {
+        "x": 1.25,
+        "y": -0.10000000000000003
+      },
+      "side": "x+"
+    },
+    "U1.7": {
+      "pinId": "U1.7",
+      "offset": {
+        "x": 1.25,
+        "y": 0.09999999999999998
+      },
+      "side": "x+"
+    },
+    "U1.8": {
+      "pinId": "U1.8",
+      "offset": {
+        "x": 1.25,
+        "y": 0.30000000000000004
+      },
+      "side": "x+"
+    },
+    "C_IN.1": {
+      "pinId": "C_IN.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_IN.2": {
+      "pinId": "C_IN.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_VOL.1": {
+      "pinId": "R_VOL.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_VOL.2": {
+      "pinId": "R_VOL.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_GAIN.1": {
+      "pinId": "C_GAIN.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_GAIN.2": {
+      "pinId": "C_GAIN.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_GAIN.1": {
+      "pinId": "R_GAIN.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_GAIN.2": {
+      "pinId": "R_GAIN.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_BYPASS.1": {
+      "pinId": "C_BYPASS.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_BYPASS.2": {
+      "pinId": "C_BYPASS.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_VS.1": {
+      "pinId": "C_VS.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_VS.2": {
+      "pinId": "C_VS.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_DEC.1": {
+      "pinId": "C_DEC.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_DEC.2": {
+      "pinId": "C_DEC.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_ZOBEL.1": {
+      "pinId": "R_ZOBEL.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_ZOBEL.2": {
+      "pinId": "R_ZOBEL.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_ZOBEL.1": {
+      "pinId": "C_ZOBEL.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_ZOBEL.2": {
+      "pinId": "C_ZOBEL.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "C_OUT.1": {
+      "pinId": "C_OUT.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "C_OUT.2": {
+      "pinId": "C_OUT.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R_LOAD.1": {
+      "pinId": "R_LOAD.1",
+      "offset": {
+        "x": -0.3,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R_LOAD.2": {
+      "pinId": "R_LOAD.2",
+      "offset": {
+        "x": 0.3,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "LM386_AUDIO_AMP_connectivity_net1": {
+      "netId": "LM386_AUDIO_AMP_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "LM386_AUDIO_AMP_connectivity_net0": {
+      "netId": "LM386_AUDIO_AMP_connectivity_net0",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    }
+  },
+  "pinStrongConnMap": {
+    "U1.1-C_GAIN.1": true,
+    "C_GAIN.1-U1.1": true,
+    "C_IN.2-U1.3": true,
+    "U1.3-C_IN.2": true,
+    "U1.3-R_VOL.1": true,
+    "R_VOL.1-U1.3": true,
+    "U1.5-R_ZOBEL.1": true,
+    "R_ZOBEL.1-U1.5": true,
+    "U1.5-C_OUT.1": true,
+    "C_OUT.1-U1.5": true,
+    "U1.7-C_BYPASS.1": true,
+    "C_BYPASS.1-U1.7": true,
+    "R_GAIN.2-U1.8": true,
+    "U1.8-R_GAIN.2": true,
+    "C_GAIN.2-R_GAIN.1": true,
+    "R_GAIN.1-C_GAIN.2": true,
+    "R_ZOBEL.2-C_ZOBEL.1": true,
+    "C_ZOBEL.1-R_ZOBEL.2": true,
+    "C_OUT.2-R_LOAD.1": true,
+    "R_LOAD.1-C_OUT.2": true
+  },
+  "netConnMap": {
+    "U1.2-LM386_AUDIO_AMP_connectivity_net1": true,
+    "U1.4-LM386_AUDIO_AMP_connectivity_net1": true,
+    "R_VOL.2-LM386_AUDIO_AMP_connectivity_net1": true,
+    "C_BYPASS.2-LM386_AUDIO_AMP_connectivity_net1": true,
+    "C_VS.2-LM386_AUDIO_AMP_connectivity_net1": true,
+    "C_DEC.2-LM386_AUDIO_AMP_connectivity_net1": true,
+    "C_ZOBEL.2-LM386_AUDIO_AMP_connectivity_net1": true,
+    "R_LOAD.2-LM386_AUDIO_AMP_connectivity_net1": true,
+    "U1.6-LM386_AUDIO_AMP_connectivity_net0": true,
+    "C_VS.1-LM386_AUDIO_AMP_connectivity_net0": true,
+    "C_DEC.1-LM386_AUDIO_AMP_connectivity_net0": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
