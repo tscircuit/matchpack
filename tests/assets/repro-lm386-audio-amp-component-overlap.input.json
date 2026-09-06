@@ -2,16 +2,7 @@
   "chipMap": {
     "U1": {
       "chipId": "U1",
-      "pins": [
-        "U1.1",
-        "U1.2",
-        "U1.3",
-        "U1.4",
-        "U1.5",
-        "U1.6",
-        "U1.7",
-        "U1.8"
-      ],
+      "pins": ["U1.1", "U1.2", "U1.3", "U1.4", "U1.5", "U1.6", "U1.7", "U1.8"],
       "size": {
         "x": 1.7000000000000002,
         "y": 1.7999999999999998
@@ -20,16 +11,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        0
-      ]
+      "availableRotations": [0]
     },
     "C_IN": {
       "chipId": "C_IN",
-      "pins": [
-        "C_IN.1",
-        "C_IN.2"
-      ],
+      "pins": ["C_IN.1", "C_IN.2"],
       "size": {
         "x": 0.6,
         "y": 0.84
@@ -38,19 +24,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        0,
-        90,
-        180,
-        270
-      ]
+      "availableRotations": [0, 90, 180, 270]
     },
     "R_VOL": {
       "chipId": "R_VOL",
-      "pins": [
-        "R_VOL.1",
-        "R_VOL.2"
-      ],
+      "pins": ["R_VOL.1", "R_VOL.2"],
       "size": {
         "x": 0.6,
         "y": 0.6799999999999999
@@ -59,16 +37,11 @@
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "C_GAIN": {
       "chipId": "C_GAIN",
-      "pins": [
-        "C_GAIN.1",
-        "C_GAIN.2"
-      ],
+      "pins": ["C_GAIN.1", "C_GAIN.2"],
       "size": {
         "x": 0.72,
         "y": 0.84
@@ -77,19 +50,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        0,
-        90,
-        180,
-        270
-      ]
+      "availableRotations": [0, 90, 180, 270]
     },
     "R_GAIN": {
       "chipId": "R_GAIN",
-      "pins": [
-        "R_GAIN.1",
-        "R_GAIN.2"
-      ],
+      "pins": ["R_GAIN.1", "R_GAIN.2"],
       "size": {
         "x": 0.72,
         "y": 0.6799999999999999
@@ -98,19 +63,11 @@
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [
-        0,
-        90,
-        180,
-        270
-      ]
+      "availableRotations": [0, 90, 180, 270]
     },
     "C_BYPASS": {
       "chipId": "C_BYPASS",
-      "pins": [
-        "C_BYPASS.1",
-        "C_BYPASS.2"
-      ],
+      "pins": ["C_BYPASS.1", "C_BYPASS.2"],
       "size": {
         "x": 0.96,
         "y": 0.84
@@ -119,16 +76,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "C_VS": {
       "chipId": "C_VS",
-      "pins": [
-        "C_VS.1",
-        "C_VS.2"
-      ],
+      "pins": ["C_VS.1", "C_VS.2"],
       "size": {
         "x": 0.6,
         "y": 0.84
@@ -137,16 +89,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "C_DEC": {
       "chipId": "C_DEC",
-      "pins": [
-        "C_DEC.1",
-        "C_DEC.2"
-      ],
+      "pins": ["C_DEC.1", "C_DEC.2"],
       "size": {
         "x": 0.6,
         "y": 0.84
@@ -155,16 +102,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "R_ZOBEL": {
       "chipId": "R_ZOBEL",
-      "pins": [
-        "R_ZOBEL.1",
-        "R_ZOBEL.2"
-      ],
+      "pins": ["R_ZOBEL.1", "R_ZOBEL.2"],
       "size": {
         "x": 0.84,
         "y": 0.6799999999999999
@@ -173,19 +115,11 @@
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [
-        0,
-        90,
-        180,
-        270
-      ]
+      "availableRotations": [0, 90, 180, 270]
     },
     "C_ZOBEL": {
       "chipId": "C_ZOBEL",
-      "pins": [
-        "C_ZOBEL.1",
-        "C_ZOBEL.2"
-      ],
+      "pins": ["C_ZOBEL.1", "C_ZOBEL.2"],
       "size": {
         "x": 0.84,
         "y": 0.84
@@ -194,16 +128,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     },
     "C_OUT": {
       "chipId": "C_OUT",
-      "pins": [
-        "C_OUT.1",
-        "C_OUT.2"
-      ],
+      "pins": ["C_OUT.1", "C_OUT.2"],
       "size": {
         "x": 0.6,
         "y": 0.84
@@ -212,19 +141,11 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [
-        0,
-        90,
-        180,
-        270
-      ]
+      "availableRotations": [0, 90, 180, 270]
     },
     "R_LOAD": {
       "chipId": "R_LOAD",
-      "pins": [
-        "R_LOAD.1",
-        "R_LOAD.2"
-      ],
+      "pins": ["R_LOAD.1", "R_LOAD.2"],
       "size": {
         "x": 0.72,
         "y": 0.6799999999999999
@@ -233,9 +154,7 @@
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [
-        270
-      ]
+      "availableRotations": [270]
     }
   },
   "chipPinMap": {
