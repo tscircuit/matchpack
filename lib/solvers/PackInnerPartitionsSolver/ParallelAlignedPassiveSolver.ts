@@ -48,6 +48,11 @@ import { applyDirectPassiveTraceClearance } from "../../utils/offsetCollinearCon
 const CLEARANCE_EPSILON = 1e-6
 const ORIENTATION_EPSILON = 1e-6
 const MAX_RESOLVE_ITERATIONS = 16
+const DEFAULT_AVAILABLE_ROTATIONS = [0, 90, 180, 270]
+
+const getAvailableRotations = (
+  availableRotations: number[] | undefined,
+): number[] => [...new Set(availableRotations ?? DEFAULT_AVAILABLE_ROTATIONS)]
 
 const signWithEpsilon = (value: number): -1 | 0 | 1 => {
   if (value > CLEARANCE_EPSILON) return 1
@@ -240,7 +245,6 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         passiveMainPinId: item!.passiveMainPinId,
         passiveCarrierPinId: item!.passiveCarrierPinId,
         side,
-        basePlacement: packedPlacement,
       })
       if (passiveRotation === null) return
 
@@ -332,13 +336,11 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     passiveMainPinId,
     passiveCarrierPinId,
     side,
-    basePlacement,
   }: {
     passiveChipId: ChipId
     passiveMainPinId: PinId
     passiveCarrierPinId: PinId
     side: Side
-    basePlacement: Placement
   }): number | null {
     const passiveChip = this.partitionInputProblem.chipMap[passiveChipId]
     const passiveMainPin =
@@ -347,11 +349,7 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       this.partitionInputProblem.chipPinMap[passiveCarrierPinId]
     if (!passiveChip || !passiveMainPin || !passiveCarrierPin) return null
 
-    const rotations = [
-      ...new Set(
-        passiveChip.availableRotations ?? [basePlacement.ccwRotationDegrees],
-      ),
-    ]
+    const rotations = getAvailableRotations(passiveChip.availableRotations)
     const compatibleRotations = rotations.filter((ccwRotationDegrees) => {
       const mainProjection = outwardProjection(
         rotatePinOffset(passiveMainPin.offset, ccwRotationDegrees),
@@ -404,13 +402,7 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     )
     if (!passiveBounds) return null
 
-    const rotations = [
-      ...new Set(
-        carrierChip.availableRotations ?? [
-          baseCarrierPlacement.ccwRotationDegrees,
-        ],
-      ),
-    ]
+    const rotations = getAvailableRotations(carrierChip.availableRotations)
     const compatiblePlacements: Placement[] = []
 
     for (const ccwRotationDegrees of rotations) {
@@ -446,9 +438,16 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         secondOffset.carrierPinOffset[alignAxis] -
           firstOffset.carrierPinOffset[alignAxis],
       )
+      const carrierPinsFaceAway = offsets.some((offset) => {
+        return (
+          outwardProjection(offset!.carrierPinOffset, side) >
+          ORIENTATION_EPSILON
+        )
+      })
       if (passiveDirection === 0 || passiveDirection !== carrierDirection) {
         continue
       }
+      if (carrierPinsFaceAway) continue
 
       const alignCoordinate =
         offsets.reduce(
