@@ -321,7 +321,6 @@ const SIDE_DIRECTIONS = {
   "y-": { x: 0, y: -1 },
   "y+": { x: 0, y: 1 },
 }
-const MINIMUM_SIDE_PAIRS = 2
 
 const alignChipAnchoredLoadPairRows = ({
   inputProblem,
@@ -343,7 +342,6 @@ const alignChipAnchoredLoadPairRows = ({
         candidate.mainPinId &&
         inputProblem.chipPinMap[candidate.mainPinId]!.side === mainPin.side,
     )
-    if (sidePairs.length < MINIMUM_SIDE_PAIRS) continue
     const mainPlacement = chipPlacements[pair.mainChipId]!
     const direction = rotatePinOffset(
       SIDE_DIRECTIONS[mainPin.side],
