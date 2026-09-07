@@ -10,6 +10,7 @@ import {
 import { layoutGroundedLoadPair } from "./layoutGroundedLoadPair"
 import { offsetChipAnchoredGroundedLoadConnections } from "../../utils/offsetCollinearConnections"
 import { alignGroundedLoadPairRows } from "./alignGroundedLoadPairRows"
+import { resolveGroundedLoadPairOverlaps } from "./resolveGroundedLoadPairOverlaps"
 
 export class GroundedLoadPairSolver extends BaseSolver {
   outputLayout: OutputLayout | null = null
@@ -43,6 +44,11 @@ export class GroundedLoadPairSolver extends BaseSolver {
       })
     }
     alignGroundedLoadPairRows({
+      groundedLoadPairs: this.groundedLoadPairs,
+      chipPlacements,
+      inputProblem: this.params.inputProblem,
+    })
+    resolveGroundedLoadPairOverlaps({
       groundedLoadPairs: this.groundedLoadPairs,
       chipPlacements,
       inputProblem: this.params.inputProblem,
