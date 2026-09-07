@@ -44,7 +44,7 @@ test("offsets vertical direct connections to the left", () => {
   expect(diodePin.x - mainPin.x).toBeCloseTo(-0.2)
 })
 
-test("keeps chip pin clearance and vertical grounded load pairs", () => {
+test("offsets only chip-anchored collinear connections", () => {
   const inputProblem = repro44Input as InputProblem
   const outputLayout = solve(inputProblem)
 
@@ -58,7 +58,7 @@ test("keeps chip pin clearance and vertical grounded load pairs", () => {
 
   const r3Pin2 = getAbsolutePinPosition(inputProblem, outputLayout, "R3.2")
   const d1Pin1 = getAbsolutePinPosition(inputProblem, outputLayout, "D1.1")
-  expect(r3Pin2.x).toBeCloseTo(d1Pin1.x)
+  expect(r3Pin2.x - d1Pin1.x).toBeCloseTo(-0.2)
 
   expect(outputLayout.chipPlacements.R2!.x).toBeCloseTo(0.9)
 })
