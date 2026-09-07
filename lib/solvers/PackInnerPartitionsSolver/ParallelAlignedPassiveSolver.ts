@@ -449,14 +449,33 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       }
       if (carrierPinsFaceAway) continue
 
+      const targetTranslations = offsets.map(
+        (offset) =>
+          offset!.passivePinPosition[alignAxis] -
+          offset!.carrierPinOffset[alignAxis],
+      )
       const alignCoordinate =
-        offsets.reduce(
-          (sum, offset) =>
-            sum +
-            offset!.passivePinPosition[alignAxis] -
-            offset!.carrierPinOffset[alignAxis],
-          0,
-        ) / offsets.length
+        targetTranslations.reduce((sum, value) => sum + value, 0) /
+        targetTranslations.length
+      const maxAlignmentResidual = Math.max(
+        ...targetTranslations.map((value) => Math.abs(value - alignCoordinate)),
+      )
+      const passivePinPitch = Math.abs(
+        secondOffset.passivePinPosition[alignAxis] -
+          firstOffset.passivePinPosition[alignAxis],
+      )
+      const carrierPinPitch = Math.abs(
+        secondOffset.carrierPinOffset[alignAxis] -
+          firstOffset.carrierPinOffset[alignAxis],
+      )
+      // The shared carrier translation may drift by at most half of the tighter
+      // matched-pin pitch; larger residuals indicate mismatched pin geometry.
+      if (
+        maxAlignmentResidual >
+        Math.min(passivePinPitch, carrierPinPitch) / 2 + CLEARANCE_EPSILON
+      ) {
+        continue
+      }
 
       const carrierSize = getRotatedSize(carrierChip.size, ccwRotationDegrees)
       const placement: Placement = {

@@ -453,6 +453,7 @@ const makeDenseRailCarrierGapProblem = (): InputProblem => {
     side: "x+",
     offset: { x: 1, y: 0.025 },
   }
+  setCarrierPinPitchForSide(problem, "x+", -0.3, 0.05)
   return problem
 }
 
@@ -748,6 +749,163 @@ const getCarrierPinProjections = (
     )
     return offset.x * outward.x + offset.y * outward.y
   })
+}
+
+const getRailCarrierAlignmentMetrics = (
+  inputProblem: InputProblem,
+  layout: OutputLayout,
+): {
+  alignAxis: "x" | "y"
+  passivePitch: number
+  carrierPitch: number
+  targetTranslations: number[]
+  alignCoordinate: number
+  residuals: number[]
+  maxResidual: number
+  residualThreshold: number
+} => {
+  const group = getRailCarrierGroups(inputProblem)[0]!
+  const railCarrier = group.railCarrier!
+  const alignAxis: "x" | "y" =
+    group.side === "x-" || group.side === "x+" ? "y" : "x"
+  const mainPlacement = layout.chipPlacements[group.mainChipId]!
+  const carrierPlacement = layout.chipPlacements[railCarrier.carrierChipId]!
+  const ordered = group.passiveChipIds
+    .map((passiveChipId, index) => {
+      const mainPinId = group.mainChipPinIds[index]!
+      const mainPinOffset = rotatePinOffset(
+        inputProblem.chipPinMap[mainPinId]!.offset,
+        mainPlacement.ccwRotationDegrees,
+      )
+      return {
+        passiveChipId,
+        passiveCarrierPinId: railCarrier.passiveCarrierPinIds[index]!,
+        carrierPinId: railCarrier.carrierPinIds[index]!,
+        edgeCoord: mainPinOffset[alignAxis],
+      }
+    })
+    .sort((a, b) => a.edgeCoord - b.edgeCoord)
+  const offsets = ordered.map((item) => {
+    const passivePlacement = layout.chipPlacements[item.passiveChipId]!
+    const passivePin = inputProblem.chipPinMap[item.passiveCarrierPinId]!
+    const carrierPin = inputProblem.chipPinMap[item.carrierPinId]!
+    const passivePinOffset = rotatePinOffset(
+      passivePin.offset,
+      passivePlacement.ccwRotationDegrees,
+    )
+    const carrierPinOffset = rotatePinOffset(
+      carrierPin.offset,
+      carrierPlacement.ccwRotationDegrees,
+    )
+    return {
+      passivePinPosition: {
+        x: passivePlacement.x + passivePinOffset.x,
+        y: passivePlacement.y + passivePinOffset.y,
+      },
+      carrierPinOffset,
+    }
+  })
+  const passivePitch =
+    offsets[1]!.passivePinPosition[alignAxis] -
+    offsets[0]!.passivePinPosition[alignAxis]
+  const carrierPitch =
+    offsets[1]!.carrierPinOffset[alignAxis] -
+    offsets[0]!.carrierPinOffset[alignAxis]
+  const targetTranslations = offsets.map(
+    ({ passivePinPosition, carrierPinOffset }) =>
+      passivePinPosition[alignAxis] - carrierPinOffset[alignAxis],
+  )
+  const alignCoordinate =
+    targetTranslations.reduce((sum, value) => sum + value, 0) /
+    targetTranslations.length
+  const residuals = targetTranslations.map((value) =>
+    Math.abs(value - alignCoordinate),
+  )
+  const maxResidual = Math.max(...residuals)
+
+  return {
+    alignAxis,
+    passivePitch,
+    carrierPitch,
+    targetTranslations,
+    alignCoordinate,
+    residuals,
+    maxResidual,
+    residualThreshold:
+      Math.min(Math.abs(passivePitch), Math.abs(carrierPitch)) / 2 + 1e-6,
+  }
+}
+
+const setCarrierPinPitchForSide = (
+  inputProblem: InputProblem,
+  side: Side,
+  outwardProjection: number,
+  carrierPitch: number,
+): void => {
+  const lower = -carrierPitch / 2
+  const upper = carrierPitch / 2
+  const offsetsBySide: Record<
+    Side,
+    Record<"SJ1.1" | "SJ1.3", { x: number; y: number }>
+  > = {
+    "x+": {
+      "SJ1.1": { x: outwardProjection, y: lower },
+      "SJ1.3": { x: outwardProjection, y: upper },
+    },
+    "x-": {
+      "SJ1.1": { x: -outwardProjection, y: lower },
+      "SJ1.3": { x: -outwardProjection, y: upper },
+    },
+    "y+": {
+      "SJ1.1": { x: lower, y: outwardProjection },
+      "SJ1.3": { x: upper, y: outwardProjection },
+    },
+    "y-": {
+      "SJ1.1": { x: lower, y: -outwardProjection },
+      "SJ1.3": { x: upper, y: -outwardProjection },
+    },
+  }
+
+  for (const [pinId, offset] of Object.entries(offsetsBySide[side])) {
+    inputProblem.chipPinMap[pinId] = {
+      ...inputProblem.chipPinMap[pinId]!,
+      offset,
+    }
+  }
+}
+
+const makePitchCarrierProblem = ({
+  side = "x+",
+  carrierPitch,
+  outwardProjection = -0.3,
+}: {
+  side?: Side
+  carrierPitch: number
+  outwardProjection?: number
+}): InputProblem => {
+  const inputProblem = makeRailCarrierProblem({ carrierRotations: [0] })
+  setRailCarrierMainSide(inputProblem, side)
+  setCarrierPinPitchForSide(inputProblem, side, outwardProjection, carrierPitch)
+  return inputProblem
+}
+
+const packedRotationBySide: Record<Side, 0 | 90 | 180 | 270> = {
+  "x+": 270,
+  "x-": 90,
+  "y+": 0,
+  "y-": 180,
+}
+
+const expectRailCarrierGroupUnchanged = (
+  layout: OutputLayout,
+  baseLayout: OutputLayout,
+): void => {
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expectPlacementToEqual(
+      layout.chipPlacements[chipId]!,
+      baseLayout.chipPlacements[chipId]!,
+    )
+  }
 }
 
 const expectRailCarrierPassivesToFaceOutward = (
@@ -1538,11 +1696,11 @@ test("fails closed for reversed or ambiguous carrier pin ordering", () => {
   ambiguous.chipMap.SJ1!.availableRotations = [0, 90]
   ambiguous.chipPinMap["SJ1.1"] = {
     ...ambiguous.chipPinMap["SJ1.1"]!,
-    offset: { x: -0.3, y: -0.3 },
+    offset: { x: -0.4, y: 0 },
   }
   ambiguous.chipPinMap["SJ1.3"] = {
     ...ambiguous.chipPinMap["SJ1.3"]!,
-    offset: { x: 0.3, y: 0.3 },
+    offset: { x: 0, y: 0.4 },
   }
 
   for (const inputProblem of [reversed, ambiguous]) {
@@ -1604,6 +1762,182 @@ test("accepts carrier rotations whose assigned pins face inward", () => {
   ).toBe(true)
 })
 
+test("applies scale-aware rail-carrier pin-pitch threshold matrix", () => {
+  const cases: Array<{
+    name: string
+    carrierPitch: number
+    outwardProjection?: number
+    accepted: boolean
+    expectedResidual?: number
+  }> = [
+    {
+      name: "equal pitch",
+      carrierPitch: 0.4,
+      accepted: true,
+      expectedResidual: 0,
+    },
+    {
+      name: "SI7021-like modest mismatch",
+      carrierPitch: 0.5,
+      accepted: true,
+      expectedResidual: 0.05,
+    },
+    {
+      name: "clearly below threshold",
+      carrierPitch: 0.6,
+      accepted: true,
+      expectedResidual: 0.1,
+    },
+    {
+      name: "exactly at threshold",
+      carrierPitch: 0.8,
+      accepted: true,
+      expectedResidual: 0.2,
+    },
+    {
+      name: "just above threshold",
+      carrierPitch: 0.82,
+      accepted: false,
+    },
+    {
+      name: "extreme mismatch",
+      carrierPitch: 10,
+      accepted: false,
+    },
+    {
+      name: "same magnitude reversed order",
+      carrierPitch: -0.4,
+      accepted: false,
+    },
+    {
+      name: "acceptable pitch but outward carrier pins",
+      carrierPitch: 0.4,
+      outwardProjection: 0.3,
+      accepted: false,
+    },
+    {
+      name: "acceptable pitch and inward carrier pins",
+      carrierPitch: 0.4,
+      accepted: true,
+      expectedResidual: 0,
+    },
+    {
+      name: "neutral projection with acceptable pitch",
+      carrierPitch: 0.4,
+      outwardProjection: 0,
+      accepted: true,
+      expectedResidual: 0,
+    },
+  ]
+
+  for (const testCase of cases) {
+    const inputProblem = makePitchCarrierProblem({
+      carrierPitch: testCase.carrierPitch,
+      outwardProjection: testCase.outwardProjection ?? -0.3,
+    })
+    const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(270)
+    const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+    if (!testCase.accepted) {
+      expectRailCarrierGroupUnchanged(layout, baseLayout)
+      continue
+    }
+
+    expect(layout.chipPlacements.R1!.ccwRotationDegrees, testCase.name).toBe(90)
+    expect(layout.chipPlacements.R2!.ccwRotationDegrees, testCase.name).toBe(90)
+    expect(layout.chipPlacements.SJ1!.ccwRotationDegrees, testCase.name).toBe(0)
+    expectRailCarrierPassivesToFaceOutward(inputProblem, layout)
+
+    const metrics = getRailCarrierAlignmentMetrics(inputProblem, layout)
+    expect(Math.abs(metrics.passivePitch), testCase.name).toBeCloseTo(0.4)
+    expect(Math.abs(metrics.carrierPitch), testCase.name).toBeCloseTo(
+      Math.abs(testCase.carrierPitch),
+    )
+    expect(metrics.maxResidual, testCase.name).toBeLessThanOrEqual(
+      metrics.residualThreshold,
+    )
+    if (testCase.expectedResidual !== undefined) {
+      expect(metrics.maxResidual, testCase.name).toBeCloseTo(
+        testCase.expectedResidual,
+      )
+    }
+
+    const projections = getCarrierPinProjections(inputProblem, layout)
+    if ((testCase.outwardProjection ?? -0.3) < 0) {
+      for (const projection of projections) {
+        expect(projection, testCase.name).toBeLessThan(-1e-6)
+      }
+    } else {
+      for (const projection of projections) {
+        expect(projection, testCase.name).toBeCloseTo(0)
+      }
+    }
+
+    for (const { distance } of getDistancesFromMovedGroup(
+      inputProblem,
+      layout,
+    )) {
+      expect(distance, testCase.name).toBeGreaterThanOrEqual(
+        inputProblem.chipGap - 1e-6,
+      )
+    }
+  }
+})
+
+test("rejects carrier rotations with materially mismatched pin pitch", () => {
+  const inputProblem = makePitchCarrierProblem({ carrierPitch: 10 })
+  const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(270)
+  const compatiblePitchProblem = makePitchCarrierProblem({ carrierPitch: 0.4 })
+  const unsafeCandidateLayout = alignRailCarrierFromPackedLayout(
+    compatiblePitchProblem,
+    baseLayout,
+  )
+  const metrics = getRailCarrierAlignmentMetrics(
+    inputProblem,
+    unsafeCandidateLayout,
+  )
+
+  expect(metrics.passivePitch).toBeCloseTo(0.4)
+  expect(metrics.carrierPitch).toBeCloseTo(10)
+  expect(metrics.alignCoordinate).toBeCloseTo(0)
+  expect(metrics.targetTranslations).toEqual([4.8, -4.8])
+  expect(metrics.residuals).toEqual([4.8, 4.8])
+  expect(metrics.maxResidual).toBeGreaterThan(metrics.residualThreshold)
+
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  expectRailCarrierGroupUnchanged(layout, baseLayout)
+})
+
+test("rejects rail-carrier pitch mismatch on a non-x+ side", () => {
+  const inputProblem = makePitchCarrierProblem({
+    side: "y+",
+    carrierPitch: 10,
+  })
+  const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(
+    packedRotationBySide["y+"],
+  )
+  const compatiblePitchProblem = makePitchCarrierProblem({
+    side: "y+",
+    carrierPitch: 0.4,
+  })
+  const unsafeCandidateLayout = alignRailCarrierFromPackedLayout(
+    compatiblePitchProblem,
+    baseLayout,
+  )
+  const metrics = getRailCarrierAlignmentMetrics(
+    inputProblem,
+    unsafeCandidateLayout,
+  )
+
+  expect(metrics.alignAxis).toBe("x")
+  expect(Math.abs(metrics.passivePitch)).toBeCloseTo(0.4)
+  expect(Math.abs(metrics.carrierPitch)).toBeCloseTo(10)
+  expect(metrics.maxResidual).toBeGreaterThan(metrics.residualThreshold)
+
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+  expectRailCarrierGroupUnchanged(layout, baseLayout)
+})
+
 test("carrier inward-facing rule follows the physical side", () => {
   const cases: Array<{
     side: Side
@@ -1636,6 +1970,20 @@ test("carrier inward-facing rule follows the physical side", () => {
     for (const projection of getCarrierPinProjections(inputProblem, layout)) {
       expect(projection, testCase.side).toBeLessThan(-1e-6)
     }
+    const metrics = getRailCarrierAlignmentMetrics(inputProblem, layout)
+    expect(metrics.maxResidual, testCase.side).toBeLessThanOrEqual(
+      metrics.residualThreshold,
+    )
+    expect(Math.abs(metrics.passivePitch), testCase.side).toBeCloseTo(0.4)
+    expect(Math.abs(metrics.carrierPitch), testCase.side).toBeCloseTo(0.4)
+    for (const { distance } of getDistancesFromMovedGroup(
+      inputProblem,
+      layout,
+    )) {
+      expect(distance, testCase.side).toBeGreaterThanOrEqual(
+        inputProblem.chipGap - 1e-6,
+      )
+    }
   }
 })
 
@@ -1665,8 +2013,8 @@ test("fails closed when carrier rotation choice is ambiguous after orientation f
   const inputProblem = makeRailCarrierProblem({
     carrierRotations: [0, 90],
     carrierPinOffsets: {
-      "SJ1.1": { x: -0.4, y: 0.1 },
-      "SJ1.3": { x: -0.2, y: 0.2 },
+      "SJ1.1": { x: -0.4, y: 0 },
+      "SJ1.3": { x: 0, y: 0.4 },
     },
   })
   const baseLayout = makeRailCarrierPackedLayoutWithPassiveRotation(270)
@@ -1689,6 +2037,55 @@ test("rail-carrier reflow is deterministic", () => {
   }
 
   expect(results.size).toBe(1)
+})
+
+test("rail-carrier pitch edge cases are deterministic", () => {
+  const cases: Array<{ name: string; solve: () => OutputLayout }> = [
+    {
+      name: "large pitch mismatch",
+      solve: () => {
+        const inputProblem = makePitchCarrierProblem({ carrierPitch: 10 })
+        return alignRailCarrierFromPackedLayout(
+          inputProblem,
+          makeRailCarrierPackedLayoutWithPassiveRotation(270),
+        )
+      },
+    },
+    {
+      name: "threshold boundary accepted",
+      solve: () => {
+        const inputProblem = makePitchCarrierProblem({ carrierPitch: 0.8 })
+        return alignRailCarrierFromPackedLayout(
+          inputProblem,
+          makeRailCarrierPackedLayoutWithPassiveRotation(270),
+        )
+      },
+    },
+    {
+      name: "ambiguous carrier",
+      solve: () => {
+        const inputProblem = makeRailCarrierProblem({
+          carrierRotations: [0, 90],
+          carrierPinOffsets: {
+            "SJ1.1": { x: -0.4, y: 0 },
+            "SJ1.3": { x: 0, y: 0.4 },
+          },
+        })
+        return alignRailCarrierFromPackedLayout(
+          inputProblem,
+          makeRailCarrierPackedLayoutWithPassiveRotation(270),
+        )
+      },
+    },
+  ]
+
+  for (const testCase of cases) {
+    const results = new Set<string>()
+    for (let i = 0; i < 20; i++) {
+      results.add(JSON.stringify(testCase.solve().chipPlacements))
+    }
+    expect(results.size, testCase.name).toBe(1)
+  }
 })
 
 test("preserves existing common-node passive detection", () => {
