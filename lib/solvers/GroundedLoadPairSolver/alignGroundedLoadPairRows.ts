@@ -349,7 +349,7 @@ const alignChipAnchoredLoadPairRows = ({
       SIDE_DIRECTIONS[mainPin.side],
       mainPlacement.ccwRotationDegrees,
     )
-    if (Math.abs(direction.x) < 0.5) continue
+    if (direction.x === 0) continue
     // Place the lowest pin nearest a left-side IC, so the row steps down
     // from left to right in the same order as the IC pins.
     sidePairs.sort((first, second) => {
