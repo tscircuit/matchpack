@@ -39,19 +39,6 @@
       "isTestPoint": false,
       "availableRotations": [0, 90, 180, 270]
     },
-    "D1": {
-      "chipId": "D1",
-      "pins": ["D1.1", "D1.2"],
-      "size": {
-        "x": 1.13,
-        "y": 1.18
-      },
-      "isCapacitor": false,
-      "isCrystal": false,
-      "isResistor": false,
-      "isTestPoint": false,
-      "availableRotations": [90]
-    },
     "D_PWR": {
       "chipId": "D_PWR",
       "pins": ["D_PWR.1", "D_PWR.2"],
@@ -77,19 +64,6 @@
       "isResistor": true,
       "isTestPoint": false,
       "availableRotations": [90]
-    },
-    "R_LED": {
-      "chipId": "R_LED",
-      "pins": ["R_LED.1", "R_LED.2"],
-      "size": {
-        "x": 0.6,
-        "y": 0.6799999999999999
-      },
-      "isCapacitor": false,
-      "isCrystal": false,
-      "isResistor": true,
-      "isTestPoint": false,
-      "availableRotations": [0, 90, 180, 270]
     },
     "R_PWR_LED": {
       "chipId": "R_PWR_LED",
@@ -238,22 +212,6 @@
       },
       "side": "x+"
     },
-    "D1.1": {
-      "pinId": "D1.1",
-      "offset": {
-        "x": -0.54,
-        "y": 0
-      },
-      "side": "x-"
-    },
-    "D1.2": {
-      "pinId": "D1.2",
-      "offset": {
-        "x": 0.54,
-        "y": 0
-      },
-      "side": "x+"
-    },
     "D_PWR.1": {
       "pinId": "D_PWR.1",
       "offset": {
@@ -280,22 +238,6 @@
     },
     "R_BOOT.2": {
       "pinId": "R_BOOT.2",
-      "offset": {
-        "x": 0.3,
-        "y": 0
-      },
-      "side": "x+"
-    },
-    "R_LED.1": {
-      "pinId": "R_LED.1",
-      "offset": {
-        "x": -0.3,
-        "y": 0
-      },
-      "side": "x-"
-    },
-    "R_LED.2": {
-      "pinId": "R_LED.2",
       "offset": {
         "x": 0.3,
         "y": 0
@@ -372,11 +314,6 @@
       "isGround": true,
       "isPositiveVoltageSource": false
     },
-    "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net40": {
-      "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net40",
-      "isGround": false,
-      "isPositiveVoltageSource": false
-    },
     "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net43": {
       "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net43",
       "isGround": false,
@@ -389,28 +326,24 @@
     }
   },
   "pinStrongConnMap": {
-    "R_LED.2-D1.2": true,
-    "D1.2-R_LED.2": true,
     "R_PWR_LED.2-D_PWR.2": true,
     "D_PWR.2-R_PWR_LED.2": true
   },
   "netConnMap": {
     "R_RUN.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net7": true,
-    "SW_RUN.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net7": true,
     "R_RUN.2-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
+    "SW_BOOT.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27": true,
+    "SW_BOOT.3-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
+    "SW_RUN.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net7": true,
+    "SW_RUN.4-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
+    "D_PWR.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
+    "R_BOOT.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27": true,
     "R_BOOT.2-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
     "R_PWR_LED.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
-    "TP_3V3.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
-    "SW_BOOT.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27": true,
-    "R_BOOT.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27": true,
-    "SW_BOOT.3-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
-    "SW_RUN.4-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
-    "D1.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
-    "D_PWR.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
-    "TP_GND.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
-    "R_LED.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net40": true,
     "TP_SWCLK.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net43": true,
-    "TP_SWDIO.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net44": true
+    "TP_GND.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
+    "TP_SWDIO.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net44": true,
+    "TP_3V3.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true
   },
   "chipGap": 0.6,
   "decouplingCapsGap": 0.4,
