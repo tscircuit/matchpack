@@ -371,6 +371,21 @@
       "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0",
       "isGround": true,
       "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net40": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net40",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net43": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net43",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net44": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net44",
+      "isGround": false,
+      "isPositiveVoltageSource": false
     }
   },
   "pinStrongConnMap": {
@@ -392,7 +407,10 @@
     "SW_RUN.4-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
     "D1.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
     "D_PWR.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
-    "TP_GND.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true
+    "TP_GND.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
+    "R_LED.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net40": true,
+    "TP_SWCLK.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net43": true,
+    "TP_SWDIO.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net44": true
   },
   "chipGap": 0.6,
   "decouplingCapsGap": 0.4,
