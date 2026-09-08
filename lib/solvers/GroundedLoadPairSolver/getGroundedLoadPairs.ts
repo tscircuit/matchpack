@@ -31,6 +31,29 @@ type ConnectivityContext = {
 
 const TWO_PIN_COMPONENT_PIN_COUNT = 2
 
+// Multi-pad symbols can expose several pins at each of two terminals.
+const hasTwoTerminalPositions = ({
+  chip,
+  inputProblem,
+}: {
+  chip: Chip
+  inputProblem: InputProblem
+}) => {
+  const terminalOffsets: ChipPin["offset"][] = []
+  for (const pinId of chip.pins) {
+    const pin = inputProblem.chipPinMap[pinId]
+    if (!pin) return false
+    if (
+      terminalOffsets.some(
+        (offset) => offset.x === pin.offset.x && offset.y === pin.offset.y,
+      )
+    )
+      continue
+    terminalOffsets.push(pin.offset)
+  }
+  return terminalOffsets.length === TWO_PIN_COMPONENT_PIN_COUNT
+}
+
 // Read direct neighbors from the pipeline's canonical connectivity map.
 const getStronglyConnectedPinIds = ({
   connectedPinsByPinId,
@@ -114,7 +137,7 @@ const getDirectlyConnectedGroundedLowerChip = (
   })) {
     const lowerChip = pinOwnerMap.get(lowerInnerPinId)
     if (!lowerChip) continue
-    if (lowerChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) continue
+    if (!hasTwoTerminalPositions({ chip: lowerChip, inputProblem })) continue
     if (lowerChip.fixedPosition) continue
     if (pairedChipIds.has(lowerChip.chipId)) continue
     const groundConnection = getGroundConnection({
@@ -159,7 +182,7 @@ const getChipConnectedPair = (
       .map((pinId) => pinOwnerMap.get(pinId))
       .find((chip) => {
         if (!chip) return false
-        if (chip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return false
+        if (!hasTwoTerminalPositions({ chip, inputProblem })) return false
         if (chip.chipId === upperChip.chipId) return false
         if (chip.fixedPosition) return false
         return !pairedChipIds.has(chip.chipId)
@@ -246,7 +269,7 @@ const getRailConnectedPair = (
 
   const lowerChip = pinOwnerMap.get(lowerInnerPinId)
   if (!lowerChip) return null
-  if (lowerChip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return null
+  if (!hasTwoTerminalPositions({ chip: lowerChip, inputProblem })) return null
   if (lowerChip.fixedPosition) return null
   if (pairedChipIds.has(lowerChip.chipId)) return null
 
