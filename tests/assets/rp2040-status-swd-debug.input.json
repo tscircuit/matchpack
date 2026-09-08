@@ -4,18 +4,14 @@
       "chipId": "R_RUN",
       "pins": ["R_RUN.1", "R_RUN.2"],
       "size": {
-        "x": 1.2100000000000004,
-        "y": 0.6
+        "x": 0.6,
+        "y": 0.6799999999999999
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [0],
-      "fixedPosition": {
-        "x": 12.8,
-        "y": -13.5
-      }
+      "availableRotations": [90]
     },
     "SW_BOOT": {
       "chipId": "SW_BOOT",
@@ -28,11 +24,7 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [0, 90, 180, 270],
-      "fixedPosition": {
-        "x": 8.6,
-        "y": -12
-      }
+      "availableRotations": [0, 90, 180, 270]
     },
     "SW_RUN": {
       "chipId": "SW_RUN",
@@ -45,187 +37,147 @@
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [0, 90, 180, 270],
-      "fixedPosition": {
-        "x": 12.8,
-        "y": -12
-      }
+      "availableRotations": [0, 90, 180, 270]
     },
     "D1": {
       "chipId": "D1",
       "pins": ["D1.1", "D1.2"],
       "size": {
-        "x": 1.12,
-        "y": 1.08
+        "x": 1.13,
+        "y": 1.18
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [0],
-      "fixedPosition": {
-        "x": 10.4,
-        "y": -13.2
-      }
+      "availableRotations": [90]
     },
     "D_PWR": {
       "chipId": "D_PWR",
       "pins": ["D_PWR.1", "D_PWR.2"],
       "size": {
-        "x": 1.12,
-        "y": 1.08
+        "x": 1.13,
+        "y": 1.18
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": false,
-      "availableRotations": [0],
-      "fixedPosition": {
-        "x": 14.5,
-        "y": -13.4
-      }
+      "availableRotations": [90]
     },
     "R_BOOT": {
       "chipId": "R_BOOT",
       "pins": ["R_BOOT.1", "R_BOOT.2"],
       "size": {
-        "x": 1.3300000000000014,
-        "y": 0.6
+        "x": 0.72,
+        "y": 0.6799999999999999
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [0],
-      "fixedPosition": {
-        "x": 8.6,
-        "y": -13.5
-      }
+      "availableRotations": [90]
     },
     "R_LED": {
       "chipId": "R_LED",
       "pins": ["R_LED.1", "R_LED.2"],
       "size": {
-        "x": 1.2100000000000004,
-        "y": 0.6
+        "x": 0.6,
+        "y": 0.6799999999999999
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [0],
-      "fixedPosition": {
-        "x": 10.4,
-        "y": -12.2
-      }
+      "availableRotations": [0, 90, 180, 270]
     },
     "R_PWR_LED": {
       "chipId": "R_PWR_LED",
       "pins": ["R_PWR_LED.1", "R_PWR_LED.2"],
       "size": {
-        "x": 1.6900000000000008,
-        "y": 0.6
+        "x": 0.6,
+        "y": 1.565
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": true,
       "isTestPoint": false,
-      "availableRotations": [0],
-      "fixedPosition": {
-        "x": 14.5,
-        "y": -12.2
-      }
+      "availableRotations": [270]
     },
     "TP_SWCLK": {
       "chipId": "TP_SWCLK",
       "pins": ["TP_SWCLK.1"],
       "size": {
-        "x": 1.2474999999999994,
+        "x": 1.2475,
         "y": 0.2
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": true,
-      "availableRotations": [0, 90, 180, 270],
-      "fixedPosition": {
-        "x": 8.6,
-        "y": -16.5
-      }
+      "availableRotations": [0, 90, 180, 270]
     },
     "TP_GND": {
       "chipId": "TP_GND",
       "pins": ["TP_GND.1"],
       "size": {
-        "x": 1.007500000000001,
+        "x": 1.0075,
         "y": 0.2
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": true,
-      "availableRotations": [0, 90, 180, 270],
-      "fixedPosition": {
-        "x": 10.4,
-        "y": -16.5
-      }
+      "availableRotations": [0, 90, 180, 270]
     },
     "TP_SWDIO": {
       "chipId": "TP_SWDIO",
       "pins": ["TP_SWDIO.1"],
       "size": {
-        "x": 1.2475000000000012,
+        "x": 1.2475,
         "y": 0.2
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": true,
-      "availableRotations": [0, 90, 180, 270],
-      "fixedPosition": {
-        "x": 12.2,
-        "y": -16.5
-      }
+      "availableRotations": [0, 90, 180, 270]
     },
     "TP_3V3": {
       "chipId": "TP_3V3",
       "pins": ["TP_3V3.1"],
       "size": {
-        "x": 1.007500000000001,
+        "x": 1.0075,
         "y": 0.2
       },
       "isCapacitor": false,
       "isCrystal": false,
       "isResistor": false,
       "isTestPoint": true,
-      "availableRotations": [0, 90, 180, 270],
-      "fixedPosition": {
-        "x": 14,
-        "y": -16.5
-      }
+      "availableRotations": [0, 90, 180, 270]
     }
   },
   "chipPinMap": {
     "R_RUN.1": {
       "pinId": "R_RUN.1",
       "offset": {
-        "x": 0,
-        "y": -0.3000000000000007
+        "x": -0.3,
+        "y": 0
       },
-      "side": "y-"
+      "side": "x-"
     },
     "R_RUN.2": {
       "pinId": "R_RUN.2",
       "offset": {
-        "x": 0,
-        "y": 0.3000000000000007
+        "x": 0.3,
+        "y": 0
       },
-      "side": "y+"
+      "side": "x+"
     },
     "SW_BOOT.1": {
       "pinId": "SW_BOOT.1",
       "offset": {
-        "x": -0.47000000000000064,
+        "x": -0.47,
         "y": 0
       },
       "side": "x-"
@@ -233,7 +185,7 @@
     "SW_BOOT.2": {
       "pinId": "SW_BOOT.2",
       "offset": {
-        "x": -0.47000000000000064,
+        "x": -0.47,
         "y": 0
       },
       "side": "x-"
@@ -241,7 +193,7 @@
     "SW_BOOT.3": {
       "pinId": "SW_BOOT.3",
       "offset": {
-        "x": 0.47000000000000064,
+        "x": 0.47,
         "y": 0
       },
       "side": "x+"
@@ -249,7 +201,7 @@
     "SW_BOOT.4": {
       "pinId": "SW_BOOT.4",
       "offset": {
-        "x": 0.47000000000000064,
+        "x": 0.47,
         "y": 0
       },
       "side": "x+"
@@ -257,7 +209,7 @@
     "SW_RUN.1": {
       "pinId": "SW_RUN.1",
       "offset": {
-        "x": -0.47000000000000064,
+        "x": -0.47,
         "y": 0
       },
       "side": "x-"
@@ -265,7 +217,7 @@
     "SW_RUN.2": {
       "pinId": "SW_RUN.2",
       "offset": {
-        "x": -0.47000000000000064,
+        "x": -0.47,
         "y": 0
       },
       "side": "x-"
@@ -273,7 +225,7 @@
     "SW_RUN.3": {
       "pinId": "SW_RUN.3",
       "offset": {
-        "x": 0.47000000000000064,
+        "x": 0.47,
         "y": 0
       },
       "side": "x+"
@@ -281,7 +233,7 @@
     "SW_RUN.4": {
       "pinId": "SW_RUN.4",
       "offset": {
-        "x": 0.47000000000000064,
+        "x": 0.47,
         "y": 0
       },
       "side": "x+"
@@ -289,87 +241,87 @@
     "D1.1": {
       "pinId": "D1.1",
       "offset": {
-        "x": 0,
-        "y": -0.5399999999999991
+        "x": -0.54,
+        "y": 0
       },
-      "side": "y-"
+      "side": "x-"
     },
     "D1.2": {
       "pinId": "D1.2",
       "offset": {
-        "x": 0,
-        "y": 0.5399999999999991
+        "x": 0.54,
+        "y": 0
       },
-      "side": "y+"
+      "side": "x+"
     },
     "D_PWR.1": {
       "pinId": "D_PWR.1",
       "offset": {
-        "x": 0,
-        "y": -0.5400000000000009
+        "x": -0.54,
+        "y": 0
       },
-      "side": "y-"
+      "side": "x-"
     },
     "D_PWR.2": {
       "pinId": "D_PWR.2",
       "offset": {
-        "x": 0,
-        "y": 0.5400000000000009
+        "x": 0.54,
+        "y": 0
       },
-      "side": "y+"
+      "side": "x+"
     },
     "R_BOOT.1": {
       "pinId": "R_BOOT.1",
       "offset": {
-        "x": 0,
-        "y": -0.3000000000000007
+        "x": -0.3,
+        "y": 0
       },
-      "side": "y-"
+      "side": "x-"
     },
     "R_BOOT.2": {
       "pinId": "R_BOOT.2",
       "offset": {
-        "x": 0,
-        "y": 0.3000000000000007
+        "x": 0.3,
+        "y": 0
       },
-      "side": "y+"
+      "side": "x+"
     },
     "R_LED.1": {
       "pinId": "R_LED.1",
       "offset": {
-        "x": 0,
-        "y": 0.3000000000000007
+        "x": -0.3,
+        "y": 0
       },
-      "side": "y+"
+      "side": "x-"
     },
     "R_LED.2": {
       "pinId": "R_LED.2",
       "offset": {
-        "x": 0,
-        "y": -0.3000000000000007
+        "x": 0.3,
+        "y": 0
       },
-      "side": "y-"
+      "side": "x+"
     },
     "R_PWR_LED.1": {
       "pinId": "R_PWR_LED.1",
       "offset": {
-        "x": 0,
-        "y": 0.3000000000000007
+        "x": -0.3,
+        "y": 0
       },
-      "side": "y+"
+      "side": "x-"
     },
     "R_PWR_LED.2": {
       "pinId": "R_PWR_LED.2",
       "offset": {
-        "x": 0,
-        "y": -0.3000000000000007
+        "x": 0.3,
+        "y": 0
       },
-      "side": "y-"
+      "side": "x+"
     },
     "TP_SWCLK.1": {
       "pinId": "TP_SWCLK.1",
       "offset": {
-        "x": -0.1999999999999993,
+        "x": -0.2,
         "y": 0
       },
       "side": "x-"
@@ -377,7 +329,7 @@
     "TP_GND.1": {
       "pinId": "TP_GND.1",
       "offset": {
-        "x": -0.1999999999999993,
+        "x": -0.2,
         "y": 0
       },
       "side": "x-"
@@ -385,7 +337,7 @@
     "TP_SWDIO.1": {
       "pinId": "TP_SWDIO.1",
       "offset": {
-        "x": -0.1999999999999993,
+        "x": -0.2,
         "y": 0
       },
       "side": "x-"
@@ -393,7 +345,7 @@
     "TP_3V3.1": {
       "pinId": "TP_3V3.1",
       "offset": {
-        "x": -0.1999999999999993,
+        "x": -0.2,
         "y": 0
       },
       "side": "x-"
