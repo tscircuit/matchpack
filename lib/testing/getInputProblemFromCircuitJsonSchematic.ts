@@ -2,20 +2,35 @@ import type { InputProblem } from "lib/types/InputProblem"
 import type { CircuitJson } from "circuit-json"
 import { cju } from "@tscircuit/circuit-json-util"
 
+const createReadableIdMap = (
+  entries: Array<{ sourceId: string; preferredId: string }>,
+): Map<string, string> => {
+  const reserved = new Set(entries.map((entry) => entry.preferredId))
+  const used = new Set<string>()
+  const nextSuffix = new Map<string, number>()
+  const result = new Map<string, string>()
+  for (const { sourceId, preferredId } of entries) {
+    if (result.has(sourceId)) continue
+    let id = preferredId
+    if (used.has(id)) {
+      let suffix = nextSuffix.get(preferredId) ?? 2
+      do {
+        id = `${preferredId}_${suffix++}`
+      } while (used.has(id) || reserved.has(id))
+      nextSuffix.set(preferredId, suffix)
+    }
+    used.add(id)
+    result.set(sourceId, id)
+  }
+  return result
+}
+
 export const getInputProblemFromCircuitJsonSchematic = (
   circuitJson: CircuitJson,
   options?: { useReadableIds?: boolean },
 ): InputProblem => {
   const db = cju(circuitJson)
   const { useReadableIds = false } = options || {}
-
-  // ID mapping for readable IDs
-  const sourceComponentIdToReadableId = new Map<string, string>()
-  const sourcePortIdToReadableId = new Map<string, string>()
-  const sourceNetIdToReadableId = new Map<string, string>()
-  const readableIdToSourceComponentId = new Map<string, string>()
-  const readableIdToSourcePortId = new Map<string, string>()
-  const readableIdToSourceNetId = new Map<string, string>()
 
   const problem: InputProblem = {
     chipMap: {},
@@ -45,6 +60,53 @@ export const getInputProblemFromCircuitJsonSchematic = (
   const cjSourceTraces = db.source_trace.list()
   const cjSourceNets = db.source_net.list()
 
+  // Reserve requested names before allocating suffixes so a duplicate cannot
+  // steal a later component, pin, or net's original readable name.
+  const sourceComponentIdToReadableId = createReadableIdMap(
+    useReadableIds
+      ? cjChips.flatMap(({ source_component }) =>
+          source_component
+            ? [
+                {
+                  sourceId: source_component.source_component_id,
+                  preferredId:
+                    source_component.name ||
+                    source_component.source_component_id,
+                },
+              ]
+            : [],
+        )
+      : [],
+  )
+  const sourcePortIdToReadableId = createReadableIdMap(
+    useReadableIds
+      ? cjChips.flatMap(({ source_component, ports }) => {
+          if (!source_component) return []
+          const chipId = sourceComponentIdToReadableId.get(
+            source_component.source_component_id,
+          )!
+          return ports.flatMap(({ source_port }) =>
+            source_port
+              ? [
+                  {
+                    sourceId: source_port.source_port_id,
+                    preferredId: `${chipId}.${source_port.pin_number || source_port.name || source_port.source_port_id.split("_").pop()}`,
+                  },
+                ]
+              : [],
+          )
+        })
+      : [],
+  )
+  const sourceNetIdToReadableId = createReadableIdMap(
+    useReadableIds
+      ? cjSourceNets.map((net) => ({
+          sourceId: net.source_net_id,
+          preferredId: net.name || net.source_net_id,
+        }))
+      : [],
+  )
+
   // Extract schematic components as chips using cjChips which has size information
   for (const chip of cjChips) {
     const { schematic_component, source_component, ports } = chip
@@ -54,13 +116,8 @@ export const getInputProblemFromCircuitJsonSchematic = (
     // Generate chip ID based on useReadableIds option
     const originalChipId = source_component.source_component_id
     const chipId = useReadableIds
-      ? source_component.name || originalChipId
+      ? sourceComponentIdToReadableId.get(originalChipId)!
       : originalChipId
-
-    if (useReadableIds) {
-      sourceComponentIdToReadableId.set(originalChipId, chipId)
-      readableIdToSourceComponentId.set(chipId, originalChipId)
-    }
 
     // Generate pin IDs based on useReadableIds option
     const pinIds = ports
@@ -69,10 +126,7 @@ export const getInputProblemFromCircuitJsonSchematic = (
 
         const originalPinId = p.source_port.source_port_id
         if (useReadableIds) {
-          const readablePinId = `${chipId}.${p.source_port.pin_number || p.source_port.name || originalPinId.split("_").pop()}`
-          sourcePortIdToReadableId.set(originalPinId, readablePinId)
-          readableIdToSourcePortId.set(readablePinId, originalPinId)
-          return readablePinId
+          return sourcePortIdToReadableId.get(originalPinId)!
         }
         return originalPinId
       })
@@ -146,13 +200,8 @@ export const getInputProblemFromCircuitJsonSchematic = (
     // Generate net ID based on useReadableIds option
     const originalNetId = sourceNet.source_net_id
     const netId = useReadableIds
-      ? sourceNet.name || originalNetId
+      ? sourceNetIdToReadableId.get(originalNetId)!
       : originalNetId
-
-    if (useReadableIds) {
-      sourceNetIdToReadableId.set(originalNetId, netId)
-      readableIdToSourceNetId.set(netId, originalNetId)
-    }
 
     problem.netMap[netId] = {
       netId: netId,
