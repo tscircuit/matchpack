@@ -352,10 +352,20 @@
     }
   },
   "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net7": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net7",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
     "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": {
       "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6",
       "isGround": false,
       "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27",
+      "isGround": false,
+      "isPositiveVoltageSource": false
     },
     "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": {
       "netId": "unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0",
@@ -370,10 +380,14 @@
     "D_PWR.2-R_PWR_LED.2": true
   },
   "netConnMap": {
+    "R_RUN.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net7": true,
+    "SW_RUN.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net7": true,
     "R_RUN.2-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
     "R_BOOT.2-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
     "R_PWR_LED.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
     "TP_3V3.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net6": true,
+    "SW_BOOT.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27": true,
+    "R_BOOT.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net27": true,
     "SW_BOOT.3-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
     "SW_RUN.4-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
     "D1.1-unnamedsubcircuitsubcircuit_source_group_1_connectivity_net0": true,
