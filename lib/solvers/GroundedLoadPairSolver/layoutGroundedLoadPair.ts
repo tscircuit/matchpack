@@ -107,7 +107,12 @@ const movePairBelowObstacles = ({
       pairBounds.maxX + inputProblem.chipGap <= bounds.minX ||
       pairBounds.minX - inputProblem.chipGap >= bounds.maxX
     if (clearsPairOnX) continue
-    if (bounds.maxY <= pairBounds.maxY) continue
+    // Skip bodies that already sit entirely below the pair. Shifting the pair
+    // further down moves it toward those, not away. Any body that overlaps the
+    // pair's vertical span still has to be cleared, including one placed level
+    // with the pair (its top at or below the pair top), which the previous
+    // `bounds.maxY <= pairBounds.maxY` guard dropped and left overlapping.
+    if (bounds.maxY <= pairBounds.minY) continue
 
     const requiredShift = pairBounds.maxY + inputProblem.chipGap - bounds.minY
     downwardShift = Math.max(downwardShift, requiredShift)
