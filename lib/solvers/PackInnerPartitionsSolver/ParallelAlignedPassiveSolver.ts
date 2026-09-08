@@ -153,23 +153,29 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       placements[chipId] = { ...placement }
     }
     const passiveGroups = findSameSidePassiveGroups(this.partitionInputProblem)
+    const rigidChipGroups: ChipId[][] = []
     for (const passiveGroup of passiveGroups) {
       if (passiveGroup.railCarrier) {
-        this.reflowRailCarrierPassiveGroup(placements, passiveGroup)
+        const reflowSucceeded = this.reflowRailCarrierPassiveGroup(
+          placements,
+          passiveGroup,
+        )
+        if (reflowSucceeded) {
+          rigidChipGroups.push([
+            ...passiveGroup.passiveChipIds,
+            passiveGroup.railCarrier.carrierChipId,
+          ])
+        }
       } else {
         this.reflowPassiveGroup(placements, passiveGroup)
+        rigidChipGroups.push([...passiveGroup.passiveChipIds])
       }
     }
     applyDirectPassiveTraceClearance({
       inputProblem: this.partitionInputProblem,
       connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
       chipPlacements: placements,
-      rigidChipGroups: passiveGroups.map((passiveGroup) => [
-        ...passiveGroup.passiveChipIds,
-        ...(passiveGroup.railCarrier
-          ? [passiveGroup.railCarrier.carrierChipId]
-          : []),
-      ]),
+      rigidChipGroups,
     })
     return { chipPlacements: placements, groupPlacements: base.groupPlacements }
   }
@@ -177,15 +183,15 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
   private reflowRailCarrierPassiveGroup(
     placements: Record<ChipId, Placement>,
     passiveGroup: SameSidePassiveGroup,
-  ): void {
+  ): boolean {
     const railCarrier = passiveGroup.railCarrier
-    if (!railCarrier) return
+    if (!railCarrier) return false
 
     const prob = this.partitionInputProblem
     const gap = prob.chipGap
     const mainChipPlacement = placements[passiveGroup.mainChipId]
     const carrierPlacement = placements[railCarrier.carrierChipId]
-    if (!mainChipPlacement || !carrierPlacement) return
+    if (!mainChipPlacement || !carrierPlacement) return false
 
     const ordered = passiveGroup.passiveChipIds.map((chipId, index) => {
       const mainPinId = passiveGroup.mainChipPinIds[index]
@@ -217,9 +223,11 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         edgeCoord: edgeCoordForSide(rotatedOffset, side),
       }
     })
-    if (ordered.length !== 2 || ordered.some((entry) => entry === null)) return
+    if (ordered.length !== 2 || ordered.some((entry) => entry === null)) {
+      return false
+    }
     const side = ordered[0]!.side
-    if (ordered.some((entry) => entry!.side !== side)) return
+    if (ordered.some((entry) => entry!.side !== side)) return false
     ordered.sort((a, b) => a!.edgeCoord - b!.edgeCoord)
 
     const outward = OUTWARD_BY_SIDE[side]
@@ -231,14 +239,14 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
     for (const [index, item] of ordered.entries()) {
       const passiveChip = prob.chipMap[item!.chipId]
       const packedPlacement = placements[item!.chipId]
-      if (!passiveChip || !packedPlacement) return
+      if (!passiveChip || !packedPlacement) return false
       const mainPinPosition = this.pinPosition(
         passiveGroup.mainChipId,
         item!.mainPinId,
         mainChipPlacement,
       )
       const passiveMainPin = prob.chipPinMap[item!.passiveMainPinId]
-      if (!mainPinPosition || !passiveMainPin) return
+      if (!mainPinPosition || !passiveMainPin) return false
 
       const passiveRotation = this.getUniqueCompatiblePassiveRotation({
         passiveChipId: item!.chipId,
@@ -246,7 +254,7 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         passiveCarrierPinId: item!.passiveCarrierPinId,
         side,
       })
-      if (passiveRotation === null) return
+      if (passiveRotation === null) return false
 
       const passiveSize = getRotatedSize(passiveChip.size, passiveRotation)
       const passiveMainPinOffset = rotatePinOffset(
@@ -305,7 +313,7 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
       baseCarrierPlacement: carrierPlacement,
       alignAxis,
     })
-    if (!carrierCandidate) return
+    if (!carrierCandidate) return false
 
     const movedChipIds = [
       ...ordered.map((item) => item!.chipId),
@@ -323,12 +331,13 @@ export class ParallelAlignedPassiveSolver extends BaseSolver {
         gap,
       )
     ) {
-      return
+      return false
     }
 
     for (const chipId of movedChipIds) {
       placements[chipId] = completeCandidatePlacements[chipId]!
     }
+    return true
   }
 
   private getUniqueCompatiblePassiveRotation({

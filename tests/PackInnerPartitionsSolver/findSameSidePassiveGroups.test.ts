@@ -628,6 +628,137 @@ const makeRailCarrierPackedLayoutWithPassiveRotation = (
   return layout
 }
 
+const makeRailCarrierTraceClearanceProblem = ({
+  passiveRotations = [0, 90, 180, 270],
+  includeObstacle = false,
+}: {
+  passiveRotations?: Array<0 | 90 | 180 | 270>
+  includeObstacle?: boolean
+} = {}): {
+  inputProblem: InputProblem
+  baseLayout: OutputLayout
+} => {
+  const inputProblem = makeRailCarrierProblem({
+    passiveRotations,
+    carrierRotations: [0],
+  })
+  inputProblem.chipPinMap["U1.3"] = {
+    ...inputProblem.chipPinMap["U1.3"]!,
+    offset: { x: 2, y: -1 },
+  }
+  inputProblem.chipPinMap["U1.4"] = {
+    ...inputProblem.chipPinMap["U1.4"]!,
+    offset: { x: 2, y: 1 },
+  }
+  inputProblem.chipPinMap["SJ1.1"] = {
+    ...inputProblem.chipPinMap["SJ1.1"]!,
+    offset: { x: -0.3, y: -1 },
+  }
+  inputProblem.chipPinMap["SJ1.3"] = {
+    ...inputProblem.chipPinMap["SJ1.3"]!,
+    offset: { x: -0.3, y: 1 },
+  }
+
+  const baseLayout: OutputLayout = {
+    chipPlacements: {
+      U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+      R2: { x: 2, y: -1.5, ccwRotationDegrees: 0 },
+      R1: { x: 2, y: 0.5, ccwRotationDegrees: 0 },
+      SJ1: { x: 4.5, y: 0, ccwRotationDegrees: 0 },
+    },
+    groupPlacements: {},
+  }
+
+  if (includeObstacle) {
+    inputProblem.chipMap.OBS = {
+      chipId: "OBS",
+      pins: [],
+      size: { x: 0.2, y: 0.2 },
+      availableRotations: [0],
+      fixedPosition: { x: 2.9, y: -1 },
+    }
+    baseLayout.chipPlacements.OBS = {
+      x: 2.9,
+      y: -1,
+      ccwRotationDegrees: 0,
+    }
+  }
+
+  return { inputProblem, baseLayout }
+}
+
+const makeOrdinarySameSideTraceClearanceProblem = (): {
+  inputProblem: InputProblem
+  baseLayout: OutputLayout
+} => {
+  const inputProblem: InputProblem = {
+    chipMap: {
+      U1: {
+        chipId: "U1",
+        pins: ["U1.1", "U1.2", "U1.3", "U1.4"],
+        size: { x: 1.2, y: 0.8 },
+        availableRotations: [0],
+      },
+      R1: {
+        chipId: "R1",
+        pins: ["R1.1", "R1.2"],
+        size: { x: 0.2, y: 1 },
+        availableRotations: [0],
+      },
+      R2: {
+        chipId: "R2",
+        pins: ["R2.1", "R2.2"],
+        size: { x: 0.2, y: 1 },
+        availableRotations: [0],
+      },
+      R3: {
+        chipId: "R3",
+        pins: ["R3.1", "R3.2"],
+        size: { x: 0.2, y: 1 },
+        availableRotations: [0],
+      },
+    },
+    chipPinMap: {
+      "U1.1": { pinId: "U1.1", side: "y-", offset: { x: 0, y: -0.4 } },
+      "U1.2": { pinId: "U1.2", side: "y+", offset: { x: -0.6, y: 2 } },
+      "U1.3": { pinId: "U1.3", side: "y+", offset: { x: 0, y: 2 } },
+      "U1.4": { pinId: "U1.4", side: "y+", offset: { x: 0.6, y: 2 } },
+      "R1.1": { pinId: "R1.1", side: "y+", offset: { x: 0, y: 0.5 } },
+      "R1.2": { pinId: "R1.2", side: "y-", offset: { x: 0, y: -0.5 } },
+      "R2.1": { pinId: "R2.1", side: "y+", offset: { x: 0, y: 0.5 } },
+      "R2.2": { pinId: "R2.2", side: "y-", offset: { x: 0, y: -0.5 } },
+      "R3.1": { pinId: "R3.1", side: "y+", offset: { x: 0, y: 0.5 } },
+      "R3.2": { pinId: "R3.2", side: "y-", offset: { x: 0, y: -0.5 } },
+    },
+    netMap: { BIAS: { netId: "BIAS" } },
+    pinStrongConnMap: {
+      "U1.2-R1.1": true,
+      "U1.3-R2.1": true,
+      "U1.4-R3.1": true,
+    },
+    netConnMap: {
+      "R1.2-BIAS": true,
+      "R2.2-BIAS": true,
+      "R3.2-BIAS": true,
+    },
+    chipGap: 0.4,
+    partitionGap: 1.2,
+  }
+
+  return {
+    inputProblem,
+    baseLayout: {
+      chipPlacements: {
+        U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+        R1: { x: 7, y: 7, ccwRotationDegrees: 0 },
+        R2: { x: 8, y: 7, ccwRotationDegrees: 0 },
+        R3: { x: 9, y: 7, ccwRotationDegrees: 0 },
+      },
+      groupPlacements: {},
+    },
+  }
+}
+
 const alignRailCarrierFromPackedLayout = (
   inputProblem: InputProblem,
   baseLayout: OutputLayout,
@@ -1117,6 +1248,91 @@ const expectPlacementToEqual = (
   expect(actual.ccwRotationDegrees).toBe(expected.ccwRotationDegrees)
 }
 
+const expectPlacementToBeClose = (
+  actual: Placement,
+  expected: Placement,
+): void => {
+  expect(actual.x).toBeCloseTo(expected.x)
+  expect(actual.y).toBeCloseTo(expected.y)
+  expect(actual.ccwRotationDegrees).toBe(expected.ccwRotationDegrees)
+}
+
+const getAbsolutePinPosition = ({
+  inputProblem,
+  layout,
+  chipId,
+  pinId,
+}: {
+  inputProblem: InputProblem
+  layout: OutputLayout
+  chipId: string
+  pinId: string
+}): { x: number; y: number } => {
+  const placement = layout.chipPlacements[chipId]!
+  const pin = inputProblem.chipPinMap[pinId]!
+  const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
+  return {
+    x: placement.x + offset.x,
+    y: placement.y + offset.y,
+  }
+}
+
+const expectFailedRailGroupToUseDirectPassiveClearance = ({
+  inputProblem,
+  baseLayout,
+  layout,
+}: {
+  inputProblem: InputProblem
+  baseLayout: OutputLayout
+  layout: OutputLayout
+}): void => {
+  expect(getRailCarrierGroups(inputProblem)).toHaveLength(1)
+  expectPlacementToEqual(
+    layout.chipPlacements.SJ1!,
+    baseLayout.chipPlacements.SJ1!,
+  )
+  for (const chipId of ["R1", "R2"]) {
+    expectPlacementToBeClose(layout.chipPlacements[chipId]!, {
+      ...baseLayout.chipPlacements[chipId]!,
+      x: baseLayout.chipPlacements[chipId]!.x - 0.2,
+    })
+  }
+
+  for (const { mainPinId, passiveChipId, passivePinId } of [
+    { mainPinId: "U1.3", passiveChipId: "R2", passivePinId: "R2.1" },
+    { mainPinId: "U1.4", passiveChipId: "R1", passivePinId: "R1.1" },
+  ]) {
+    const beforeMainPin = getAbsolutePinPosition({
+      inputProblem,
+      layout: baseLayout,
+      chipId: "U1",
+      pinId: mainPinId,
+    })
+    const beforePassivePin = getAbsolutePinPosition({
+      inputProblem,
+      layout: baseLayout,
+      chipId: passiveChipId,
+      pinId: passivePinId,
+    })
+    const afterMainPin = getAbsolutePinPosition({
+      inputProblem,
+      layout,
+      chipId: "U1",
+      pinId: mainPinId,
+    })
+    const afterPassivePin = getAbsolutePinPosition({
+      inputProblem,
+      layout,
+      chipId: passiveChipId,
+      pinId: passivePinId,
+    })
+    expect(beforePassivePin.x).toBeCloseTo(beforeMainPin.x)
+    expect(beforePassivePin.y).toBeCloseTo(beforeMainPin.y)
+    expect(afterPassivePin.x).toBeCloseTo(afterMainPin.x - 0.2)
+    expect(afterPassivePin.y).toBeCloseTo(afterMainPin.y)
+  }
+}
+
 const getDistancesFromMovedGroup = (
   inputProblem: InputProblem,
   layout: OutputLayout,
@@ -1363,6 +1579,103 @@ test("honors explicit rail-carrier rotation restrictions", () => {
         base.chipPlacements[chipId]!,
       )
     }
+  }
+})
+
+test("lets direct-passive clearance run after incompatible rail-carrier reflow fails", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierTraceClearanceProblem({
+    passiveRotations: [0],
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  expectFailedRailGroupToUseDirectPassiveClearance({
+    inputProblem,
+    baseLayout,
+    layout,
+  })
+})
+
+test("lets direct-passive clearance run after rail-carrier obstacle rejection", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierTraceClearanceProblem({
+    includeObstacle: true,
+  })
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  expectPlacementToEqual(
+    layout.chipPlacements.OBS!,
+    baseLayout.chipPlacements.OBS!,
+  )
+  expectFailedRailGroupToUseDirectPassiveClearance({
+    inputProblem,
+    baseLayout,
+    layout,
+  })
+})
+
+test("keeps successful rail-carrier reflows rigid for direct-passive clearance", () => {
+  const { inputProblem, baseLayout } = makeRailCarrierTraceClearanceProblem()
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  expect(getRailCarrierGroups(inputProblem)).toHaveLength(1)
+  expectPlacementToBeClose(layout.chipPlacements.R2!, {
+    x: 2.9,
+    y: -1,
+    ccwRotationDegrees: 90,
+  })
+  expectPlacementToBeClose(layout.chipPlacements.R1!, {
+    x: 2.9,
+    y: 1,
+    ccwRotationDegrees: 90,
+  })
+  expectPlacementToBeClose(layout.chipPlacements.SJ1!, {
+    x: 4.1,
+    y: 0,
+    ccwRotationDegrees: 0,
+  })
+  for (const chipId of ["R1", "R2", "SJ1"]) {
+    expect(layout.chipPlacements[chipId]).not.toEqual(
+      baseLayout.chipPlacements[chipId],
+    )
+  }
+})
+
+test("keeps ordinary same-side passive groups rigid for direct-passive clearance", () => {
+  const { inputProblem, baseLayout } =
+    makeOrdinarySameSideTraceClearanceProblem()
+  const groups = findSameSidePassiveGroups(inputProblem)
+  const layout = alignRailCarrierFromPackedLayout(inputProblem, baseLayout)
+
+  expect(groups).toHaveLength(1)
+  expect(groups[0]!.railCarrier).toBeUndefined()
+  for (const [chipId, expectedX] of [
+    ["R1", -0.6],
+    ["R2", 0],
+    ["R3", 0.6],
+  ] as const) {
+    expectPlacementToBeClose(layout.chipPlacements[chipId]!, {
+      x: expectedX,
+      y: 2.9,
+      ccwRotationDegrees: 0,
+    })
+  }
+  for (const { mainPinId, passiveChipId, passivePinId } of [
+    { mainPinId: "U1.2", passiveChipId: "R1", passivePinId: "R1.1" },
+    { mainPinId: "U1.3", passiveChipId: "R2", passivePinId: "R2.1" },
+    { mainPinId: "U1.4", passiveChipId: "R3", passivePinId: "R3.1" },
+  ]) {
+    const mainPin = getAbsolutePinPosition({
+      inputProblem,
+      layout,
+      chipId: "U1",
+      pinId: mainPinId,
+    })
+    const passivePin = getAbsolutePinPosition({
+      inputProblem,
+      layout,
+      chipId: passiveChipId,
+      pinId: passivePinId,
+    })
+    expect(passivePin.x).toBeCloseTo(mainPin.x)
   }
 })
 
