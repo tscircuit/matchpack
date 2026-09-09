@@ -51,7 +51,7 @@ test("SI7021 branches form a parallel row with the shared bridge beyond them", (
   expect(SJ1!.x).toBeLessThan(R2!.x)
   expectClear(problem, result)
   expect(initial).toEqual(before)
-  expect(problem).toEqual(inputData)
+  expect(problem).toEqual(input())
   expect(alignParallelBranches(problem, result)).toEqual(result)
 })
 
@@ -87,12 +87,12 @@ test("recognition is independent of chip and pin identifiers, including hyphens"
     .replaceAll("C2", "other-x")
   const { problem, layout } = JSON.parse(renamedText)
   const result = alignParallelBranches(problem, layout)
-  expect(result.chipPlacements["branch-a"].y).toBeCloseTo(
-    result.chipPlacements["branch-b"].y,
+  expect(result.chipPlacements["branch-a"]!.y).toBeCloseTo(
+    result.chipPlacements["branch-b"]!.y,
     8,
   )
-  expect(result.chipPlacements["bridge-x"].y).toBeGreaterThan(
-    result.chipPlacements["branch-a"].y,
+  expect(result.chipPlacements["bridge-x"]!.y).toBeGreaterThan(
+    result.chipPlacements["branch-a"]!.y,
   )
 })
 
