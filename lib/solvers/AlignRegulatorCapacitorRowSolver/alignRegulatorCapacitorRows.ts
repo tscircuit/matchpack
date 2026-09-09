@@ -10,7 +10,7 @@ import type {
 import type { OutputLayout } from "../../types/OutputLayout"
 import { tryOffsetChips } from "../../utils/offsetCollinearConnections"
 import { getVerticalPinClearanceOffset } from "../../utils/getVerticalPinClearanceOffset"
-import { getPlacementBounds } from "../AlignTestPointsSolver/placementsOverlap"
+import { getPlacementBounds } from "../../utils/getPlacementBounds"
 
 type RailCapacitorGroup = {
   railNetId: NetId

@@ -1,11 +1,11 @@
 import type { Chip, InputProblem, PinId } from "../../types/InputProblem"
 import type { OutputLayout } from "../../types/OutputLayout"
+import { getPlacementBounds } from "../../utils/getPlacementBounds"
 import {
   offsetChipConnectedRailLoadConnections,
   tryOffsetChips,
 } from "../../utils/offsetCollinearConnections"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
-import { getPlacementBounds } from "../AlignTestPointsSolver/placementsOverlap"
 import type { ChipConnectedRailLoadPair } from "./getChipConnectedRailLoadPairs"
 
 const DEFAULT_CCW_ROTATIONS_DEGREES: NonNullable<Chip["availableRotations"]> = [
@@ -13,7 +13,7 @@ const DEFAULT_CCW_ROTATIONS_DEGREES: NonNullable<Chip["availableRotations"]> = [
 ]
 const DEFAULT_CCW_ROTATION_DEGREES = 0
 const HALF = 0.5
-const SIDE_DIRECTIONS = {
+const SIDE_DIRECTIONS: Record<string, { x: number; y: number }> = {
   "x-": { x: -1, y: 0 },
   "x+": { x: 1, y: 0 },
   "y-": { x: 0, y: -1 },
@@ -61,13 +61,21 @@ export const alignChipConnectedRailLoads = ({
   const outputLayout = structuredClone(inputLayout)
   const { chipPlacements } = outputLayout
   const railLoadPairsByChipSide = new Map<string, ChipConnectedRailLoadPair[]>()
+
   for (const railLoadPair of railLoadPairs) {
     const mainPin = inputProblem.chipPinMap[railLoadPair.mainPinId]
-    if (!mainPin || !chipPlacements[railLoadPair.mainChipId]) continue
+    const mainChipPlacement = chipPlacements[railLoadPair.mainChipId]
+    if (!mainPin || !mainChipPlacement) continue
     if (!chipPlacements[railLoadPair.railComponent.chipId]) continue
     if (!chipPlacements[railLoadPair.resistor.chipId]) continue
     if (!inputProblem.chipPinMap[railLoadPair.resistorMainPinId]) continue
-    const key = JSON.stringify([railLoadPair.mainChipId, mainPin.side])
+
+    const pinDirection = rotatePinOffset(
+      SIDE_DIRECTIONS[mainPin.side] ?? { x: 1, y: 0 },
+      mainChipPlacement.ccwRotationDegrees,
+    )
+    const sideKey = pinDirection.x < 0 ? "x-" : "x+"
+    const key = `${railLoadPair.mainChipId}:${sideKey}`
     const sidePairs = railLoadPairsByChipSide.get(key) ?? []
     sidePairs.push(railLoadPair)
     railLoadPairsByChipSide.set(key, sidePairs)
@@ -75,6 +83,7 @@ export const alignChipConnectedRailLoads = ({
 
   for (const sidePairs of railLoadPairsByChipSide.values()) {
     const mainChipPlacement = chipPlacements[sidePairs[0]!.mainChipId]!
+
     // Higher pins stay nearest the IC so lower branches pass beneath them.
     sidePairs.sort((first, second) => {
       const firstOffset = rotatePinOffset(
@@ -87,16 +96,16 @@ export const alignChipConnectedRailLoads = ({
       )
       return secondOffset.y - firstOffset.y
     })
+
     let rowOutsideEdge: number | undefined
 
     for (const [pairIndex, railLoadPair] of sidePairs.entries()) {
       const railComponentPlacement =
         chipPlacements[railLoadPair.railComponent.chipId]
       const resistorPlacement = chipPlacements[railLoadPair.resistor.chipId]
-      const mainChipPlacement = chipPlacements[railLoadPair.mainChipId]
       const mainPin = inputProblem.chipPinMap[railLoadPair.mainPinId]
-      if (!railComponentPlacement || !resistorPlacement) continue
-      if (!mainChipPlacement || !mainPin) continue
+      if (!railComponentPlacement || !resistorPlacement || !mainPin) continue
+
       const railComponentCcwRotationDegrees = getVerticalRotation({
         chip: railLoadPair.railComponent,
         upperPinId: railLoadPair.railPinId,
@@ -128,6 +137,7 @@ export const alignChipConnectedRailLoads = ({
       const resistorMainPin =
         inputProblem.chipPinMap[railLoadPair.resistorMainPinId]
       if (!resistorMainPin) continue
+
       const resistorMainPinOffset = rotatePinOffset(
         resistorMainPin.offset,
         resistorCcwRotationDegrees,
@@ -135,13 +145,11 @@ export const alignChipConnectedRailLoads = ({
       let pairX = (railComponentPlacement.x + resistorPlacement.x) * HALF
       const resistorRowY =
         mainChipPlacement.y + mainPinOffset.y - resistorMainPinOffset.y
-      /**
-       * Keep the rail component above the resistor with the configured body gap.
-       */
       const railComponentRowY = resistorRowY + centerDistance
+
       const pairHalfWidth = Math.max(railComponentSize.x, resistorSize.x) * HALF
       const pinDirection = rotatePinOffset(
-        SIDE_DIRECTIONS[mainPin.side],
+        SIDE_DIRECTIONS[mainPin.side] ?? { x: 1, y: 0 },
         mainChipPlacement.ccwRotationDegrees,
       )
       const xDirection = pinDirection.x < 0 ? -1 : 1
@@ -149,17 +157,19 @@ export const alignChipConnectedRailLoads = ({
         placement: mainChipPlacement,
         size: inputProblem.chipMap[railLoadPair.mainChipId]!.size,
       })
-      if (pinDirection.x < 0) {
+
+      if (xDirection < 0) {
         pairX = Math.min(
           pairX,
           mainBounds.minX - inputProblem.chipGap - pairHalfWidth,
         )
-      } else if (pinDirection.x > 0) {
+      } else {
         pairX = Math.max(
           pairX,
           mainBounds.maxX + inputProblem.chipGap + pairHalfWidth,
         )
       }
+
       if (rowOutsideEdge !== undefined) {
         pairX =
           rowOutsideEdge +
@@ -176,44 +186,60 @@ export const alignChipConnectedRailLoads = ({
         y: resistorRowY,
         ccwRotationDegrees: resistorCcwRotationDegrees,
       }
-      // Remaining branches will move next; only settled components are obstacles.
+
+      // Remaining branches in this group will move outward next.
       const clearanceGroupChipIds = sidePairs
         .slice(pairIndex)
         .flatMap((pair) => [pair.railComponent.chipId, pair.resistor.chipId])
+
+      const pairMinY = Math.min(
+        resistorRowY - resistorSize.y * HALF,
+        railComponentRowY - railComponentSize.y * HALF,
+      )
+      const pairMaxY = Math.max(
+        resistorRowY + resistorSize.y * HALF,
+        railComponentRowY + railComponentSize.y * HALF,
+      )
+
+      // Only evaluate candidate positions for components that vertically overlap this corridor.
       const candidateXs = [pairX]
       for (const [chipId, placement] of Object.entries(chipPlacements)) {
         if (clearanceGroupChipIds.includes(chipId)) continue
         const chip = inputProblem.chipMap[chipId]
         if (!chip) continue
+
         const bounds = getPlacementBounds({ placement, size: chip.size })
+        const verticalClearance =
+          bounds.minY >= pairMaxY + inputProblem.chipGap ||
+          bounds.maxY <= pairMinY - inputProblem.chipGap
+        if (verticalClearance) continue
+
         const candidateX =
           xDirection < 0
             ? bounds.minX - inputProblem.chipGap - pairHalfWidth
             : bounds.maxX + inputProblem.chipGap + pairHalfWidth
+
         if ((candidateX - pairX) * xDirection < 0) continue
         candidateXs.push(candidateX)
       }
+
       candidateXs.sort((a, b) => (a - b) * xDirection)
-      const placedX = candidateXs.find((candidateX) =>
-        tryOffsetChips({
-          chipIds: [
-            railLoadPair.railComponent.chipId,
-            railLoadPair.resistor.chipId,
-          ],
-          clearanceGroupChipIds,
-          dx: candidateX - pairX,
-          dy: 0,
-          chipPlacements,
-          inputProblem,
-        }),
-      )
-      if (placedX === undefined) {
-        chipPlacements[railLoadPair.railComponent.chipId] =
-          railComponentPlacement
-        chipPlacements[railLoadPair.resistor.chipId] = resistorPlacement
-      } else {
-        rowOutsideEdge = placedX + xDirection * pairHalfWidth
-      }
+      const placedX =
+        candidateXs.find((candidateX) =>
+          tryOffsetChips({
+            chipIds: [
+              railLoadPair.railComponent.chipId,
+              railLoadPair.resistor.chipId,
+            ],
+            clearanceGroupChipIds,
+            dx: candidateX - pairX,
+            dy: 0,
+            chipPlacements,
+            inputProblem,
+          }),
+        ) ?? pairX
+
+      rowOutsideEdge = placedX + xDirection * pairHalfWidth
     }
   }
 
