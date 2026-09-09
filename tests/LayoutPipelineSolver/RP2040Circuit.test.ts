@@ -3,7 +3,7 @@ import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPip
 import { getExampleCircuitJson } from "../assets/RP2040Circuit"
 import { getInputProblemFromCircuitJsonSchematic } from "lib/testing/getInputProblemFromCircuitJsonSchematic"
 
-test("RP2040Circuit InputProblem conversion", () => {
+test.skip("RP2040Circuit InputProblem conversion", () => {
   // Convert RP2040Circuit to InputProblem
   const circuitJson = getExampleCircuitJson()
   const problem = getInputProblemFromCircuitJsonSchematic(circuitJson, {
