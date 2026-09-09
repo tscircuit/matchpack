@@ -69,12 +69,28 @@ const getNetForPin = (problem: InputProblem, pinId: PinId): NetId | null => {
   return null
 }
 
-/** Main-chip side a pin offset points to once the chip's rotation is applied. */
+/** Rotate a declared side by a CCW quarter-turn rotation. */
+const SIDE_ROTATION_ORDER: Side[] = ["x+", "y+", "x-", "y-"]
+const rotateSide = (side: Side, ccwRotationDegrees: number): Side => {
+  const turns = ((Math.round(ccwRotationDegrees / 90) % 4) + 4) % 4
+  const index = SIDE_ROTATION_ORDER.indexOf(side)
+  return SIDE_ROTATION_ORDER[(index + turns) % 4]!
+}
+
+/**
+ * Main-chip side a pin sits on once the chip's rotation is applied.
+ *
+ * Prefers the pin's declared `side` — offset inference misclassifies corner
+ * pins (e.g. a left-edge pin near the top of a tall chip has |y| > |x|, which
+ * would wrongly read as "y+") — and falls back to offset inference when no
+ * side is declared.
+ */
 const getMainChipPinSide = (
-  offset: { x: number; y: number },
+  pin: { offset: { x: number; y: number }; side?: Side },
   mainChipRotation: number,
 ): Side => {
-  const o = rotatePinOffset(offset, mainChipRotation)
+  if (pin.side) return rotateSide(pin.side, mainChipRotation)
+  const o = rotatePinOffset(pin.offset, mainChipRotation)
   if (Math.abs(o.x) >= Math.abs(o.y)) {
     if (o.x >= 0) return "x+"
     return "x-"
@@ -164,7 +180,7 @@ export const findSameSidePassiveGroups = (
         commonNodeGroups.push({
           mainChipId,
           side: getMainChipPinSide(
-            mainChipPin.offset,
+            mainChipPin,
             mainChip.availableRotations?.[0] ?? 0,
           ),
           passiveChipIds,
@@ -215,7 +231,7 @@ export const findSameSidePassiveGroups = (
       mainChipRotation,
     )
     const side = getMainChipPinSide(
-      problem.chipPinMap[mainChipPinId]!.offset,
+      problem.chipPinMap[mainChipPinId]!,
       mainChipRotation,
     )
     candidates.push({
