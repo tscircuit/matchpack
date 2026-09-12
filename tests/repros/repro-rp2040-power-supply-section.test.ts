@@ -8,8 +8,8 @@ import input from "../assets/repro-rp2040-power-supply-section.input.json"
 
 // Captured from @tscircuit/core 0.0.1539 with @tscircuit/matchpack 0.0.55.
 test("RP2040 power supply section auto-layout", async () => {
-  const solver = new LayoutPipelineSolver(input as InputProblem)
-  const chipPinMap = input.chipPinMap as InputProblem["chipPinMap"]
+  const inputProblem = input as InputProblem
+  const solver = new LayoutPipelineSolver(inputProblem)
   solver.solve()
 
   const layout = solver.getOutputLayout()
@@ -33,9 +33,9 @@ test("RP2040 power supply section auto-layout", async () => {
     )
     expect(
       getVerticalPinClearanceOffset({
-        upperPin: chipPinMap["U2.5"]!,
+        upperPin: inputProblem.chipPinMap["U2.5"]!,
         upperPlacement: u2Placement,
-        lowerPin: chipPinMap[`${capacitorId}.1`]!,
+        lowerPin: inputProblem.chipPinMap[`${capacitorId}.1`]!,
         lowerPlacement: capacitorPlacement,
       }),
     ).toBeCloseTo(0)
