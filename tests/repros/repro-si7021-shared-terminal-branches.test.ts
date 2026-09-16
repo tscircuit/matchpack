@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import { findSharedTerminalBranchGroups } from "lib/solvers/PackInnerPartitionsSolver/findSharedTerminalBranchGroups"
+import { layoutSharedTerminalBranchGroup } from "lib/solvers/PackInnerPartitionsSolver/layoutSharedTerminalBranchGroup"
 import type { InputProblem, PinId } from "lib/types/InputProblem"
+import type { Placement } from "lib/types/OutputLayout"
 import { rotatePinOffset } from "lib/utils/rotatePinOffset"
 import inputProblem from "../../pages/repros/repro-si7021/si7021-matchpack-input.json"
 
@@ -160,6 +162,46 @@ test("rejects unsafe or incomplete shared-terminal candidates", () => {
     "SJ1.2-C2.1"
   ] = true
   expect(findSharedTerminalBranchGroups(extraStrongConnection)).toHaveLength(0)
+})
+
+test("falls back when an unrelated component blocks the refinement", () => {
+  const clearProblem = cloneProblem()
+  const group = findSharedTerminalBranchGroups(clearProblem)[0]!
+  const basePlacements: Record<string, Placement> = {
+    U1: { x: 0, y: 0, ccwRotationDegrees: 0 },
+    C2: { x: -2.03, y: 0, ccwRotationDegrees: 90 },
+    R1: { x: 3, y: 2, ccwRotationDegrees: 0 },
+    R2: { x: 3, y: -2, ccwRotationDegrees: 0 },
+    SJ1: { x: 4, y: 0, ccwRotationDegrees: 0 },
+  }
+
+  expect(
+    layoutSharedTerminalBranchGroup({
+      group,
+      chipPlacements: basePlacements,
+      inputProblem: clearProblem,
+    }),
+  ).not.toBeNull()
+
+  const blockedProblem = cloneProblem()
+  blockedProblem.chipMap.BLOCK = {
+    chipId: "BLOCK",
+    pins: [],
+    size: { x: 1, y: 1 },
+    fixedPosition: { x: 1.5, y: 0 },
+  }
+  const blockedPlacements = {
+    ...basePlacements,
+    BLOCK: { x: 1.5, y: 0, ccwRotationDegrees: 0 },
+  }
+
+  expect(
+    layoutSharedTerminalBranchGroup({
+      group: findSharedTerminalBranchGroups(blockedProblem)[0]!,
+      chipPlacements: blockedPlacements,
+      inputProblem: blockedProblem,
+    }),
+  ).toBeNull()
 })
 
 test("supports every fixed quarter-turn anchor rotation", () => {
