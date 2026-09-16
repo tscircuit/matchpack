@@ -21,7 +21,10 @@ const collectJsonPaths = async (): Promise<string[]> => {
   const glob = new Bun.Glob("**/*.json")
 
   for (const root of ["pages/repros", "tests/assets"]) {
-    for await (const relativePath of glob.scan({ cwd: root, onlyFiles: true })) {
+    for await (const relativePath of glob.scan({
+      cwd: root,
+      onlyFiles: true,
+    })) {
       paths.push(`${root}/${relativePath}`)
     }
   }
@@ -58,7 +61,9 @@ test("shared-terminal refinement has a narrow blast radius across repository fix
   console.log(
     `shared-terminal blast radius: ${activatedPaths.length}/${inputProblemPaths.length} InputProblem fixtures activated`,
   )
-  console.log(`shared-terminal activated fixtures: ${activatedPaths.join(", ")}`)
+  console.log(
+    `shared-terminal activated fixtures: ${activatedPaths.join(", ")}`,
+  )
 
   expect(inputProblemPaths.length).toBeGreaterThan(20)
   expect(activatedPaths).toContain(
