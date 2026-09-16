@@ -4,7 +4,12 @@ import {
   getBoundFromCenteredRect,
   type Point,
 } from "@tscircuit/math-utils"
-import type { Chip, ChipId, InputProblem, PinId } from "../../types/InputProblem"
+import type {
+  Chip,
+  ChipId,
+  InputProblem,
+  PinId,
+} from "../../types/InputProblem"
 import type { Placement } from "../../types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import type {
@@ -45,12 +50,8 @@ const pointFromAxes = ({
   tangentCoordinate: number
   axes: LayoutAxes
 }): Point => ({
-  x:
-    axes.outward.x * outwardCoordinate +
-    axes.tangent.x * tangentCoordinate,
-  y:
-    axes.outward.y * outwardCoordinate +
-    axes.tangent.y * tangentCoordinate,
+  x: axes.outward.x * outwardCoordinate + axes.tangent.x * tangentCoordinate,
+  y: axes.outward.y * outwardCoordinate + axes.tangent.y * tangentCoordinate,
 })
 
 const getLayoutAxes = (pinOffset: Point): LayoutAxes => {
@@ -202,7 +203,10 @@ const pointsEqual = (first: Point, second: Point): boolean =>
 const cross = (a: Point, b: Point, c: Point): number =>
   (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
 
-const segmentsProperlyIntersect = (first: Segment, second: Segment): boolean => {
+const segmentsProperlyIntersect = (
+  first: Segment,
+  second: Segment,
+): boolean => {
   if (
     pointsEqual(first.start, second.start) ||
     pointsEqual(first.start, second.end) ||
@@ -283,10 +287,7 @@ const getLayoutScore = (segments: Segment[]): number => {
       secondIndex++
     ) {
       if (
-        segmentsProperlyIntersect(
-          segments[firstIndex]!,
-          segments[secondIndex]!,
-        )
+        segmentsProperlyIntersect(segments[firstIndex]!, segments[secondIndex]!)
       ) {
         crossings++
       }
@@ -335,8 +336,7 @@ export const layoutSharedTerminalBranchGroup = ({
     mainPlacement.ccwRotationDegrees,
   )
   const mainOuterBodyCoordinate =
-    dot(mainPlacement, axes.outward) +
-    getHalfExtent(mainSize, axes.outward)
+    dot(mainPlacement, axes.outward) + getHalfExtent(mainSize, axes.outward)
 
   const branchCandidates: BranchCandidate[] = []
   for (const branch of group.branches) {
@@ -371,15 +371,13 @@ export const layoutSharedTerminalBranchGroup = ({
     const clearanceOutwardCoordinate =
       mainOuterBodyCoordinate + inputProblem.chipGap + halfOutwardExtent
     const alignedOutwardCoordinate =
-      dot(mainPinPosition, axes.outward) -
-      dot(nearPinOffset, axes.outward)
+      dot(mainPinPosition, axes.outward) - dot(nearPinOffset, axes.outward)
     const outwardCoordinate = Math.max(
       clearanceOutwardCoordinate,
       alignedOutwardCoordinate,
     )
     const tangentCoordinate =
-      dot(mainPinPosition, axes.tangent) -
-      dot(nearPinOffset, axes.tangent)
+      dot(mainPinPosition, axes.tangent) - dot(nearPinOffset, axes.tangent)
     const center = pointFromAxes({
       outwardCoordinate,
       tangentCoordinate,
@@ -399,8 +397,7 @@ export const layoutSharedTerminalBranchGroup = ({
 
   branchCandidates.sort(
     (first, second) =>
-      dot(first.placement, axes.tangent) -
-      dot(second.placement, axes.tangent),
+      dot(first.placement, axes.tangent) - dot(second.placement, axes.tangent),
   )
 
   const firstBranch = branchCandidates[0]!
@@ -430,15 +427,13 @@ export const layoutSharedTerminalBranchGroup = ({
 
   let bestPlacements: Record<ChipId, Placement> | null = null
   let bestScore = baseScore
-  const terminalRotations =
-    terminalChip.availableRotations ?? [...DEFAULT_ROTATIONS]
+  const terminalRotations = terminalChip.availableRotations ?? [
+    ...DEFAULT_ROTATIONS,
+  ]
 
   for (const terminalRotation of terminalRotations) {
     const terminalSize = getRotatedSize(terminalChip.size, terminalRotation)
-    const terminalHalfOutwardExtent = getHalfExtent(
-      terminalSize,
-      axes.outward,
-    )
+    const terminalHalfOutwardExtent = getHalfExtent(terminalSize, axes.outward)
 
     let branchOuterBodyCoordinate = Number.NEGATIVE_INFINITY
     const terminalTangentCenters: number[] = []
