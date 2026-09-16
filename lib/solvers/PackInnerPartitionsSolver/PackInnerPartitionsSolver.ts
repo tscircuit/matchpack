@@ -29,6 +29,10 @@ import {
   canLayoutParallelSeriesBranches,
   ParallelSeriesBranchSolver,
 } from "./ParallelSeriesBranchSolver"
+import {
+  canLayoutSharedTerminalBranches,
+  SharedTerminalBranchSolver,
+} from "./SharedTerminalBranchSolver"
 import { findSameSidePassiveGroups } from "./findSameSidePassiveGroups"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
@@ -45,6 +49,7 @@ type InnerPartitionSolver =
   | SingleInnerPartitionPackingSolver
   | ParallelAlignedPassiveSolver
   | ParallelSeriesBranchSolver
+  | SharedTerminalBranchSolver
   | DecouplingCapRowSolver
 
 /**
@@ -119,6 +124,19 @@ const PARTITION_SOLVER_STRATEGIES = [
     "parallelSeriesBranchSolver",
     ParallelSeriesBranchSolver,
     canLayoutParallelSeriesBranches,
+    (instance) => [
+      {
+        partitionInputProblem: instance.partitions[
+          instance.currentPartitionIndex
+        ]! as PartitionInputProblem,
+        pinIdToStronglyConnectedPins: instance.pinIdToStronglyConnectedPins,
+      },
+    ],
+  ),
+  definePartitionSolverStrategy(
+    "sharedTerminalBranchSolver",
+    SharedTerminalBranchSolver,
+    canLayoutSharedTerminalBranches,
     (instance) => [
       {
         partitionInputProblem: instance.partitions[
