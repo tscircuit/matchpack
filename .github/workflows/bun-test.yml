@@ -26,10 +26,3 @@ jobs:
 
       - name: Run tests
         run: bun test
-
-      - name: Upload SI7021 visual snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: si7021-shared-terminal-snapshot
-          path: tests/repros/__snapshots__/repro-si7021-shared-terminal-branches-shared-terminal.snap.svg
-          if-no-files-found: error
