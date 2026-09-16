@@ -65,8 +65,8 @@ test("shared-terminal refinement has a narrow blast radius across repository fix
     `shared-terminal activated fixtures: ${activatedPaths.join(", ")}`,
   )
 
-  expect(inputProblemPaths.length).toBeGreaterThan(20)
-  expect(activatedPaths).toContain(
+  expect(inputProblemPaths).toHaveLength(52)
+  expect(activatedPaths).toEqual([
     "pages/repros/repro-si7021/si7021-matchpack-input.json",
-  )
+  ])
 })
