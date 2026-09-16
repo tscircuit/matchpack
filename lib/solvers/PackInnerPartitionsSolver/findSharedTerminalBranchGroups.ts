@@ -43,10 +43,7 @@ const buildConnectionsByChip = (
     inputProblem.pinStrongConnMap,
   )) {
     if (!connected) continue
-    const [firstPinId, secondPinId] = connectionKey.split("-") as [
-      PinId,
-      PinId,
-    ]
+    const [firstPinId, secondPinId] = connectionKey.split("-") as [PinId, PinId]
     const firstChipId = pinOwnerMap.get(firstPinId)
     const secondChipId = pinOwnerMap.get(secondPinId)
     if (!firstChipId || !secondChipId || firstChipId === secondChipId) continue
@@ -87,15 +84,10 @@ const pinHasNetConnection = (
       connected && connectionKey.startsWith(`${pinId}-`),
   )
 
-const edgeCoordinate = (
-  inputProblem: InputProblem,
-  pinId: PinId,
-): number => {
+const edgeCoordinate = (inputProblem: InputProblem, pinId: PinId): number => {
   const pin = inputProblem.chipPinMap[pinId]
   if (!pin) return 0
-  return pin.side === "x-" || pin.side === "x+"
-    ? pin.offset.y
-    : pin.offset.x
+  return pin.side === "x-" || pin.side === "x+" ? pin.offset.y : pin.offset.x
 }
 
 /**
@@ -109,10 +101,7 @@ export const findSharedTerminalBranchGroups = (
   inputProblem: InputProblem,
 ): SharedTerminalBranchGroup[] => {
   const pinOwnerMap = buildPinOwnerMap(inputProblem)
-  const connectionsByChip = buildConnectionsByChip(
-    inputProblem,
-    pinOwnerMap,
-  )
+  const connectionsByChip = buildConnectionsByChip(inputProblem, pinOwnerMap)
 
   type Candidate = SharedTerminalBranch & {
     mainChipId: ChipId
