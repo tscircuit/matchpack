@@ -350,8 +350,8 @@ const alignChipAnchoredLoadPairRows = ({
       mainPlacement.ccwRotationDegrees,
     )
     if (direction.x === 0) continue
-    // Place the lowest pin nearest a left-side IC, so the row steps down
-    // from left to right in the same order as the IC pins.
+    // Place the lowest pin nearest the IC on either side so higher-pin
+    // connections pass above the nearer grounded branches.
     sidePairs.sort((first, second) => {
       const firstOffset = rotatePinOffset(
         inputProblem.chipPinMap[first.mainPinId!]!.offset,
@@ -361,7 +361,7 @@ const alignChipAnchoredLoadPairRows = ({
         inputProblem.chipPinMap[second.mainPinId!]!.offset,
         mainPlacement.ccwRotationDegrees,
       )
-      return (secondOffset.y - firstOffset.y) * direction.x
+      return firstOffset.y - secondOffset.y
     })
     const mainBounds = getPlacementBounds({
       placement: mainPlacement,
