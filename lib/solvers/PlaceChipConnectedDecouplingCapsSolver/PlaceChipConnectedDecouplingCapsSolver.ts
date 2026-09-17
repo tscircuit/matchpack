@@ -170,10 +170,7 @@ export const placeChipConnectedDecouplingCapRow = ({
     partition,
     mainChipId,
     inputProblem,
-  }).filter(
-    (pair) =>
-      inputProblem.chipPinMap[pair.mainPinId]?.side === side,
-  )
+  }).filter((pair) => inputProblem.chipPinMap[pair.mainPinId]?.side === side)
   if (directWirePairs.length === 0) return
 
   const mainPartition = packedPartitions.find(
@@ -196,8 +193,6 @@ export const placeChipConnectedDecouplingCapRow = ({
   const mainPlacement = layout.chipPlacements[mainChipId]
   if (!mainChip || !mainPlacement) return
 
-
-
   // Target edge for the row on the main chip's side: chipGap away from the
   // main partition's edge on that side.
   const targetRowEdge =
@@ -205,7 +200,9 @@ export const placeChipConnectedDecouplingCapRow = ({
       ? mainBounds.minX - inputProblem.chipGap
       : mainBounds.maxX + inputProblem.chipGap
   const edgeOffset =
-    side === "x-" ? targetRowEdge - rowBounds.maxX : targetRowEdge - rowBounds.minX
+    side === "x-"
+      ? targetRowEdge - rowBounds.maxX
+      : targetRowEdge - rowBounds.minX
 
   // Align the row's positive-rail pins with the main chip's pin on the SAME
   // wire, so each group hugs the side of the chip its own rail leaves from.

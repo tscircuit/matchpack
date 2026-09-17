@@ -58,7 +58,9 @@ test("directly-wired decoupling caps hug their main chip without overlap", () =>
       .filter((b): b is NonNullable<typeof b> => b !== null)
     expect(capBoundsList.length).toBe(group.decouplingCapChipIds.length)
 
-    const gapToMain = (capBounds: NonNullable<ReturnType<typeof getChipBounds>>) =>
+    const gapToMain = (
+      capBounds: NonNullable<ReturnType<typeof getChipBounds>>,
+    ) =>
       capBounds.minX > mainBounds!.maxX
         ? capBounds.minX - mainBounds!.maxX
         : capBounds.maxX < mainBounds!.minX
