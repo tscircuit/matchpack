@@ -227,7 +227,7 @@ export const placeChipConnectedDecouplingCapRow = ({
     : undefined
 
   let yOffset = 0
-  if (rowRailPin && rowRailPlacement) {
+  if (rowRailPin && rowRailPlacement && mainRailPin) {
     yOffset = getVerticalPinClearanceOffset({
       upperPin: mainRailPin,
       upperPlacement: mainPlacement,
