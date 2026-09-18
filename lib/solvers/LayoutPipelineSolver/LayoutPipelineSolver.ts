@@ -276,7 +276,24 @@ export class LayoutPipelineSolver extends BaseSolver {
   }
 
   solveUntilPhase(phase: string) {
-    while (this.getCurrentPhase() !== phase) {
+    const targetStepIndex = this.pipelineDef.findIndex(
+      (stepDef) => stepDef.solverName === phase,
+    )
+    if (targetStepIndex === -1) {
+      throw new Error(
+        `solveUntilPhase: unknown phase "${phase}". Known phases: ${this.pipelineDef
+          .map((stepDef) => stepDef.solverName)
+          .join(", ")}`,
+      )
+    }
+    // The pipeline only advances toward `targetStepIndex`; stepping past a
+    // failed or solved sub-solver would otherwise spin forever on a no-op
+    // step (BaseSolver.step() early-returns once terminal).
+    while (
+      !this.solved &&
+      !this.failed &&
+      this.currentPipelineStepIndex < targetStepIndex
+    ) {
       this.step()
     }
   }
