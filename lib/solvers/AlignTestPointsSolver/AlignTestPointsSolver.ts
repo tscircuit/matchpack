@@ -9,7 +9,8 @@ import type { OutputLayout, Placement } from "lib/types/OutputLayout"
 import { getRotatedSize, rotatePinOffset } from "lib/utils/rotatePinOffset"
 import { createPinOwnerMap } from "lib/utils/createPinOwnerMap"
 import { alignLooseTestPoints } from "./alignLooseTestPoints"
-import { getPlacementBounds, placementsOverlap } from "./placementsOverlap"
+import { getPlacementBounds } from "lib/utils/getPlacementBounds"
+import { placementsOverlap } from "./placementsOverlap"
 
 type Axis = "x" | "y"
 
