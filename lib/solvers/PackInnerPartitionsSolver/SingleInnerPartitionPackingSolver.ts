@@ -19,19 +19,24 @@ import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { applyDirectPassiveTraceClearance } from "../../utils/offsetCollinearConnections"
 
+import { refineStrongConnections } from "./refineStrongConnections"
+
 const PIN_SIZE = 0.1
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
   partitionInputProblem: PartitionInputProblem
   layout: OutputLayout | null = null
+  private refineConnections: boolean
   declare activeSubSolver: PackSolver2 | null
   pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
 
   constructor(params: {
     partitionInputProblem: PartitionInputProblem
     pinIdToStronglyConnectedPins: Record<PinId, ChipPin[]>
+    refineConnections?: boolean
   }) {
     super()
+    this.refineConnections = params.refineConnections ?? false
     this.partitionInputProblem = params.partitionInputProblem
     this.pinIdToStronglyConnectedPins = params.pinIdToStronglyConnectedPins
   }
@@ -162,16 +167,22 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
       }
     }
 
+    const packedLayout = { chipPlacements, groupPlacements: {} }
+    const refinedLayout = this.refineConnections
+      ? refineStrongConnections({
+          inputProblem: this.partitionInputProblem,
+          inputLayout: packedLayout,
+          connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
+        })
+      : packedLayout
+
     applyDirectPassiveTraceClearance({
       inputProblem: this.partitionInputProblem,
       connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
-      chipPlacements,
+      chipPlacements: refinedLayout.chipPlacements,
     })
 
-    return {
-      chipPlacements,
-      groupPlacements: {},
-    }
+    return refinedLayout
   }
 
   override visualize(): GraphicsObject {
