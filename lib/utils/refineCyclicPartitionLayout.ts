@@ -80,19 +80,52 @@ export function refineCyclicPartitionLayout({
       maxY: Math.max(maxY, height / 2),
     })
   }
-  const bounds = (id: string, placement: Placement): Bounds => {
+  // Rotation templates are invariant throughout the search. Only translate them
+  // for each proposal instead of rotating every corner and pin repeatedly.
+  const rotatedBounds = new Map<string, Map<number, Bounds>>()
+  const rotatedPins = new Map<
+    PinId,
+    Map<number, { offset: Point; normal: Point }>
+  >()
+  for (const id of ids) {
+    const chip = problem.chipMap[id]!
     const b = localBounds.get(id)!
-    const corners = [
-      { x: b.minX, y: b.minY },
-      { x: b.maxX, y: b.maxY },
-      { x: b.minX, y: b.maxY },
-      { x: b.maxX, y: b.minY },
-    ].map((p) => rotatePinOffset(p, placement.ccwRotationDegrees))
+    const rotations = new Set([
+      ...(chip.availableRotations ?? [0, 90, 180, 270]),
+      initial[id]!.ccwRotationDegrees,
+    ])
+    const templates = new Map<number, Bounds>()
+    for (const rotation of rotations) {
+      const corners = [
+        { x: b.minX, y: b.minY },
+        { x: b.maxX, y: b.maxY },
+        { x: b.minX, y: b.maxY },
+        { x: b.maxX, y: b.minY },
+      ].map((point) => rotatePinOffset(point, rotation))
+      templates.set(rotation, {
+        minX: Math.min(...corners.map((point) => point.x)),
+        maxX: Math.max(...corners.map((point) => point.x)),
+        minY: Math.min(...corners.map((point) => point.y)),
+        maxY: Math.max(...corners.map((point) => point.y)),
+      })
+      for (const pinId of chip.pins) {
+        const pin = problem.chipPinMap[pinId]!
+        if (!rotatedPins.has(pinId)) rotatedPins.set(pinId, new Map())
+        rotatedPins.get(pinId)!.set(rotation, {
+          offset: rotatePinOffset(pin.offset, rotation),
+          normal: rotatePinOffset(NORMALS[pin.side], rotation),
+        })
+      }
+    }
+    rotatedBounds.set(id, templates)
+  }
+  const bounds = (id: string, placement: Placement): Bounds => {
+    const b = rotatedBounds.get(id)!.get(placement.ccwRotationDegrees)!
     return {
-      minX: placement.x + Math.min(...corners.map((p) => p.x)),
-      maxX: placement.x + Math.max(...corners.map((p) => p.x)),
-      minY: placement.y + Math.min(...corners.map((p) => p.y)),
-      maxY: placement.y + Math.max(...corners.map((p) => p.y)),
+      minX: placement.x + b.minX,
+      maxX: placement.x + b.maxX,
+      minY: placement.y + b.minY,
+      maxY: placement.y + b.maxY,
     }
   }
   const fits = (id: string, placement: Placement, layout: Placements) => {
@@ -112,34 +145,38 @@ export function refineCyclicPartitionLayout({
     })
   }
   if (!ids.every((id) => fits(id, initial[id]!, initial))) return initial
-  const pinPoint = (pin: PinId, layout: Placements): Point => {
+  const stub = problem.chipGap / 2
+  const pinPoint = (pin: PinId, layout: Placements, extension = 0): Point => {
     const placement = layout[owners.get(pin)!.chipId]!
-    const offset = rotatePinOffset(
-      problem.chipPinMap[pin]!.offset,
-      placement.ccwRotationDegrees,
-    )
-    return { x: placement.x + offset.x, y: placement.y + offset.y }
+    const { offset, normal } = rotatedPins
+      .get(pin)!
+      .get(placement.ccwRotationDegrees)!
+    return {
+      x: placement.x + offset.x + extension * normal.x,
+      y: placement.y + offset.y + extension * normal.y,
+    }
   }
   // Reserve an outward stub so shortening a connection by turning a pin away
   // from its destination is not mistaken for an improvement.
   const score = (layout: Placements) =>
     edges.reduce((sum, [a, b]) => {
-      const first = pinPoint(a, layout)
-      const second = pinPoint(b, layout)
-      const normal = (pin: PinId) =>
-        rotatePinOffset(
-          NORMALS[problem.chipPinMap[pin]!.side],
-          layout[owners.get(pin)!.chipId]!.ccwRotationDegrees,
-        )
-      const n = normal(a)
-      const m = normal(b)
-      const stub = problem.chipGap / 2
+      const first = pinPoint(a, layout, stub)
+      const second = pinPoint(b, layout, stub)
       return (
         sum +
         2 * stub +
-        Math.abs(first.x + stub * n.x - second.x - stub * m.x) +
-        Math.abs(first.y + stub * n.y - second.y - stub * m.y)
+        Math.abs(first.x - second.x) +
+        Math.abs(first.y - second.y)
       )
+    }, 0)
+  // When total estimated length ties, avoid concentrating the detour in one
+  // branch. This tie-break never trades a longer primary score for symmetry.
+  const balanceScore = (layout: Placements) =>
+    edges.reduce((sum, [a, b]) => {
+      const first = pinPoint(a, layout)
+      const second = pinPoint(b, layout)
+      const length = Math.abs(first.x - second.x) + Math.abs(first.y - second.y)
+      return sum + length * length
     }, 0)
   const orientation = (a: Point, b: Point, c: Point) =>
     (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
@@ -225,26 +262,22 @@ export function refineCyclicPartitionLayout({
       cyclicIds.has(id) && id !== anchor && !problem.chipMap[id]!.fixedPosition,
   )
   if (!movable.length) return initial
-  let seed = 17
-  const random = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
-    return seed / 4294967296
-  }
-  const pick = <T>(items: T[]): T => items[Math.floor(random() * items.length)]!
-  let current = { layout: initial, score: score(initial) }
-  let best = current
-  for (let iteration = 0; iteration < 30000; iteration++) {
-    if (iteration > 0 && iteration % 5000 === 0) current = best
-    const id = pick(movable)
-    const rotation = pick(
-      problem.chipMap[id]!.availableRotations ?? [0, 90, 180, 270],
+  const addCenters = (candidates: number[], targets: number[]) => {
+    if (targets.length < 2) return
+    const ordered = [...targets].sort((a, b) => a - b)
+    const mid = Math.floor(ordered.length / 2)
+    candidates.push(
+      (ordered[Math.floor((ordered.length - 1) / 2)]! + ordered[mid]!) / 2,
+      targets.reduce((sum, value) => sum + value, 0) / targets.length,
     )
-    const box = bounds(id, { x: 0, y: 0, ccwRotationDegrees: rotation })
-    const xs = [current.layout[id]!.x]
-    const ys = [current.layout[id]!.y]
+  }
+  const candidates = (id: string, rotation: number, layout: Placements) => {
+    const box = rotatedBounds.get(id)!.get(rotation)!
+    const xs = [layout[id]!.x]
+    const ys = [layout[id]!.y]
     for (const other of ids) {
       if (other === id) continue
-      const otherBox = bounds(other, current.layout[other]!)
+      const otherBox = bounds(other, layout[other]!)
       xs.push(
         otherBox.minX - problem.chipGap - box.maxX,
         otherBox.maxX + problem.chipGap - box.minX,
@@ -254,6 +287,8 @@ export function refineCyclicPartitionLayout({
         otherBox.maxY + problem.chipGap - box.minY,
       )
     }
+    const targetXs: number[] = []
+    const targetYs: number[] = []
     for (const [a, b] of edges) {
       const own =
         owners.get(a)!.chipId === id
@@ -262,28 +297,128 @@ export function refineCyclicPartitionLayout({
             ? b
             : null
       if (!own) continue
-      const other = pinPoint(own === a ? b : a, current.layout)
-      const offset = rotatePinOffset(problem.chipPinMap[own]!.offset, rotation)
+      const otherId = own === a ? b : a
+      const other = pinPoint(otherId, layout)
+      const end = pinPoint(otherId, layout, stub)
+      const { offset, normal } = rotatedPins.get(own)!.get(rotation)!
       xs.push(other.x - offset.x)
       ys.push(other.y - offset.y)
+      // Candidate geometry must reflect the same pin-exit directions as the
+      // objective; pin-center alignment alone misses the shorter routed estimate.
+      targetXs.push(end.x - offset.x - stub * normal.x)
+      targetYs.push(end.y - offset.y - stub * normal.y)
     }
+    xs.push(...targetXs)
+    ys.push(...targetYs)
+    addCenters(xs, targetXs)
+    addCenters(ys, targetYs)
+    return { xs, ys }
+  }
+  let seed = 17
+  const random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
+    return seed / 4294967296
+  }
+  const pick = <T>(items: T[]): T => items[Math.floor(random() * items.length)]!
+  let current = { layout: initial, score: score(initial) }
+  let best = current
+  let bestBalance = balanceScore(initial)
+  const acceptBest = (layout: Placements, candidateScore = score(layout)) => {
+    if (candidateScore > best.score + EPSILON) return
+    const balance = balanceScore(layout)
+    if (
+      Math.abs(candidateScore - best.score) <= EPSILON &&
+      balance >= bestBalance - EPSILON
+    )
+      return
+    if (
+      crossings(layout) > initialCrossings ||
+      obstructions(layout) > initialObstructions
+    )
+      return
+    best = { layout, score: candidateScore }
+    bestBalance = balance
+  }
+  for (let iteration = 0; iteration < 30000; iteration++) {
+    if (iteration > 0 && iteration % 5000 === 0) current = best
+    const id = pick(movable)
+    const rotation = pick(
+      problem.chipMap[id]!.availableRotations ?? [0, 90, 180, 270],
+    )
+    const { xs, ys } = candidates(id, rotation, current.layout)
     const placement = { x: pick(xs), y: pick(ys), ccwRotationDegrees: rotation }
     if (!fits(id, placement, current.layout)) continue
     const layout = { ...current.layout, [id]: placement }
     const candidateScore = score(layout)
     const temperature = 2 * problem.chipGap * (1 - (iteration % 5000) / 5000)
+    // Always consume the acceptance draw. Otherwise a rounding-sized score
+    // difference changes the random stream and can pick a different topology.
+    const acceptance = random()
     if (
-      candidateScore < current.score ||
-      random() < Math.exp((current.score - candidateScore) / temperature)
+      candidateScore < current.score - EPSILON ||
+      acceptance < Math.exp((current.score - candidateScore) / temperature)
     ) {
       current = { layout, score: candidateScore }
     }
-    if (
-      candidateScore < best.score - EPSILON &&
-      crossings(layout) <= initialCrossings &&
-      obstructions(layout) <= initialObstructions
-    ) {
-      best = { layout, score: candidateScore }
+    acceptBest(layout, candidateScore)
+  }
+  // Move each connected free group together to escape a clearance boundary
+  // that prevents either branch from being centered individually.
+  const remaining = new Set(movable)
+  const groups: string[][] = []
+  for (const first of movable) {
+    if (!remaining.delete(first)) continue
+    const group = [first]
+    for (const id of group)
+      for (const other of adjacency.get(id)!) {
+        if (remaining.delete(other)) group.push(other)
+      }
+    groups.push(group)
+  }
+  for (let pass = 0; pass < 3; pass++) {
+    for (const group of groups) {
+      const start = best.layout
+      const members = new Set(group)
+      const dxs: number[] = []
+      const dys: number[] = []
+      for (const [a, b] of edges) {
+        const insideA = members.has(owners.get(a)!.chipId)
+        const insideB = members.has(owners.get(b)!.chipId)
+        if (insideA === insideB) continue
+        const own = pinPoint(insideA ? a : b, start, stub)
+        const other = pinPoint(insideA ? b : a, start, stub)
+        dxs.push(other.x - own.x)
+        dys.push(other.y - own.y)
+      }
+      const xs = [0, ...dxs]
+      const ys = [0, ...dys]
+      addCenters(xs, dxs)
+      addCenters(ys, dys)
+      for (const x of xs)
+        for (const y of ys) {
+          const layout = { ...start }
+          for (const id of group)
+            layout[id] = {
+              ...start[id]!,
+              x: start[id]!.x + x,
+              y: start[id]!.y + y,
+            }
+          if (group.every((id) => fits(id, layout[id]!, layout)))
+            acceptBest(layout)
+        }
+    }
+    // Finish on alignment/clearance candidates rather than leaving a nearly
+    // aligned stochastic proposal as the final result.
+    for (const id of movable) {
+      const start = best.layout
+      const rotation = start[id]!.ccwRotationDegrees
+      const { xs, ys } = candidates(id, rotation, start)
+      for (const x of new Set(xs))
+        for (const y of new Set(ys)) {
+          const placement = { x, y, ccwRotationDegrees: rotation }
+          if (fits(id, placement, start))
+            acceptBest({ ...start, [id]: placement })
+        }
     }
   }
   return best.layout
