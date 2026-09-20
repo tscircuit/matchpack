@@ -19,6 +19,8 @@ import { getPadsBoundingBox } from "./getPadsBoundingBox"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { applyDirectPassiveTraceClearance } from "../../utils/offsetCollinearConnections"
 
+import { refineCyclicPartitionLayout } from "../../utils/refineCyclicPartitionLayout"
+
 const PIN_SIZE = 0.1
 
 export class SingleInnerPartitionPackingSolver extends BaseSolver {
@@ -147,7 +149,7 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
   private createLayoutFromPackingResult(
     packedComponents: PackSolver2["packedComponents"],
   ): OutputLayout {
-    const chipPlacements: Record<string, Placement> = {}
+    let chipPlacements: Record<string, Placement> = {}
 
     for (const packedComponent of packedComponents) {
       const chipId = packedComponent.componentId
@@ -163,6 +165,12 @@ export class SingleInnerPartitionPackingSolver extends BaseSolver {
     }
 
     applyDirectPassiveTraceClearance({
+      inputProblem: this.partitionInputProblem,
+      connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
+      chipPlacements,
+    })
+
+    chipPlacements = refineCyclicPartitionLayout({
       inputProblem: this.partitionInputProblem,
       connectedPinsByPinId: this.pinIdToStronglyConnectedPins,
       chipPlacements,
