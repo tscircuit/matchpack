@@ -143,24 +143,41 @@ export function createFilteredNetworkMapping(params: {
   }
 
   // Process strong connections - these form their own networks
+  const networkParents = new Map<string, string>()
+  const resolveNetwork = (network: string): string => {
+    let root = network
+    while (networkParents.has(root)) root = networkParents.get(root)!
+    let current = network
+    while (networkParents.has(current)) {
+      const parent = networkParents.get(current)!
+      networkParents.set(current, root)
+      current = parent
+    }
+    return root
+  }
+
   for (const [connKey, connected] of Object.entries(
     inputProblem.pinStrongConnMap,
   )) {
     if (!connected) continue
     const pins = connKey.split("-")
     if (pins.length === 2 && pins[0] && pins[1]) {
-      // If either pin already has a net connection, use that network for both
-      const existingNet =
-        pinToNetworkMap.get(pins[0]) || pinToNetworkMap.get(pins[1])
-      if (existingNet) {
-        pinToNetworkMap.set(pins[0], existingNet)
-        pinToNetworkMap.set(pins[1], existingNet)
-      } else {
-        // Otherwise, use the connection itself as the network
-        pinToNetworkMap.set(pins[0], connKey)
-        pinToNetworkMap.set(pins[1], connKey)
+      const firstNetwork = pinToNetworkMap.get(pins[0])
+      const secondNetwork = pinToNetworkMap.get(pins[1])
+      const network = resolveNetwork(firstNetwork ?? secondNetwork ?? connKey)
+      if (secondNetwork) {
+        const secondRoot = resolveNetwork(secondNetwork)
+        if (secondRoot !== network) networkParents.set(secondRoot, network)
       }
+      pinToNetworkMap.set(pins[0], network)
+      pinToNetworkMap.set(pins[1], network)
     }
+  }
+
+  // A late bridge can join two networks that already contain other pins.
+  // Resolve every member, not just the bridge's two endpoints.
+  for (const [pinId, network] of pinToNetworkMap) {
+    pinToNetworkMap.set(pinId, resolveNetwork(network))
   }
 
   return {
