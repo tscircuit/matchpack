@@ -18,6 +18,7 @@ import { doBasicInputProblemLayout } from "lib/solvers/LayoutPipelineSolver/doBa
 import type { DecouplingCapGroup } from "../IdentifyDecouplingCapsSolver/IdentifyDecouplingCapsSolver"
 import type { CrystalCircuitGroup } from "../IdentifyCrystalCircuitsSolver/IdentifyCrystalCircuitsSolver"
 import { createPinOwnerMap } from "lib/utils/createPinOwnerMap"
+import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
 
 export class ChipPartitionsSolver extends BaseSolver {
   inputProblem: InputProblem
@@ -77,6 +78,8 @@ export class ChipPartitionsSolver extends BaseSolver {
     // 2) Build decoupling-cap-only partitions (exclude the main chip for each group)
     const decapChipIdSet = new Set<ChipId>()
     const decapGroupPartitions: ChipId[][] = []
+    const stronglyConnectedPins =
+      getPinIdToStronglyConnectedPinsObj(inputProblem)
 
     if (this.decouplingCapGroups && this.decouplingCapGroups.length > 0) {
       for (const group of this.decouplingCapGroups) {
@@ -86,8 +89,17 @@ export class ChipPartitionsSolver extends BaseSolver {
             capsOnly.push(capId)
           }
         }
-        // Only add a partition if there are at least two caps present in the inputProblem
-        if (capsOnly.length >= 2) {
+        // Keep a directly wired singleton with its pin-connected neighbors.
+        if (capsOnly.length === 1) {
+          const capacitor = inputProblem.chipMap[capsOnly[0]!]!
+          if (
+            capacitor.pins.some((pinId) => stronglyConnectedPins[pinId]?.length)
+          ) {
+            continue
+          }
+        }
+        // A net-only singleton still needs its rail-specific chip side.
+        if (capsOnly.length >= 1) {
           decapGroupPartitions.push(capsOnly)
           // Mark these caps as handled by decoupling-cap partitions
           for (const capId of capsOnly) {
