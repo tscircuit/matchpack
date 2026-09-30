@@ -89,11 +89,16 @@ export class ChipPartitionsSolver extends BaseSolver {
             capsOnly.push(capId)
           }
         }
-        // Keep a directly wired singleton with its pin-connected neighbors.
+        // Only isolate single capacitors around a standalone multi-pin chip.
         if (capsOnly.length === 1) {
           const capacitor = inputProblem.chipMap[capsOnly[0]!]!
+          const mainChip = inputProblem.chipMap[group.mainChipId]
           if (
-            capacitor.pins.some((pinId) => stronglyConnectedPins[pinId]?.length)
+            !mainChip ||
+            mainChip.pins.length <= 2 ||
+            [...capacitor.pins, ...mainChip.pins].some(
+              (pinId) => stronglyConnectedPins[pinId]?.length,
+            )
           ) {
             continue
           }
