@@ -3,7 +3,6 @@ import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/Lay
 import type { InputProblem } from "../../lib/types/InputProblem"
 import input from "../assets/stm32-regulator-section.input.json"
 
-// Core source: ./schematic-evidence/stm32-regulator/core-render.test.tsx.txt
 // C1: VBUS–GND, C2: V3V3–GND; U1: left GND/VO(V3V3), right VI(VBUS).
 test("STM32 regulator with input and output capacitors and power LED", async () => {
   const solver = new LayoutPipelineSolver(input as InputProblem)
