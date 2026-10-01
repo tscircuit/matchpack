@@ -25,6 +25,7 @@ import { AlignChipConnectedRailLoadsSolver } from "../AlignChipConnectedRailLoad
 import { GroundedLoadPairSolver } from "../GroundedLoadPairSolver/GroundedLoadPairSolver"
 import { PlaceRailConnectedLoadsSolver } from "../PlaceRailConnectedLoadsSolver/PlaceRailConnectedLoadsSolver"
 import { AlignRegulatorCapacitorRowSolver } from "../AlignRegulatorCapacitorRowSolver/AlignRegulatorCapacitorRowSolver"
+import { AlignParallelBranchesSolver } from "../AlignParallelBranchesSolver/AlignParallelBranchesSolver"
 
 type PipelineStep<T extends new (...args: any[]) => BaseSolver> = {
   solverName: string
@@ -73,6 +74,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   placeRailConnectedLoadsSolver?: PlaceRailConnectedLoadsSolver
   alignChipConnectedRailLoadsSolver?: AlignChipConnectedRailLoadsSolver
   alignRegulatorCapacitorRowSolver?: AlignRegulatorCapacitorRowSolver
+  alignParallelBranchesSolver?: AlignParallelBranchesSolver
 
   startTimeOfPhase: Record<string, number>
   endTimeOfPhase: Record<string, number>
@@ -212,10 +214,21 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep(
+      "alignParallelBranchesSolver",
+      AlignParallelBranchesSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          inputLayout: this.alignRegulatorCapacitorRowSolver!.outputLayout!,
+        },
+      ],
+    ),
     definePipelineStep("alignTestPointsSolver", AlignTestPointsSolver, () => [
       {
         inputProblem: this.inputProblem,
         inputLayout:
+          this.alignParallelBranchesSolver?.outputLayout ??
           this.alignRegulatorCapacitorRowSolver!.outputLayout ??
           this.alignChipConnectedRailLoadsSolver!.outputLayout ??
           this.placeRailConnectedLoadsSolver!.outputLayout ??
