@@ -1,0 +1,131 @@
+{
+  "inputProblem": {
+    "chipMap": {
+      "node0": {
+        "chipId": "node0",
+        "pins": ["node0.in", "node0.out"],
+        "size": {
+          "x": 2,
+          "y": 2
+        },
+        "availableRotations": [0],
+        "fixedPosition": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "node1": {
+        "chipId": "node1",
+        "pins": ["node1.in", "node1.out"],
+        "size": {
+          "x": 0.5,
+          "y": 1
+        },
+        "availableRotations": [0, 90, 180, 270]
+      },
+      "node2": {
+        "chipId": "node2",
+        "pins": ["node2.in", "node2.out"],
+        "size": {
+          "x": 0.5,
+          "y": 1
+        },
+        "availableRotations": [0, 90, 180, 270]
+      },
+      "blocker": {
+        "chipId": "blocker",
+        "pins": [],
+        "size": {
+          "x": 0.8395980441477151,
+          "y": 1.3593573263846337
+        },
+        "availableRotations": [0],
+        "fixedPosition": {
+          "x": 2.19879770395346,
+          "y": -0.571487003006041
+        }
+      }
+    },
+    "chipPinMap": {
+      "node0.in": {
+        "pinId": "node0.in",
+        "offset": {
+          "x": 1.2,
+          "y": 0.4
+        },
+        "side": "x+"
+      },
+      "node0.out": {
+        "pinId": "node0.out",
+        "offset": {
+          "x": 1.2,
+          "y": -0.4
+        },
+        "side": "x+"
+      },
+      "node1.in": {
+        "pinId": "node1.in",
+        "offset": {
+          "x": 0,
+          "y": 0.5
+        },
+        "side": "y+"
+      },
+      "node1.out": {
+        "pinId": "node1.out",
+        "offset": {
+          "x": 0,
+          "y": -0.5
+        },
+        "side": "y-"
+      },
+      "node2.in": {
+        "pinId": "node2.in",
+        "offset": {
+          "x": 0,
+          "y": 0.5
+        },
+        "side": "y+"
+      },
+      "node2.out": {
+        "pinId": "node2.out",
+        "offset": {
+          "x": 0,
+          "y": -0.5
+        },
+        "side": "y-"
+      }
+    },
+    "pinStrongConnMap": {
+      "node0.out-node1.in": true,
+      "node1.out-node2.in": true,
+      "node2.out-node0.in": true
+    },
+    "netConnMap": {},
+    "netMap": {},
+    "chipGap": 0.4,
+    "partitionGap": 1.2
+  },
+  "initialPlacements": {
+    "node0": {
+      "x": 0,
+      "y": 0,
+      "ccwRotationDegrees": 0
+    },
+    "node1": {
+      "x": 4,
+      "y": 4,
+      "ccwRotationDegrees": 0
+    },
+    "node2": {
+      "x": 6,
+      "y": 4,
+      "ccwRotationDegrees": 0
+    },
+    "blocker": {
+      "x": 2.19879770395346,
+      "y": -0.571487003006041,
+      "ccwRotationDegrees": 0
+    }
+  }
+}
