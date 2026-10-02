@@ -6,7 +6,7 @@ import {
 import type { ChipId, InputProblem, NetId } from "../../types/InputProblem"
 import type { Placement } from "../../types/OutputLayout"
 import { rotatePinOffset } from "../../utils/rotatePinOffset"
-import { getPlacementBounds } from "../AlignTestPointsSolver/placementsOverlap"
+import { getPlacementBounds } from "../../utils/getPlacementBounds"
 import type { GroundedLoadPair } from "./getGroundedLoadPairs"
 
 type GroundedLoadPairBounds = {
