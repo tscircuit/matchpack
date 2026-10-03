@@ -16,13 +16,15 @@
       "chipId": "R1",
       "pins": ["R1.1", "R1.2"],
       "size": { "x": 0.5, "y": 1.0 },
-      "availableRotations": [0, 90, 180, 270]
+      "availableRotations": [0, 90, 180, 270],
+      "isResistor": true
     },
     "R2": {
       "chipId": "R2",
       "pins": ["R2.1", "R2.2"],
       "size": { "x": 0.5, "y": 1.0 },
-      "availableRotations": [0, 90, 180, 270]
+      "availableRotations": [0, 90, 180, 270],
+      "isResistor": true
     },
     "SJ1": {
       "chipId": "SJ1",
