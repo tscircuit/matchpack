@@ -276,7 +276,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   }
 
   solveUntilPhase(phase: string) {
-    while (this.getCurrentPhase() !== phase) {
+    while (!this.solved && !this.failed && this.getCurrentPhase() !== phase) {
       this.step()
     }
   }
