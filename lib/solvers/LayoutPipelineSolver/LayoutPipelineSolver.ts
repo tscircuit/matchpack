@@ -21,6 +21,7 @@ import { doBasicInputProblemLayout } from "./doBasicInputProblemLayout"
 import { visualizeInputProblem } from "./visualizeInputProblem"
 import { getPinIdToStronglyConnectedPinsObj } from "./getPinIdToStronglyConnectedPinsObj"
 import { PlaceNetOnlyDecouplingRowsSolver } from "../PlaceNetOnlyDecouplingRowsSolver/PlaceNetOnlyDecouplingRowsSolver"
+import { PlaceChipConnectedDecouplingCapsSolver } from "../PlaceChipConnectedDecouplingCapsSolver/PlaceChipConnectedDecouplingCapsSolver"
 import { AlignChipConnectedRailLoadsSolver } from "../AlignChipConnectedRailLoadsSolver/AlignChipConnectedRailLoadsSolver"
 import { GroundedLoadPairSolver } from "../GroundedLoadPairSolver/GroundedLoadPairSolver"
 import { PlaceRailConnectedLoadsSolver } from "../PlaceRailConnectedLoadsSolver/PlaceRailConnectedLoadsSolver"
@@ -70,6 +71,7 @@ export class LayoutPipelineSolver extends BaseSolver {
   alignPowerGroundRowsSolver?: AlignPowerGroundRowsSolver
   alignTestPointsSolver?: AlignTestPointsSolver
   placeNetOnlyDecouplingRowsSolver?: PlaceNetOnlyDecouplingRowsSolver
+  placeChipConnectedDecouplingCapsSolver?: PlaceChipConnectedDecouplingCapsSolver
   placeRailConnectedLoadsSolver?: PlaceRailConnectedLoadsSolver
   alignChipConnectedRailLoadsSolver?: AlignChipConnectedRailLoadsSolver
   alignRegulatorCapacitorRowSolver?: AlignRegulatorCapacitorRowSolver
@@ -172,10 +174,21 @@ export class LayoutPipelineSolver extends BaseSolver {
         },
       ],
     ),
+    definePipelineStep(
+      "placeChipConnectedDecouplingCapsSolver",
+      PlaceChipConnectedDecouplingCapsSolver,
+      () => [
+        {
+          inputProblem: this.inputProblem,
+          packedPartitions: this.packedPartitions!,
+          inputLayout: this.placeNetOnlyDecouplingRowsSolver!.outputLayout!,
+        },
+      ],
+    ),
     definePipelineStep("groundedLoadPairSolver", GroundedLoadPairSolver, () => [
       {
         inputProblem: this.inputProblem,
-        inputLayout: this.placeNetOnlyDecouplingRowsSolver!.outputLayout!,
+        inputLayout: this.placeChipConnectedDecouplingCapsSolver!.outputLayout!,
       },
     ]),
     definePipelineStep(
