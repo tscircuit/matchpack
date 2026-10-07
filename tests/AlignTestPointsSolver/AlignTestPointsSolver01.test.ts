@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { AlignTestPointsSolver } from "lib/solvers/AlignTestPointsSolver/AlignTestPointsSolver"
+import { placementsOverlap } from "lib/solvers/AlignTestPointsSolver/placementsOverlap"
 import type { InputProblem } from "lib/types/InputProblem"
 import type { OutputLayout } from "lib/types/OutputLayout"
 
@@ -213,7 +214,7 @@ test("AlignTestPointsSolver groups only testpoints on nearby anchor pins", () =>
   ).toEqual(["TP7"])
 })
 
-test("AlignTestPointsSolver aligns loose testpoints on their nearest axis", () => {
+test("AlignTestPointsSolver aligns vertically scattered loose testpoints horizontally", () => {
   const looseProblem = structuredClone(problem)
   looseProblem.pinStrongConnMap = {}
   const looseInputLayout = structuredClone(inputLayout)
@@ -232,15 +233,48 @@ test("AlignTestPointsSolver aligns loose testpoints on their nearest axis", () =
 
   const output = solver.outputLayout!
   expect(
-    new Set(["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.x))
+    new Set(["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.y))
       .size,
   ).toBe(1)
   expect(
-    ["TP1", "TP2", "TP3"].map((id) => output.chipPlacements[id]!.y),
-  ).toEqual([-4, 0, 4])
+    ["TP2", "TP3", "TP1"].map((id) => output.chipPlacements[id]!.x),
+  ).toEqual([4.6, 5.1, 5.6])
   expect(
     ["TP1", "TP2", "TP3"].map(
       (id) => output.chipPlacements[id]!.ccwRotationDegrees,
     ),
   ).toEqual([0, 180, 90])
+})
+
+test("AlignTestPointsSolver clears a fixed testpoint without moving it", () => {
+  const looseProblem = structuredClone(problem)
+  looseProblem.pinStrongConnMap = {}
+  looseProblem.chipMap.TP3!.fixedPosition = { x: 5, y: 0 }
+  const looseInputLayout = structuredClone(inputLayout)
+  looseInputLayout.chipPlacements.TP1 = { x: 5, y: -4, ccwRotationDegrees: 0 }
+  looseInputLayout.chipPlacements.TP2 = { x: 5, y: 4, ccwRotationDegrees: 90 }
+  looseInputLayout.chipPlacements.TP3 = { x: 5, y: 0, ccwRotationDegrees: 180 }
+
+  const solver = new AlignTestPointsSolver({
+    inputProblem: looseProblem,
+    inputLayout: looseInputLayout,
+  })
+  solver.solve()
+
+  const placements = solver.outputLayout!.chipPlacements
+  expect(placements.TP3).toEqual(looseInputLayout.chipPlacements.TP3)
+  expect(placements.U1).toEqual(looseInputLayout.chipPlacements.U1)
+  expect(placements.TP1!.y).toBe(placements.TP2!.y)
+  expect(placements.TP1!.y).not.toBe(0)
+  for (const chipId of ["TP1", "TP2"]) {
+    expect(
+      placementsOverlap({
+        inputProblem: looseProblem,
+        chipIdA: chipId,
+        placementA: placements[chipId]!,
+        chipIdB: "TP3",
+        placementB: placements.TP3!,
+      }),
+    ).toBe(false)
+  }
 })
