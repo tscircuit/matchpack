@@ -10,5 +10,22 @@ import input from "../assets/mini-mp3-controller.input.json"
 test("mini mp3 player controller sheet layout", async () => {
   const solver = new LayoutPipelineSolver(input as InputProblem)
   solver.solve()
+  const output = solver.getOutputLayout()
+  const looseTestPointIds = [
+    "TP1",
+    "TP2",
+    "TP5",
+    "TP8",
+    "TP9",
+    "TP10",
+    "TP11",
+    "TP12",
+    "TP13",
+    "TP16",
+  ]
+  expect(
+    new Set(looseTestPointIds.map((id) => output.chipPlacements[id]!.y)).size,
+  ).toBe(1)
+  expect(solver.checkForOverlaps(output)).toHaveLength(0)
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })

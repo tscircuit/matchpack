@@ -3,8 +3,6 @@ import type { Placement } from "lib/types/OutputLayout"
 import { getRotatedSize } from "lib/utils/rotatePinOffset"
 import { placementsOverlap } from "./placementsOverlap"
 
-type Axis = "x" | "y"
-
 type TestPointPlacementContext = {
   inputProblem: InputProblem
   chipPlacements: Record<ChipId, Placement>
@@ -14,45 +12,22 @@ type LooseTestPointRow = Record<ChipId, Placement>
 
 const MINIMUM_COLLISION_SEARCH_STEP = 0.2
 
-const getLooseTestPointRowAxes = (
-  { looseTestPointChipIds }: { looseTestPointChipIds: ChipId[] },
-  context: TestPointPlacementContext,
-): { perpendicularAxis: Axis; tangentAxis: Axis } => {
-  const xPositions = looseTestPointChipIds.map(
-    (chipId) => context.chipPlacements[chipId]!.x,
-  )
-  const yPositions = looseTestPointChipIds.map(
-    (chipId) => context.chipPlacements[chipId]!.y,
-  )
-  const horizontalSpan = Math.max(...xPositions) - Math.min(...xPositions)
-  const verticalSpan = Math.max(...yPositions) - Math.min(...yPositions)
-  if (horizontalSpan >= verticalSpan) {
-    return { perpendicularAxis: "y", tangentAxis: "x" }
-  }
-  return { perpendicularAxis: "x", tangentAxis: "y" }
-}
-
 const packLooseTestPointRow = (
   {
     looseTestPointChipIds,
-    perpendicularAxis,
-    tangentAxis,
   }: {
     looseTestPointChipIds: ChipId[]
-    perpendicularAxis: Axis
-    tangentAxis: Axis
   },
   context: TestPointPlacementContext,
 ): LooseTestPointRow => {
   const perpendicularCenter =
     looseTestPointChipIds.reduce(
-      (sum, chipId) => sum + context.chipPlacements[chipId]![perpendicularAxis],
+      (sum, chipId) => sum + context.chipPlacements[chipId]!.y,
       0,
     ) / looseTestPointChipIds.length
   const orderedTestPointChipIds = [...looseTestPointChipIds].sort(
     (chipIdA, chipIdB) =>
-      context.chipPlacements[chipIdA]![tangentAxis] -
-      context.chipPlacements[chipIdB]![tangentAxis],
+      context.chipPlacements[chipIdA]!.x - context.chipPlacements[chipIdB]!.x,
   )
   const testPointRow: LooseTestPointRow = {}
   let previousTestPointChipId: ChipId | undefined
@@ -60,7 +35,7 @@ const packLooseTestPointRow = (
   for (const chipId of orderedTestPointChipIds) {
     const placement = {
       ...context.chipPlacements[chipId]!,
-      [perpendicularAxis]: perpendicularCenter,
+      y: perpendicularCenter,
     }
     if (previousTestPointChipId) {
       const previousPlacement = testPointRow[previousTestPointChipId]!
@@ -73,12 +48,12 @@ const packLooseTestPointRow = (
         placement.ccwRotationDegrees,
       )
       const minimumTangentPosition =
-        previousPlacement[tangentAxis] +
-        previousSize[tangentAxis] / 2 +
+        previousPlacement.x +
+        previousSize.x / 2 +
         context.inputProblem.chipGap +
-        size[tangentAxis] / 2
-      if (placement[tangentAxis] < minimumTangentPosition) {
-        placement[tangentAxis] = minimumTangentPosition
+        size.x / 2
+      if (placement.x < minimumTangentPosition) {
+        placement.x = minimumTangentPosition
       }
     }
     testPointRow[chipId] = placement
@@ -117,11 +92,9 @@ const testPointRowOverlapsOtherChips = (
 const moveLooseTestPointRowUntilClear = (
   {
     looseTestPointChipIds,
-    perpendicularAxis,
     testPointRow,
   }: {
     looseTestPointChipIds: ChipId[]
-    perpendicularAxis: Axis
     testPointRow: LooseTestPointRow
   },
   context: TestPointPlacementContext,
@@ -142,7 +115,7 @@ const moveLooseTestPointRowUntilClear = (
     for (const offset of offsets) {
       const shiftedTestPointRow = structuredClone(testPointRow)
       for (const chipId of looseTestPointChipIds) {
-        shiftedTestPointRow[chipId]![perpendicularAxis] += offset
+        shiftedTestPointRow[chipId]!.y += offset
       }
       if (
         !testPointRowOverlapsOtherChips(
@@ -173,16 +146,9 @@ export const alignLooseTestPoints = (
     .map((chip) => chip.chipId)
   if (looseTestPointChipIds.length < 2) return
 
-  const { perpendicularAxis, tangentAxis } = getLooseTestPointRowAxes(
-    { looseTestPointChipIds },
-    context,
-  )
-  const testPointRow = packLooseTestPointRow(
-    { looseTestPointChipIds, perpendicularAxis, tangentAxis },
-    context,
-  )
+  const testPointRow = packLooseTestPointRow({ looseTestPointChipIds }, context)
   const clearTestPointRow = moveLooseTestPointRowUntilClear(
-    { looseTestPointChipIds, perpendicularAxis, testPointRow },
+    { looseTestPointChipIds, testPointRow },
     context,
   )
   for (const [chipId, placement] of Object.entries(clearTestPointRow)) {
