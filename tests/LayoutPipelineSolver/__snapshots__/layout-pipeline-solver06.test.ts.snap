@@ -1,0 +1,83 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`LayoutPipelineSolver06 - decoupling caps visual snapshot 1`] = `
+{
+  "capPlacements": [
+    {
+      "id": "C10",
+      "rot": 0,
+      "x": -2.025,
+      "y": 1.45,
+    },
+    {
+      "id": "C11",
+      "rot": 0,
+      "x": -2.025,
+      "y": -2.15,
+    },
+    {
+      "id": "C12",
+      "rot": 0,
+      "x": -1.568,
+      "y": 5.955,
+    },
+    {
+      "id": "C13",
+      "rot": 0,
+      "x": 0.622,
+      "y": 5.955,
+    },
+    {
+      "id": "C14",
+      "rot": 0,
+      "x": -0.838,
+      "y": 5.955,
+    },
+    {
+      "id": "C15",
+      "rot": 0,
+      "x": -2.298,
+      "y": 5.955,
+    },
+    {
+      "id": "C18",
+      "rot": 0,
+      "x": -4.485,
+      "y": 3.218,
+    },
+    {
+      "id": "C19",
+      "rot": 0,
+      "x": 1.353,
+      "y": 5.955,
+    },
+    {
+      "id": "C7",
+      "rot": 0,
+      "x": -3.755,
+      "y": 3.218,
+    },
+    {
+      "id": "C8",
+      "rot": 0,
+      "x": -0.108,
+      "y": 5.955,
+    },
+    {
+      "id": "C9",
+      "rot": 0,
+      "x": -6.215,
+      "y": 3.218,
+    },
+  ],
+  "circleCount": 0,
+  "lineCount": 133,
+  "pointCount": 79,
+  "rectCount": 12,
+  "u3": {
+    "rot": 0,
+    "x": 0.79,
+    "y": 0,
+  },
+}
+`;
