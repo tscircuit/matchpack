@@ -138,6 +138,7 @@ const PARTITION_SOLVER_STRATEGIES = [
           instance.currentPartitionIndex
         ]! as PartitionInputProblem,
         pinIdToStronglyConnectedPins: instance.pinIdToStronglyConnectedPins,
+        refineConnections: true,
       },
     ],
   ),
