@@ -64,6 +64,30 @@ const createParallelRc = () => {
   return { inputProblem, inputLayout }
 }
 
+const createParallelRcWithAnchor = (capacitorPinId = "capacitor.a") => {
+  const { inputProblem, inputLayout } = createParallelRc()
+  const anchorX = capacitorPinId === "capacitor.a" ? -2 : 2
+  inputProblem.chipMap.anchor = {
+    chipId: "anchor",
+    pins: ["anchor.1"],
+    size: { x: 1, y: 1 },
+    fixedPosition: { x: anchorX, y: -2 },
+  }
+  inputProblem.chipPinMap["anchor.1"] = {
+    pinId: "anchor.1",
+    offset: { x: anchorX < 0 ? 0.5 : -0.5, y: 0 },
+    side: anchorX < 0 ? "x+" : "x-",
+  }
+  const netId = capacitorPinId === "capacitor.a" ? "drain" : "gate"
+  inputProblem.netConnMap[`anchor.1-${netId}`] = true
+  inputLayout.chipPlacements.anchor = {
+    x: anchorX,
+    y: -2,
+    ccwRotationDegrees: 0,
+  }
+  return { inputProblem, inputLayout }
+}
+
 test.each([0, 90, 180, 270])(
   "orients corresponding RC terminals with the circuit rotated %i degrees",
   (ccwRotationDegrees) => {
@@ -126,6 +150,46 @@ test("respects available rotations", () => {
   inputProblem.chipMap.capacitor!.availableRotations = [0, 90]
   expect(orientParallelRc(inputProblem, inputLayout)).toEqual(inputLayout)
 })
+
+test.each([
+  { capacitorPinId: "capacitor.a", reverseConnection: false },
+  { capacitorPinId: "capacitor.a", reverseConnection: true },
+  { capacitorPinId: "capacitor.b", reverseConnection: false },
+  { capacitorPinId: "capacitor.b", reverseConnection: true },
+])(
+  "preserves externally anchored capacitors: %o",
+  ({ capacitorPinId, reverseConnection }) => {
+    const { inputProblem, inputLayout } =
+      createParallelRcWithAnchor(capacitorPinId)
+    const pinPair: keyof InputProblem["pinStrongConnMap"] = reverseConnection
+      ? `anchor.1-${capacitorPinId}`
+      : `${capacitorPinId}-anchor.1`
+    inputProblem.pinStrongConnMap[pinPair] = true
+    expect(orientParallelRc(inputProblem, inputLayout)).toEqual(inputLayout)
+  },
+)
+
+test.each<InputProblem["pinStrongConnMap"]>([
+  { "capacitor.a-anchor.1": false, "anchor.1-capacitor.a": false },
+  { "resistor.b-anchor.1": true },
+  { "capacitor.a-resistor.b": true, "resistor.a-capacitor.b": true },
+])(
+  "allows orientation with non-anchoring connections: %o",
+  (pinStrongConnMap) => {
+    const { inputProblem, inputLayout } = createParallelRcWithAnchor()
+    inputProblem.pinStrongConnMap = pinStrongConnMap
+    expect(orientParallelRc(inputProblem, inputLayout)).toEqual({
+      ...inputLayout,
+      chipPlacements: {
+        ...inputLayout.chipPlacements,
+        capacitor: {
+          ...inputLayout.chipPlacements.capacitor!,
+          ccwRotationDegrees: 180,
+        },
+      },
+    })
+  },
+)
 
 test.each(["capacitor", "resistor"])(
   "does not infer component type from two pins: %s",

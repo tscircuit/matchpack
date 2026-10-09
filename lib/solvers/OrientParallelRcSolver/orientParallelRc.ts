@@ -1,6 +1,7 @@
 import type { Chip, InputProblem, NetId } from "../../types/InputProblem"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import { rotatePinOffset } from "../../utils/rotatePinOffset"
+import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getPinIdToStronglyConnectedPinsObj"
 
 const GEOMETRY_TOLERANCE = 1e-6
 
@@ -50,6 +51,8 @@ export const orientParallelRc = (
   inputLayout: OutputLayout,
 ): OutputLayout => {
   const chipPlacements = { ...inputLayout.chipPlacements }
+  const pinIdToStronglyConnectedPins =
+    getPinIdToStronglyConnectedPinsObj(inputProblem)
   const resistors = Object.values(inputProblem.chipMap).filter(
     (chip) => chip.isResistor && chip.pins.length === 2,
   )
@@ -66,6 +69,15 @@ export const orientParallelRc = (
     })
     if (matches.length !== 1) continue
     const resistor = matches[0]!
+    // Preserve the orientation of capacitors anchored outside the RC pair.
+    const hasExternalStrongConnection = capacitor.pins.some((pinId) =>
+      pinIdToStronglyConnectedPins[pinId]?.some(
+        (pin) =>
+          !capacitor.pins.includes(pin.pinId) &&
+          !resistor.pins.includes(pin.pinId),
+      ),
+    )
+    if (hasExternalStrongConnection) continue
     const capacitorPlacement = chipPlacements[capacitor.chipId]
     const resistorPlacement = chipPlacements[resistor.chipId]
     if (!capacitorPlacement || !resistorPlacement) continue
