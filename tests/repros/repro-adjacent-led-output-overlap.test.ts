@@ -2,7 +2,7 @@ import {
   getRotatedSize,
   rotatePinOffset,
 } from "../../lib/utils/rotatePinOffset"
-import { getPlacementBounds } from "../../lib/solvers/AlignTestPointsSolver/placementsOverlap"
+import { getPlacementBounds } from "../../lib/utils/getPlacementBounds"
 import { expect, test } from "bun:test"
 import { LayoutPipelineSolver } from "../../lib/solvers/LayoutPipelineSolver/LayoutPipelineSolver"
 import type { InputProblem } from "../../lib/types/InputProblem"
