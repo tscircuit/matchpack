@@ -30,6 +30,7 @@ import {
   ParallelSeriesBranchSolver,
 } from "./ParallelSeriesBranchSolver"
 import { findSameSidePassiveGroups } from "./findSameSidePassiveGroups"
+import { refineSharedTerminalBranches } from "./refineSharedTerminalBranches"
 import { stackGraphicsHorizontally } from "graphics-debug"
 import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputProblemLayout"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
@@ -195,6 +196,15 @@ export class PackInnerPartitionsSolver extends BaseSolver {
     }
 
     if (this.activeSolver.solved) {
+      if (
+        this.activeSolver instanceof SingleInnerPartitionPackingSolver &&
+        this.activeSolver.layout
+      ) {
+        this.activeSolver.layout = refineSharedTerminalBranches({
+          inputProblem: this.partitions[this.currentPartitionIndex]!,
+          inputLayout: this.activeSolver.layout,
+        })
+      }
       // Store the completed solver and its results
       this.completedSolvers.push(this.activeSolver)
 
