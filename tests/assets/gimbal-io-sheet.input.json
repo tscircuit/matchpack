@@ -1,0 +1,348 @@
+{
+  "chipMap": {
+    "J_SWD": {
+      "chipId": "J_SWD",
+      "pins": ["J_SWD.1", "J_SWD.2", "J_SWD.3", "J_SWD.4", "J_SWD.5"],
+      "size": {
+        "x": 0.4,
+        "y": 2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "J_UART": {
+      "chipId": "J_UART",
+      "pins": ["J_UART.1", "J_UART.2", "J_UART.3"],
+      "size": {
+        "x": 0.4,
+        "y": 1.6
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "J_STOP": {
+      "chipId": "J_STOP",
+      "pins": ["J_STOP.1", "J_STOP.2"],
+      "size": {
+        "x": 1.2000000000000002,
+        "y": 0.6000000000000001
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270]
+    },
+    "R18": {
+      "chipId": "R18",
+      "pins": ["R18.1", "R18.2"],
+      "size": {
+        "x": 1.09,
+        "y": 0.6
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "R19": {
+      "chipId": "R19",
+      "pins": ["R19.1", "R19.2"],
+      "size": {
+        "x": 0.97,
+        "y": 0.6
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0]
+    },
+    "TP_VM": {
+      "chipId": "TP_VM",
+      "pins": ["TP_VM.1"],
+      "size": {
+        "x": 0.8875,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "TP_V3V3": {
+      "chipId": "TP_V3V3",
+      "pins": ["TP_V3V3.1"],
+      "size": {
+        "x": 1.1275,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "TP_GND": {
+      "chipId": "TP_GND",
+      "pins": ["TP_GND.1"],
+      "size": {
+        "x": 1.0075,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    },
+    "TP_IMU_INT": {
+      "chipId": "TP_IMU_INT",
+      "pins": ["TP_IMU_INT.1"],
+      "size": {
+        "x": 1.4874999999999998,
+        "y": 0.2
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": true,
+      "availableRotations": [0, 90, 180, 270]
+    }
+  },
+  "chipPinMap": {
+    "J_SWD.1": {
+      "pinId": "J_SWD.1",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0.4
+      },
+      "side": "x+"
+    },
+    "J_SWD.2": {
+      "pinId": "J_SWD.2",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0.20000000000000007
+      },
+      "side": "x+"
+    },
+    "J_SWD.3": {
+      "pinId": "J_SWD.3",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "J_SWD.4": {
+      "pinId": "J_SWD.4",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": -0.2
+      },
+      "side": "x+"
+    },
+    "J_SWD.5": {
+      "pinId": "J_SWD.5",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": -0.4
+      },
+      "side": "x+"
+    },
+    "J_UART.1": {
+      "pinId": "J_UART.1",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0.2
+      },
+      "side": "x+"
+    },
+    "J_UART.2": {
+      "pinId": "J_UART.2",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "J_UART.3": {
+      "pinId": "J_UART.3",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": -0.2
+      },
+      "side": "x+"
+    },
+    "J_STOP.1": {
+      "pinId": "J_STOP.1",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": 0.1
+      },
+      "side": "x+"
+    },
+    "J_STOP.2": {
+      "pinId": "J_STOP.2",
+      "offset": {
+        "x": 0.6000000000000001,
+        "y": -0.1
+      },
+      "side": "x+"
+    },
+    "R18.1": {
+      "pinId": "R18.1",
+      "offset": {
+        "x": -1.8369701987210297e-17,
+        "y": 0.3
+      },
+      "side": "y+"
+    },
+    "R18.2": {
+      "pinId": "R18.2",
+      "offset": {
+        "x": 1.8369701987210297e-17,
+        "y": -0.3
+      },
+      "side": "y-"
+    },
+    "R19.1": {
+      "pinId": "R19.1",
+      "offset": {
+        "x": -1.8369701987210297e-17,
+        "y": 0.3
+      },
+      "side": "y+"
+    },
+    "R19.2": {
+      "pinId": "R19.2",
+      "offset": {
+        "x": 1.8369701987210297e-17,
+        "y": -0.3
+      },
+      "side": "y-"
+    },
+    "TP_VM.1": {
+      "pinId": "TP_VM.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "TP_V3V3.1": {
+      "pinId": "TP_V3V3.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "TP_GND.1": {
+      "pinId": "TP_GND.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "TP_IMU_INT.1": {
+      "pinId": "TP_IMU_INT.1",
+      "offset": {
+        "x": -0.2,
+        "y": 0
+      },
+      "side": "x-"
+    }
+  },
+  "netMap": {
+    "CONTROLLER_connectivity_net5": {
+      "netId": "CONTROLLER_connectivity_net5",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "CONTROLLER_connectivity_net32": {
+      "netId": "CONTROLLER_connectivity_net32",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net1": {
+      "netId": "CONTROLLER_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net33": {
+      "netId": "CONTROLLER_connectivity_net33",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net10": {
+      "netId": "CONTROLLER_connectivity_net10",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net21": {
+      "netId": "CONTROLLER_connectivity_net21",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net22": {
+      "netId": "CONTROLLER_connectivity_net22",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net45": {
+      "netId": "CONTROLLER_connectivity_net45",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net9": {
+      "netId": "CONTROLLER_connectivity_net9",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    },
+    "CONTROLLER_connectivity_net3": {
+      "netId": "CONTROLLER_connectivity_net3",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "CONTROLLER_connectivity_net19": {
+      "netId": "CONTROLLER_connectivity_net19",
+      "isGround": false,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {},
+  "netConnMap": {
+    "J_SWD.1-CONTROLLER_connectivity_net5": true,
+    "R18.1-CONTROLLER_connectivity_net5": true,
+    "TP_V3V3.1-CONTROLLER_connectivity_net5": true,
+    "J_SWD.2-CONTROLLER_connectivity_net32": true,
+    "J_SWD.3-CONTROLLER_connectivity_net1": true,
+    "J_UART.1-CONTROLLER_connectivity_net1": true,
+    "J_STOP.2-CONTROLLER_connectivity_net1": true,
+    "TP_GND.1-CONTROLLER_connectivity_net1": true,
+    "J_SWD.4-CONTROLLER_connectivity_net33": true,
+    "J_SWD.5-CONTROLLER_connectivity_net10": true,
+    "J_UART.2-CONTROLLER_connectivity_net21": true,
+    "J_UART.3-CONTROLLER_connectivity_net22": true,
+    "J_STOP.1-CONTROLLER_connectivity_net45": true,
+    "R18.2-CONTROLLER_connectivity_net45": true,
+    "R19.2-CONTROLLER_connectivity_net45": true,
+    "R19.1-CONTROLLER_connectivity_net9": true,
+    "TP_VM.1-CONTROLLER_connectivity_net3": true,
+    "TP_IMU_INT.1-CONTROLLER_connectivity_net19": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
