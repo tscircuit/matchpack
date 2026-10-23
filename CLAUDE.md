@@ -19,7 +19,6 @@ This is an electronic circuit schematic layout library. It automatically finds o
 ### Core Pipeline Architecture
 
 The system uses a hierarchical solver pipeline (`LayoutPipelineSolver`) that processes layout in stages:
-
 1. **ChipPartitionsSolver**: Groups components into logical partitions around complex chips
 2. **PinRangeMatchSolver**: Identifies optimal pin groupings and matches against layout patterns
 3. **PinRangeLayoutSolver**: Applies matched layouts, positioning connected components
