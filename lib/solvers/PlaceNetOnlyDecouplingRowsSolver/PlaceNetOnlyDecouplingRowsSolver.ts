@@ -17,7 +17,7 @@ import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
 import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
 import { getVerticalPinClearanceOffset } from "../../utils/getVerticalPinClearanceOffset"
-import { getRotatedSize } from "../../utils/rotatePinOffset"
+import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
@@ -195,6 +195,11 @@ const placeNetOnlyDecouplingRow = (
   let neighbor = layout.chipPlacements[mainChipId]
   if (neighborId) neighbor = layout.chipPlacements[neighborId]
   const rowChipIds = Object.keys(partition.chipMap)
+  if (
+    rowChipIds.some((chipId) => inputProblem.chipMap[chipId]?.fixedPosition)
+  ) {
+    return
+  }
   const boundsContext = { inputProblem, layout }
   const mainBounds = getPartitionBounds(
     Object.keys(mainPartition.inputProblem.chipMap),
@@ -214,17 +219,32 @@ const placeNetOnlyDecouplingRow = (
     const rowPlacement = rowChipId && layout.chipPlacements[rowChipId]
     if (!mainRailPin || !rowRailPin || !rowPlacement) return
 
-    // Align the shared rail pins while leaving space for a readable trace.
-    neighbor = {
-      ...neighbor,
-      y:
-        neighbor.y +
-        getVerticalPinClearanceOffset({
-          upperPin: mainRailPin,
-          upperPlacement: neighbor,
-          lowerPin: rowRailPin,
-          lowerPlacement: { ...rowPlacement, y: neighbor.y },
-        }),
+    if (side === "x+" || side === "x-") {
+      // Align the shared rail pins while leaving space for a readable trace.
+      neighbor = {
+        ...neighbor,
+        y:
+          neighbor.y +
+          getVerticalPinClearanceOffset({
+            upperPin: mainRailPin,
+            upperPlacement: neighbor,
+            lowerPin: rowRailPin,
+            lowerPlacement: { ...rowPlacement, y: neighbor.y },
+          }),
+      }
+    } else {
+      const mainPinWorldX =
+        neighbor.x +
+        rotatePinOffset(mainRailPin.offset, neighbor.ccwRotationDegrees).x
+      const rowPinOffsetX = rotatePinOffset(
+        rowRailPin.offset,
+        rowPlacement.ccwRotationDegrees,
+      ).x
+      const rowCenter = getBoundsCenter(rowBounds)
+      neighbor = {
+        ...neighbor,
+        x: mainPinWorldX - rowPinOffsetX + (rowCenter.x - rowPlacement.x),
+      }
     }
   }
 
