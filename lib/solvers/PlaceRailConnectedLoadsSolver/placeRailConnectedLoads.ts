@@ -66,8 +66,8 @@ const getPartitionBounds = (
 const getUpperRailPin = (
   { chipIds, railNetIds }: { chipIds: ChipId[]; railNetIds: Set<NetId> },
   context: PlacementContext,
-): { chipId: ChipId; y: number } | null => {
-  let upperRailPin: { chipId: ChipId; y: number } | null = null
+): { chipId: ChipId; netId: NetId; y: number } | null => {
+  let upperRailPin: { chipId: ChipId; netId: NetId; y: number } | null = null
 
   for (const chipId of chipIds) {
     const chip = context.inputProblem.chipMap[chipId]
@@ -76,16 +76,16 @@ const getUpperRailPin = (
     if (!placement) continue
 
     for (const pinId of chip.pins) {
-      const isRailPin = [...railNetIds].some(
+      const matchedNetId = [...railNetIds].find(
         (netId) => context.inputProblem.netConnMap[`${pinId}-${netId}`],
       )
-      if (!isRailPin) continue
+      if (!matchedNetId) continue
       const pin = context.inputProblem.chipPinMap[pinId]
       if (!pin) continue
       const offset = rotatePinOffset(pin.offset, placement.ccwRotationDegrees)
       const pinY = placement.y + offset.y
       if (upperRailPin === null || pinY > upperRailPin.y) {
-        upperRailPin = { chipId: chip.chipId, y: pinY }
+        upperRailPin = { chipId: chip.chipId, netId: matchedNetId, y: pinY }
       }
     }
   }
@@ -200,10 +200,18 @@ export const placeRailConnectedLoads = (
       const loadBounds = getPartitionBounds({ chipIds: loadChipIds }, context)
       if (!loadBounds) continue
 
-      const loadRailPin = getUpperRailPin(
-        { chipIds: loadChipIds, railNetIds: loadRails },
-        context,
-      )
+      const loadRailPin =
+        getUpperRailPin(
+          {
+            chipIds: loadChipIds,
+            railNetIds: new Set([capacitorRailPin.netId]),
+          },
+          context,
+        ) ??
+        getUpperRailPin(
+          { chipIds: loadChipIds, railNetIds: loadRails },
+          context,
+        )
       if (!loadRailPin) continue
       const loadAnchorBounds = getChipBounds(
         { chipId: loadRailPin.chipId },
@@ -213,16 +221,45 @@ export const placeRailConnectedLoads = (
 
       // Align the load's upper rail pin with the capacitor row.
       // Every chip receives the same offset, preserving the partition shape.
-      const previousPlacements = movePartition(
+      const anchorOffsetX =
+        rowRightEdge + inputProblem.partitionGap - loadAnchorBounds.minX
+      const minClearanceOffsetX =
+        rowRightEdge + inputProblem.chipGap - loadBounds.minX
+      const boundsOffsetX =
+        rowRightEdge + inputProblem.partitionGap - loadBounds.minX
+
+      let previousPlacements = movePartition(
         {
           chipIds: loadChipIds,
           offset: {
-            x: rowRightEdge + inputProblem.partitionGap - loadAnchorBounds.minX,
+            x:
+              anchorOffsetX < minClearanceOffsetX
+                ? boundsOffsetX
+                : anchorOffsetX,
             y: capacitorRailPin.y - loadRailPin.y,
           },
         },
         context,
       )
+
+      if (
+        movedPartitionOverlaps({ movedChipIds: loadChipIds }, context) &&
+        loadBounds.minX < loadAnchorBounds.minX
+      ) {
+        for (const [chipId, placement] of previousPlacements) {
+          layout.chipPlacements[chipId] = placement
+        }
+        previousPlacements = movePartition(
+          {
+            chipIds: loadChipIds,
+            offset: {
+              x: boundsOffsetX,
+              y: capacitorRailPin.y - loadRailPin.y,
+            },
+          },
+          context,
+        )
+      }
 
       if (movedPartitionOverlaps({ movedChipIds: loadChipIds }, context)) {
         // A readability adjustment must never introduce a body collision.

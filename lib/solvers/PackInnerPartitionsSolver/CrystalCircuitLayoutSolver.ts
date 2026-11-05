@@ -247,7 +247,7 @@ export class CrystalCircuitLayoutSolver extends BaseSolver {
       })
     }
 
-    for (const seriesResistor of group.seriesResistors) {
+    const resistorGeometry = group.seriesResistors.map((seriesResistor) => {
       const chip = problem.chipMap[seriesResistor.chipId]!
       const rotation = chooseResistorRotation(
         chip,
@@ -263,11 +263,37 @@ export class CrystalCircuitLayoutSolver extends BaseSolver {
         seriesResistor.crystalPinId,
       )!
 
-      chipPlacements[chip.chipId] = {
-        x: crystalPinOffset.x - connectedOffset.x,
-        y: crystalSize.y / 2 + gap + size.y / 2,
-        ccwRotationDegrees: rotation,
+      return {
+        chip,
+        rotation,
+        size,
+        connectedOffset,
+        crystalPinOffset,
       }
+    })
+
+    for (const geometry of resistorGeometry) {
+      chipPlacements[geometry.chip.chipId] = {
+        x: geometry.crystalPinOffset.x - geometry.connectedOffset.x,
+        y: crystalSize.y / 2 + gap + geometry.size.y / 2,
+        ccwRotationDegrees: geometry.rotation,
+      }
+    }
+
+    if (resistorGeometry.length === 2) {
+      const [leftResistor, rightResistor] = [...resistorGeometry].sort(
+        (a, b) =>
+          chipPlacements[a.chip.chipId]!.x - chipPlacements[b.chip.chipId]!.x,
+      )
+      const leftPlacement = chipPlacements[leftResistor!.chip.chipId]!
+      const rightPlacement = chipPlacements[rightResistor!.chip.chipId]!
+      const currentGap =
+        rightPlacement.x -
+        rightResistor!.size.x / 2 -
+        (leftPlacement.x + leftResistor!.size.x / 2)
+      const adjustment = Math.max(0, (gap * 2 - currentGap) / 2)
+      leftPlacement.x -= adjustment
+      rightPlacement.x += adjustment
     }
 
     this.layout = { chipPlacements, groupPlacements: {} }

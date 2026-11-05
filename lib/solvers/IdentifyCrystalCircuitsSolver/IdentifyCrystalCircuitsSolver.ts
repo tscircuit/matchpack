@@ -79,6 +79,13 @@ export class IdentifyCrystalCircuitsSolver extends BaseSolver {
     return null
   }
 
+  private getPositiveRailNetId(pinId: PinId): NetId | null {
+    for (const netId of this.getNetIdsForPin(pinId)) {
+      if (this.inputProblem.netMap[netId]?.isPositiveVoltageSource) return netId
+    }
+    return null
+  }
+
   private findLoadCapsForCrystalPin(
     crystalPinId: PinId,
   ): Array<CrystalLoadCap & { groundNetId: NetId }> {
@@ -133,7 +140,13 @@ export class IdentifyCrystalCircuitsSolver extends BaseSolver {
       const outwardPinId = chip.pins.find(
         (pinId) => pinId !== connection.connectedPinId,
       )
-      if (!outwardPinId || this.getGroundNetId(outwardPinId)) continue
+      if (
+        !outwardPinId ||
+        this.getGroundNetId(outwardPinId) ||
+        this.getPositiveRailNetId(outwardPinId)
+      ) {
+        continue
+      }
 
       seriesResistors.push({
         chipId: chip.chipId,
@@ -142,7 +155,17 @@ export class IdentifyCrystalCircuitsSolver extends BaseSolver {
       })
     }
 
-    return seriesResistors
+    const countByCrystalPin = new Map<PinId, number>()
+    for (const resistor of seriesResistors) {
+      countByCrystalPin.set(
+        resistor.crystalPinId,
+        (countByCrystalPin.get(resistor.crystalPinId) ?? 0) + 1,
+      )
+    }
+
+    return seriesResistors.filter(
+      (resistor) => countByCrystalPin.get(resistor.crystalPinId) === 1,
+    )
   }
 
   private identifyCrystal(crystal: Chip): CrystalCircuitGroup | null {
