@@ -3,6 +3,7 @@ import { getPinIdToStronglyConnectedPinsObj } from "../LayoutPipelineSolver/getP
 
 /** Every series element must have one entry pin and one exit pin. */
 const TWO_PIN_COMPONENT_PIN_COUNT = 2
+const THREE_PIN_BRIDGE_PIN_COUNT = 3
 
 export type SeriesBranchComponent = {
   chipId: ChipId
@@ -12,10 +13,19 @@ export type SeriesBranchComponent = {
   farPinId: PinId
 }
 
+export type SeriesBranchBridge = {
+  chipId: ChipId
+  /** Bridge pins connected to `branches[0]` and `branches[1]`. */
+  branchPinIds: [PinId, PinId]
+  /** Remaining pin on the three-pin bridge connected to the shared rail/net. */
+  supplyPinId: PinId
+}
+
 export type ParallelSeriesBranchGroup = {
   mainChipId: ChipId
   mainPinIds: [PinId, PinId]
   branches: [SeriesBranchComponent[], SeriesBranchComponent[]]
+  bridge?: SeriesBranchBridge
 }
 
 type ChipConnection = {
@@ -163,15 +173,199 @@ const getOrderedSeriesComponents = ({
   return ordered
 }
 
+type TracedBridgeBranch = {
+  components: SeriesBranchComponent[]
+  bridgeChipId: ChipId
+  bridgePinId: PinId
+}
+
+const traceSeriesBranchToBridge = ({
+  inputProblem,
+  connectionsByChip,
+  mainChipId,
+  mainPinId,
+  startChipId,
+  usedPathChipIds,
+}: {
+  inputProblem: InputProblem
+  connectionsByChip: Map<ChipId, ChipConnection[]>
+  mainChipId: ChipId
+  mainPinId: PinId
+  startChipId: ChipId
+  usedPathChipIds: Set<ChipId>
+}): TracedBridgeBranch | null => {
+  const components: SeriesBranchComponent[] = []
+  const visited = new Set<ChipId>()
+  let previousChipId = mainChipId
+  let expectedPreviousPinId = mainPinId
+  let currentChipId = startChipId
+
+  while (true) {
+    if (
+      currentChipId === mainChipId ||
+      visited.has(currentChipId) ||
+      usedPathChipIds.has(currentChipId)
+    ) {
+      return null
+    }
+    const chip = inputProblem.chipMap[currentChipId]
+    if (!chip || chip.fixedPosition) return null
+
+    if (chip.pins.length === THREE_PIN_BRIDGE_PIN_COUNT) {
+      if (components.length === 0) return null
+      const bridgeConnections = connectionsByChip.get(currentChipId) ?? []
+      const incomingConnections = bridgeConnections.filter(
+        (connection) =>
+          connection.otherChipId === previousChipId &&
+          connection.otherPinId === expectedPreviousPinId,
+      )
+      if (incomingConnections.length !== 1) return null
+      return {
+        components,
+        bridgeChipId: currentChipId,
+        bridgePinId: incomingConnections[0]!.selfPinId,
+      }
+    }
+
+    if (chip.pins.length !== TWO_PIN_COMPONENT_PIN_COUNT) return null
+
+    const connections = connectionsByChip.get(currentChipId) ?? []
+    if (
+      connections.length !== TWO_PIN_COMPONENT_PIN_COUNT ||
+      new Set(connections.map((connection) => connection.selfPinId)).size !==
+        TWO_PIN_COMPONENT_PIN_COUNT
+    ) {
+      return null
+    }
+
+    const previousConnection = connections.find(
+      (connection) =>
+        connection.otherChipId === previousChipId &&
+        connection.otherPinId === expectedPreviousPinId,
+    )
+    const nextConnection = connections.find(
+      (connection) => connection !== previousConnection,
+    )
+    if (
+      !previousConnection ||
+      !nextConnection ||
+      previousConnection.selfPinId === nextConnection.selfPinId
+    ) {
+      return null
+    }
+
+    visited.add(currentChipId)
+    components.push({
+      chipId: currentChipId,
+      nearPinId: previousConnection.selfPinId,
+      farPinId: nextConnection.selfPinId,
+    })
+    previousChipId = currentChipId
+    expectedPreviousPinId = nextConnection.selfPinId
+    currentChipId = nextConnection.otherChipId
+  }
+}
+
+const findBridgedSeriesBranchGroup = ({
+  inputProblem,
+  connectionsByChip,
+  mainChipId,
+  firstConnection,
+  secondConnection,
+  usedPathChipIds,
+}: {
+  inputProblem: InputProblem
+  connectionsByChip: Map<ChipId, ChipConnection[]>
+  mainChipId: ChipId
+  firstConnection: ChipConnection
+  secondConnection: ChipConnection
+  usedPathChipIds: Set<ChipId>
+}): ParallelSeriesBranchGroup | null => {
+  const firstTraced = traceSeriesBranchToBridge({
+    inputProblem,
+    connectionsByChip,
+    mainChipId,
+    mainPinId: firstConnection.selfPinId,
+    startChipId: firstConnection.otherChipId,
+    usedPathChipIds,
+  })
+  const secondTraced = traceSeriesBranchToBridge({
+    inputProblem,
+    connectionsByChip,
+    mainChipId,
+    mainPinId: secondConnection.selfPinId,
+    startChipId: secondConnection.otherChipId,
+    usedPathChipIds,
+  })
+  if (
+    !firstTraced ||
+    !secondTraced ||
+    firstTraced.bridgeChipId !== secondTraced.bridgeChipId ||
+    firstTraced.bridgePinId === secondTraced.bridgePinId ||
+    firstTraced.components.length !== secondTraced.components.length
+  ) {
+    return null
+  }
+
+  const firstBranchChipIds = new Set(
+    firstTraced.components.map((component) => component.chipId),
+  )
+  if (
+    secondTraced.components.some((component) =>
+      firstBranchChipIds.has(component.chipId),
+    )
+  ) {
+    return null
+  }
+
+  const bridgeChip = inputProblem.chipMap[firstTraced.bridgeChipId]
+  const bridgeConnections =
+    connectionsByChip.get(firstTraced.bridgeChipId) ?? []
+  if (
+    !bridgeChip ||
+    bridgeChip.fixedPosition ||
+    bridgeChip.pins.length !== THREE_PIN_BRIDGE_PIN_COUNT ||
+    bridgeConnections.length !== TWO_PIN_COMPONENT_PIN_COUNT
+  ) {
+    return null
+  }
+
+  const supplyPinId = bridgeChip.pins.find(
+    (pinId) =>
+      pinId !== firstTraced.bridgePinId && pinId !== secondTraced.bridgePinId,
+  )
+  if (!supplyPinId) return null
+
+  const hasSupplyNet = Object.keys(inputProblem.netMap).some(
+    (netId) =>
+      Boolean(inputProblem.netConnMap[`${supplyPinId}-${netId}`]) ||
+      Boolean(inputProblem.pinStrongConnMap[`${supplyPinId}-${netId}`]) ||
+      Boolean(inputProblem.pinStrongConnMap[`${netId}-${supplyPinId}`]),
+  )
+  if (!hasSupplyNet) return null
+
+  return {
+    mainChipId,
+    mainPinIds: [firstConnection.selfPinId, secondConnection.selfPinId],
+    branches: [firstTraced.components, secondTraced.components],
+    bridge: {
+      chipId: bridgeChip.chipId,
+      branchPinIds: [firstTraced.bridgePinId, secondTraced.bridgePinId],
+      supplyPinId,
+    },
+  }
+}
+
 /**
  * Finds topology shaped like a U:
  *
  * main pin A -> two-pin components -> shared outer connection
  * main pin B -> two-pin components -> shared outer connection
  *
- * In the strong-connectivity graph this is an even-length series path between
- * two pins on the same side of a multi-pin chip. Splitting the path in half
- * yields the two parallel branches without relying on component names or types.
+ * In the strong-connectivity graph this is either an even-length series path
+ * between two pins on the same side of a multi-pin chip, or two equal-length
+ * two-pin series branches joined by a three-pin bridge connected to a shared
+ * supply/ground net.
  */
 export const findParallelSeriesBranchGroups = (
   inputProblem: InputProblem,
@@ -206,6 +400,25 @@ export const findParallelSeriesBranchGroups = (
           firstPin.side !== secondPin.side ||
           firstConnection.selfPinId === secondConnection.selfPinId
         ) {
+          continue
+        }
+
+        const bridgedGroup = findBridgedSeriesBranchGroup({
+          inputProblem,
+          connectionsByChip,
+          mainChipId: mainChip.chipId,
+          firstConnection,
+          secondConnection,
+          usedPathChipIds,
+        })
+        if (bridgedGroup && bridgedGroup.bridge) {
+          groups.push(bridgedGroup)
+          for (const branch of bridgedGroup.branches) {
+            for (const component of branch) {
+              usedPathChipIds.add(component.chipId)
+            }
+          }
+          usedPathChipIds.add(bridgedGroup.bridge.chipId)
           continue
         }
 
