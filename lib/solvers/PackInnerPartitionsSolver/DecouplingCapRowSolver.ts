@@ -65,7 +65,8 @@ const getPinAxis = (
 
 /**
  * A decoupling cap partition this solver can lay out as a rail row: at least two
- * free 2-pin caps that agree on a pin axis, so the row has one direction.
+ * 2-pin caps (with at most one fixed-position anchor) that agree on a pin axis,
+ * so the row has one direction.
  */
 export const canLayoutDecouplingCapRow = (
   partition: PartitionInputProblem,
@@ -75,9 +76,13 @@ export const canLayoutDecouplingCapRow = (
   const chips = Object.values(partition.chipMap)
   if (chips.length < 2) return false
 
+  let fixedChipCount = 0
   let sharedPinAxis: "x" | "y" | null = null
   for (const chip of chips) {
-    if (chip.fixedPosition) return false
+    if (chip.fixedPosition) {
+      fixedChipCount++
+      if (fixedChipCount > 1) return false
+    }
 
     const pinAxis = getPinAxis(chip, partition)
     if (!pinAxis) return false
@@ -156,6 +161,23 @@ export class DecouplingCapRowSolver extends BaseSolver {
       rowDirection = -1
     }
 
+    let pinAxisOffset = 0
+    const fixedIndex = chips.findIndex((chip) => chip.fixedPosition)
+    if (fixedIndex !== -1) {
+      const fixedChip = chips[fixedIndex]!
+      const fixedPosition = fixedChip.fixedPosition!
+      const extentBeforeFixed = extents
+        .slice(0, fixedIndex)
+        .reduce((sum, extent) => sum + extent, 0)
+      const unanchoredRowPos =
+        cursor +
+        rowDirection *
+          (extentBeforeFixed + fixedIndex * gap + extents[fixedIndex]! / 2)
+      cursor += fixedPosition[rowAxis] - unanchoredRowPos
+      pinAxisOffset =
+        fixedPosition[pinAxis] - this.getRailOffset(fixedChip, pinAxis)
+    }
+
     chips.forEach((chip, index) => {
       const extent = extents[index]!
 
@@ -165,7 +187,7 @@ export class DecouplingCapRowSolver extends BaseSolver {
         ccwRotationDegrees: this.getRotation(chip),
       }
       placement[rowAxis] = cursor + (rowDirection * extent) / 2
-      placement[pinAxis] = this.getRailOffset(chip, pinAxis)
+      placement[pinAxis] = this.getRailOffset(chip, pinAxis) + pinAxisOffset
       chipPlacements[chip.chipId] = placement
 
       cursor += rowDirection * (extent + gap)

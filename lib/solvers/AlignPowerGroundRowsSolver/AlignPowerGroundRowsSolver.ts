@@ -60,6 +60,33 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     return false
   }
 
+  private getChipPowerGroundNetKey(chip: Chip): string | null {
+    const netIds = new Set<string>()
+    for (const pinId of chip.pins) {
+      for (const netId of this.getPinNetIds(pinId)) {
+        if (!this.isPowerGroundNet(netId)) return null
+        netIds.add(netId)
+      }
+    }
+    if (netIds.size !== 2) return null
+    return [...netIds].sort().join("__")
+  }
+
+  private hasFixedSiblingCapacitorOnSameRails(chip: Chip): boolean {
+    if (!chip.isCapacitor) return false
+    const netKey = this.getChipPowerGroundNetKey(chip)
+    if (!netKey) return false
+
+    for (const otherChip of Object.values(this.inputProblem.chipMap)) {
+      if (otherChip.chipId === chip.chipId) continue
+      if (!otherChip.isCapacitor || !otherChip.fixedPosition) continue
+      if (this.getChipPowerGroundNetKey(otherChip) === netKey) {
+        return true
+      }
+    }
+    return false
+  }
+
   private getAlignmentGroupId(chip: Chip): string | null {
     if (chip.fixedPosition || chip.pins.length !== 2) return null
 
@@ -90,7 +117,10 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
     }
 
     if (connectedPowerGroundPinCount === 0) return null
-    if (signalNetIds.size === 0) return "power-ground"
+    if (signalNetIds.size === 0) {
+      if (this.hasFixedSiblingCapacitorOnSameRails(chip)) return null
+      return "power-ground"
+    }
     if (signalNetIds.size === 1) return `signal:${[...signalNetIds][0]}`
     return null
   }

@@ -16,8 +16,9 @@ import type {
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
 import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
+import { getDecouplingRailNetId } from "../../utils/getDecouplingRailNetId"
 import { getVerticalPinClearanceOffset } from "../../utils/getVerticalPinClearanceOffset"
-import { getRotatedSize } from "../../utils/rotatePinOffset"
+import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
@@ -195,6 +196,9 @@ const placeNetOnlyDecouplingRow = (
   let neighbor = layout.chipPlacements[mainChipId]
   if (neighborId) neighbor = layout.chipPlacements[neighborId]
   const rowChipIds = Object.keys(partition.chipMap)
+  if (rowChipIds.some((chipId) => partition.chipMap[chipId]?.fixedPosition)) {
+    return
+  }
   const boundsContext = { inputProblem, layout }
   const mainBounds = getPartitionBounds(
     Object.keys(mainPartition.inputProblem.chipMap),
@@ -205,26 +209,45 @@ const placeNetOnlyDecouplingRow = (
 
   if (!neighborId) {
     const rowChipId = rowChipIds[0]
+    const railNetId = getDecouplingRailNetId({
+      inputProblem: partition,
+      netIds: Object.keys(partition.netMap),
+    })
     const mainRailPin = getPositiveRailPin(
-      { chipId: mainChipId, side },
+      { chipId: mainChipId, side, railNetId },
       inputProblem,
     )
     const rowRailPin =
-      rowChipId && getPositiveRailPin({ chipId: rowChipId }, inputProblem)
+      rowChipId &&
+      getPositiveRailPin({ chipId: rowChipId, railNetId }, inputProblem)
     const rowPlacement = rowChipId && layout.chipPlacements[rowChipId]
     if (!mainRailPin || !rowRailPin || !rowPlacement) return
 
-    // Align the shared rail pins while leaving space for a readable trace.
-    neighbor = {
-      ...neighbor,
-      y:
-        neighbor.y +
-        getVerticalPinClearanceOffset({
-          upperPin: mainRailPin,
-          upperPlacement: neighbor,
-          lowerPin: rowRailPin,
-          lowerPlacement: { ...rowPlacement, y: neighbor.y },
-        }),
+    if (side === "x+" || side === "x-") {
+      // Align the shared rail pins while leaving space for a readable trace.
+      neighbor = {
+        ...neighbor,
+        y:
+          neighbor.y +
+          getVerticalPinClearanceOffset({
+            upperPin: mainRailPin,
+            upperPlacement: neighbor,
+            lowerPin: rowRailPin,
+            lowerPlacement: { ...rowPlacement, y: neighbor.y },
+          }),
+      }
+    } else {
+      const mainRailPinX =
+        neighbor.x +
+        rotatePinOffset(mainRailPin.offset, neighbor.ccwRotationDegrees).x
+      const rowRailPinX =
+        rowPlacement.x +
+        rotatePinOffset(rowRailPin.offset, rowPlacement.ccwRotationDegrees).x
+      const rowCenter = getBoundsCenter(rowBounds)
+      neighbor = {
+        ...neighbor,
+        x: mainRailPinX - (rowRailPinX - rowCenter.x),
+      }
     }
   }
 
