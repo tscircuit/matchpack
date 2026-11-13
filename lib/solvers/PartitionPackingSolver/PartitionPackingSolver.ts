@@ -7,10 +7,17 @@ import type { GraphicsObject } from "graphics-debug"
 import { type PackInput, PackSolver2 } from "calculate-packing"
 import { BaseSolver } from "../BaseSolver"
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
-import type { InputProblem, PinId, NetId } from "../../types/InputProblem"
+import type {
+  InputProblem,
+  PartitionInputProblem,
+  PinId,
+  NetId,
+} from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
 import { alignResistorsWithFacingTwoPinComponents } from "../../utils/alignResistorsWithFacingTwoPinComponents"
+
+const MINIMUM_LAYOUT_ASPECT_RATIO = 4 / 3
 
 export interface PartitionPackingSolverInput {
   packedPartitions: PackedPartition[]
@@ -18,6 +25,7 @@ export interface PartitionPackingSolverInput {
 }
 
 type PartitionGroup = {
+  componentId: string
   partitionIndex: number
   chipIds: string[]
   bounds: {
@@ -26,6 +34,11 @@ type PartitionGroup = {
     minY: number
     maxY: number
   }
+}
+
+type PackingCandidateScore = {
+  aspectRatioPenalty: number
+  connectionDistanceSquared: number
 }
 
 export class PartitionPackingSolver extends BaseSolver {
@@ -178,6 +191,7 @@ export class PartitionPackingSolver extends BaseSolver {
         }
 
         partitionGroups.push({
+          componentId: `partition_${i}`,
           partitionIndex: i,
           chipIds: partitionChipIds,
           bounds: { minX, maxX, minY, maxY },
@@ -257,7 +271,7 @@ export class PartitionPackingSolver extends BaseSolver {
       }
 
       return {
-        componentId: `partition_${group.partitionIndex}`,
+        componentId: group.componentId,
         pads,
         availableRotationDegrees: [0] as Array<0 | 90 | 180 | 270>,
         ...(isFixed && {
@@ -280,17 +294,22 @@ export class PartitionPackingSolver extends BaseSolver {
     packedComponents: PackSolver2["packedComponents"],
     partitionGroups: PartitionGroup[],
   ): OutputLayout {
+    const selectedComponents = this.selectAspectRatioAwareCandidate(
+      packedComponents,
+      partitionGroups,
+    )
+    const groupByComponentId = new Map(
+      partitionGroups.map((group) => [group.componentId, group]),
+    )
+
     // Apply the partition offsets to individual components
     const newChipPlacements: Record<string, Placement> = {}
 
-    for (const packedComponent of packedComponents) {
-      const partitionIndex = parseInt(
-        packedComponent.componentId.replace("partition_", ""),
-      )
-      const group = partitionGroups.find(
-        (g) => g.partitionIndex === partitionIndex,
-      )
-      const packedPartition = this.packedPartitions[partitionIndex]
+    for (const packedComponent of selectedComponents) {
+      const group = groupByComponentId.get(packedComponent.componentId)
+      const packedPartition = group
+        ? this.packedPartitions[group.partitionIndex]
+        : undefined
 
       if (group && packedPartition) {
         // Calculate offset to apply to this partition's components
@@ -325,6 +344,311 @@ export class PartitionPackingSolver extends BaseSolver {
       pinToNetworkMap: this.getConnectivityMap(),
     })
     return layout
+  }
+
+  private selectAspectRatioAwareCandidate(
+    packedComponents: PackSolver2["packedComponents"],
+    partitionGroups: PartitionGroup[],
+  ): PackSolver2["packedComponents"] {
+    if (
+      packedComponents.length < 2 ||
+      partitionGroups.some((group) =>
+        this.partitionHasFixedChip(group.partitionIndex),
+      ) ||
+      !this.areAllPartitionsDistantMultiPinGroups(packedComponents)
+    ) {
+      return packedComponents
+    }
+
+    const groupByComponentId = new Map(
+      partitionGroups.map((group) => [group.componentId, group]),
+    )
+
+    if (packedComponents.length === 2) {
+      const [anchor, moving] = packedComponents
+      if (!anchor || !moving) return packedComponents
+
+      const anchorGroup = groupByComponentId.get(anchor.componentId)
+      const movingGroup = groupByComponentId.get(moving.componentId)
+      if (!anchorGroup || !movingGroup) return packedComponents
+
+      const anchorWidth = anchorGroup.bounds.maxX - anchorGroup.bounds.minX
+      const anchorHeight = anchorGroup.bounds.maxY - anchorGroup.bounds.minY
+      const movingWidth = movingGroup.bounds.maxX - movingGroup.bounds.minX
+      const movingHeight = movingGroup.bounds.maxY - movingGroup.bounds.minY
+      const horizontalDistance =
+        anchorWidth / 2 + this.inputProblem.partitionGap + movingWidth / 2
+      const verticalDistance =
+        anchorHeight / 2 + this.inputProblem.partitionGap + movingHeight / 2
+
+      const candidateCenters = [
+        moving.center,
+        { x: anchor.center.x - horizontalDistance, y: anchor.center.y },
+        { x: anchor.center.x + horizontalDistance, y: anchor.center.y },
+        { x: anchor.center.x, y: anchor.center.y - verticalDistance },
+        { x: anchor.center.x, y: anchor.center.y + verticalDistance },
+      ]
+
+      const candidates = candidateCenters.map((center) => [
+        anchor,
+        { ...moving, center },
+      ]) as Array<PackSolver2["packedComponents"]>
+
+      const scoredCandidates = candidates.map((components) => ({
+        components,
+        score: this.scorePackingCandidate(components, groupByComponentId),
+      }))
+      const originalScore = scoredCandidates[0]!.score
+      const distanceTolerance =
+        Number.EPSILON *
+        Math.max(1, originalScore.connectionDistanceSquared) *
+        16
+      const routingSafeCandidates = scoredCandidates.filter(({ score }) => {
+        return (
+          score.connectionDistanceSquared <=
+          originalScore.connectionDistanceSquared + distanceTolerance
+        )
+      })
+
+      const bestRoutingSafe = routingSafeCandidates.reduce(
+        (best, candidate) => {
+          return candidate.score.aspectRatioPenalty <
+            best.score.aspectRatioPenalty
+            ? candidate
+            : best
+        },
+      )
+
+      if (bestRoutingSafe.score.aspectRatioPenalty === 0) {
+        return bestRoutingSafe.components
+      }
+
+      // If no equal-distance candidate satisfies the 4:3 aspect ratio (for
+      // example when the shared global rail pins are vertically aligned),
+      // pick the candidate with the lowest aspect ratio penalty and tie-break
+      // by shortest connection distance.
+      return scoredCandidates.reduce((best, candidate) => {
+        if (
+          Math.abs(
+            candidate.score.aspectRatioPenalty - best.score.aspectRatioPenalty,
+          ) > 1e-9
+        ) {
+          return candidate.score.aspectRatioPenalty <
+            best.score.aspectRatioPenalty
+            ? candidate
+            : best
+        }
+        return candidate.score.connectionDistanceSquared <
+          best.score.connectionDistanceSquared - 1e-9
+          ? candidate
+          : best
+      }).components
+    }
+
+    // For 3+ distant movable multi-pin IC partitions, reflow into a 4:3-biased
+    // grid if the packed layout violates the 4:3 aspect ratio.
+    const originalScore = this.scorePackingCandidate(
+      packedComponents,
+      groupByComponentId,
+    )
+    if (originalScore.aspectRatioPenalty > 0) {
+      const gridCandidate = this.buildAspectRatioGridCandidate(
+        packedComponents,
+        groupByComponentId,
+      )
+      const gridScore = this.scorePackingCandidate(
+        gridCandidate,
+        groupByComponentId,
+      )
+      if (gridScore.aspectRatioPenalty < originalScore.aspectRatioPenalty) {
+        return gridCandidate
+      }
+    }
+
+    return packedComponents
+  }
+
+  private getSharedNetworkIds(
+    first: PackSolver2["packedComponents"][number],
+    second: PackSolver2["packedComponents"][number],
+  ): string[] {
+    const secondNetworks = new Set(second.pads.map((pad) => pad.networkId))
+    const shared: string[] = []
+    for (const pad of first.pads) {
+      if (secondNetworks.has(pad.networkId)) {
+        shared.push(pad.networkId)
+      }
+    }
+    return shared
+  }
+
+  private getSharedNetworkCount(
+    first: PackSolver2["packedComponents"][number],
+    second: PackSolver2["packedComponents"][number],
+  ): number {
+    return this.getSharedNetworkIds(first, second).length
+  }
+
+  private isGlobalRailNetwork(networkId: string): boolean {
+    const net = this.inputProblem.netMap[networkId]
+    if (net?.isGround || net?.isPositiveVoltageSource) return true
+    return /^(GND|AGND|DGND|PGND|VSS|VCC|VDD|VSYS|VBUS|VBAT|V\d)/i.test(
+      networkId,
+    )
+  }
+
+  private sharesOnlyGlobalRail(
+    first: PackSolver2["packedComponents"][number],
+    second: PackSolver2["packedComponents"][number],
+  ): boolean {
+    const shared = this.getSharedNetworkIds(first, second)
+    if (shared.length === 0) return true
+    if (shared.length > 1) return false
+    return this.isGlobalRailNetwork(shared[0]!)
+  }
+
+  private areAllPartitionsDistantMultiPinGroups(
+    packedComponents: PackSolver2["packedComponents"],
+  ): boolean {
+    for (const packedPartition of this.packedPartitions) {
+      const partitionProblem =
+        packedPartition.inputProblem as PartitionInputProblem
+      if (
+        partitionProblem.partitionType === "decoupling_caps" ||
+        partitionProblem.partitionType === "crystal_circuit"
+      ) {
+        return false
+      }
+      const hasMultiPinIc = Object.values(partitionProblem.chipMap).some(
+        (chip) =>
+          chip.pins.length > 2 &&
+          !chip.isCapacitor &&
+          !chip.isResistor &&
+          !chip.isTestPoint &&
+          !chip.isCrystal,
+      )
+      if (!hasMultiPinIc) {
+        return false
+      }
+    }
+    for (let i = 0; i < packedComponents.length; i++) {
+      for (let j = i + 1; j < packedComponents.length; j++) {
+        if (
+          !this.sharesOnlyGlobalRail(packedComponents[i]!, packedComponents[j]!)
+        ) {
+          return false
+        }
+      }
+    }
+    return true
+  }
+
+  private buildAspectRatioGridCandidate(
+    packedComponents: PackSolver2["packedComponents"],
+    groupByComponentId: Map<string, PartitionGroup>,
+  ): PackSolver2["packedComponents"] {
+    let bestCandidate = packedComponents
+    let bestPenalty = Infinity
+    let bestDistance = Infinity
+
+    for (let cols = 2; cols <= packedComponents.length; cols++) {
+      const candidate: PackSolver2["packedComponents"] = []
+      let currentY = 0
+      for (
+        let rowStart = 0;
+        rowStart < packedComponents.length;
+        rowStart += cols
+      ) {
+        const rowSlice = packedComponents.slice(rowStart, rowStart + cols)
+        let currentX = 0
+        let rowMaxHeight = 0
+        for (const comp of rowSlice) {
+          const group = groupByComponentId.get(comp.componentId)
+          if (!group) continue
+          const width = group.bounds.maxX - group.bounds.minX
+          const height = group.bounds.maxY - group.bounds.minY
+          rowMaxHeight = Math.max(rowMaxHeight, height)
+          candidate.push({
+            ...comp,
+            center: { x: currentX + width / 2, y: currentY - height / 2 },
+          })
+          currentX += width + this.inputProblem.partitionGap
+        }
+        currentY -= rowMaxHeight + this.inputProblem.partitionGap
+      }
+
+      const score = this.scorePackingCandidate(candidate, groupByComponentId)
+      if (
+        score.aspectRatioPenalty < bestPenalty - 1e-9 ||
+        (Math.abs(score.aspectRatioPenalty - bestPenalty) <= 1e-9 &&
+          score.connectionDistanceSquared < bestDistance)
+      ) {
+        bestPenalty = score.aspectRatioPenalty
+        bestDistance = score.connectionDistanceSquared
+        bestCandidate = candidate
+      }
+    }
+
+    return bestCandidate
+  }
+
+  private scorePackingCandidate(
+    packedComponents: PackSolver2["packedComponents"],
+    groupByComponentId: Map<string, PartitionGroup>,
+  ): PackingCandidateScore {
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+
+    for (const component of packedComponents) {
+      const group = groupByComponentId.get(component.componentId)
+      if (!group) {
+        return {
+          aspectRatioPenalty: Infinity,
+          connectionDistanceSquared: Infinity,
+        }
+      }
+      const width = group.bounds.maxX - group.bounds.minX
+      const height = group.bounds.maxY - group.bounds.minY
+      minX = Math.min(minX, component.center.x - width / 2)
+      maxX = Math.max(maxX, component.center.x + width / 2)
+      minY = Math.min(minY, component.center.y - height / 2)
+      maxY = Math.max(maxY, component.center.y + height / 2)
+    }
+
+    const width = maxX - minX
+    const height = maxY - minY
+    const aspectRatioPenalty = Math.max(
+      0,
+      MINIMUM_LAYOUT_ASPECT_RATIO - width / height,
+    )
+
+    let connectionDistanceSquared = 0
+    for (let i = 0; i < packedComponents.length; i++) {
+      const first = packedComponents[i]!
+      for (let j = i + 1; j < packedComponents.length; j++) {
+        const second = packedComponents[j]!
+        const secondPadsByNetwork = new Map(
+          second.pads.map((pad) => [pad.networkId, pad]),
+        )
+        for (const firstPad of first.pads) {
+          const secondPad = secondPadsByNetwork.get(firstPad.networkId)
+          if (!secondPad) continue
+          const dx =
+            first.center.x +
+            firstPad.offset.x -
+            (second.center.x + secondPad.offset.x)
+          const dy =
+            first.center.y +
+            firstPad.offset.y -
+            (second.center.y + secondPad.offset.y)
+          connectionDistanceSquared += dx * dx + dy * dy
+        }
+      }
+    }
+
+    return { aspectRatioPenalty, connectionDistanceSquared }
   }
 
   private getCombinedPackedPartitionsProblem(): InputProblem {
