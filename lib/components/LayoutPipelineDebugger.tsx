@@ -104,11 +104,9 @@ export const LayoutPipelineDebugger = ({
   }, [])
 
   // Cleanup animation on unmount
-  useMemo(() => {
-    return () => {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current)
-      }
+  useCallback(() => {
+    if (animationIntervalRef.current) {
+      clearInterval(animationIntervalRef.current)
     }
   }, [])
 
