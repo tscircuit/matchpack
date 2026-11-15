@@ -1,0 +1,437 @@
+{
+  "chipMap": {
+    "REN": {
+      "chipId": "REN",
+      "pins": ["REN.1", "REN.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6800000000000003
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90],
+      "fixedPosition": {
+        "x": 2.28,
+        "y": 3.5
+      }
+    },
+    "RRST": {
+      "chipId": "RRST",
+      "pins": ["RRST.1", "RRST.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999994
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90],
+      "fixedPosition": {
+        "x": 2,
+        "y": 4.5
+      }
+    },
+    "RBOOT": {
+      "chipId": "RBOOT",
+      "pins": ["RBOOT.1", "RBOOT.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6800000000000003
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [90],
+      "fixedPosition": {
+        "x": 4.16,
+        "y": 3.5
+      }
+    },
+    "R15": {
+      "chipId": "R15",
+      "pins": ["R15.1", "R15.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6800000000000003
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [270],
+      "fixedPosition": {
+        "x": 5.72,
+        "y": 3.5
+      }
+    },
+    "SW_RST": {
+      "chipId": "SW_RST",
+      "pins": ["SW_RST.1", "SW_RST.2"],
+      "size": {
+        "x": 0.94,
+        "y": 0.718910699999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270],
+      "fixedPosition": {
+        "x": 3.09,
+        "y": 5.2
+      }
+    },
+    "SW_BOOT": {
+      "chipId": "SW_BOOT",
+      "pins": ["SW_BOOT.1", "SW_BOOT.2"],
+      "size": {
+        "x": 0.94,
+        "y": 0.718910699999999
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270],
+      "fixedPosition": {
+        "x": 5.31,
+        "y": 5.2
+      }
+    },
+    "LED_PWR": {
+      "chipId": "LED_PWR",
+      "pins": ["LED_PWR.1", "LED_PWR.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.1799999999999993
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270],
+      "fixedPosition": {
+        "x": 8.33,
+        "y": 3.5
+      }
+    },
+    "RPWR": {
+      "chipId": "RPWR",
+      "pins": ["RPWR.1", "RPWR.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6800000000000003
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [270],
+      "fixedPosition": {
+        "x": 7.12,
+        "y": 3.5
+      }
+    },
+    "LED_TX": {
+      "chipId": "LED_TX",
+      "pins": ["LED_TX.1", "LED_TX.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.1799999999999993
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270],
+      "fixedPosition": {
+        "x": 8.45,
+        "y": 4.7
+      }
+    },
+    "RTX": {
+      "chipId": "RTX",
+      "pins": ["RTX.1", "RTX.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999994
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270],
+      "fixedPosition": {
+        "x": 6.55,
+        "y": 4.7
+      }
+    },
+    "LED_IO2": {
+      "chipId": "LED_IO2",
+      "pins": ["LED_IO2.1", "LED_IO2.2"],
+      "size": {
+        "x": 1.13,
+        "y": 1.1799999999999993
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": false,
+      "isTestPoint": false,
+      "availableRotations": [270],
+      "fixedPosition": {
+        "x": 8.57,
+        "y": 5.9
+      }
+    },
+    "RIO2": {
+      "chipId": "RIO2",
+      "pins": ["RIO2.1", "RIO2.2"],
+      "size": {
+        "x": 0.6,
+        "y": 0.6799999999999994
+      },
+      "isCapacitor": false,
+      "isCrystal": false,
+      "isResistor": true,
+      "isTestPoint": false,
+      "availableRotations": [0, 90, 180, 270],
+      "fixedPosition": {
+        "x": 6.43,
+        "y": 5.9
+      }
+    }
+  },
+  "chipPinMap": {
+    "REN.1": {
+      "pinId": "REN.1",
+      "offset": {
+        "x": -0.30000000000000004,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "REN.2": {
+      "pinId": "REN.2",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "RRST.1": {
+      "pinId": "RRST.1",
+      "offset": {
+        "x": -0.30000000000000004,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "RRST.2": {
+      "pinId": "RRST.2",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "RBOOT.1": {
+      "pinId": "RBOOT.1",
+      "offset": {
+        "x": -0.2999999999999998,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "RBOOT.2": {
+      "pinId": "RBOOT.2",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "R15.1": {
+      "pinId": "R15.1",
+      "offset": {
+        "x": -0.2999999999999998,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "R15.2": {
+      "pinId": "R15.2",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "SW_RST.1": {
+      "pinId": "SW_RST.1",
+      "offset": {
+        "x": -0.46999999999999975,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "SW_RST.2": {
+      "pinId": "SW_RST.2",
+      "offset": {
+        "x": 0.46999999999999975,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "SW_BOOT.1": {
+      "pinId": "SW_BOOT.1",
+      "offset": {
+        "x": -0.46999999999999975,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "SW_BOOT.2": {
+      "pinId": "SW_BOOT.2",
+      "offset": {
+        "x": 0.46999999999999975,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "LED_PWR.1": {
+      "pinId": "LED_PWR.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "LED_PWR.2": {
+      "pinId": "LED_PWR.2",
+      "offset": {
+        "x": 0.5400000000000009,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "RPWR.1": {
+      "pinId": "RPWR.1",
+      "offset": {
+        "x": -0.2999999999999998,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "RPWR.2": {
+      "pinId": "RPWR.2",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "LED_TX.1": {
+      "pinId": "LED_TX.1",
+      "offset": {
+        "x": -0.54,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "LED_TX.2": {
+      "pinId": "LED_TX.2",
+      "offset": {
+        "x": 0.5399999999999991,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "RTX.1": {
+      "pinId": "RTX.1",
+      "offset": {
+        "x": -0.2999999999999998,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "RTX.2": {
+      "pinId": "RTX.2",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "LED_IO2.1": {
+      "pinId": "LED_IO2.1",
+      "offset": {
+        "x": -0.5399999999999991,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "LED_IO2.2": {
+      "pinId": "LED_IO2.2",
+      "offset": {
+        "x": 0.5399999999999991,
+        "y": 0
+      },
+      "side": "x+"
+    },
+    "RIO2.1": {
+      "pinId": "RIO2.1",
+      "offset": {
+        "x": -0.2999999999999998,
+        "y": 0
+      },
+      "side": "x-"
+    },
+    "RIO2.2": {
+      "pinId": "RIO2.2",
+      "offset": {
+        "x": 0.2999999999999998,
+        "y": 0
+      },
+      "side": "x+"
+    }
+  },
+  "netMap": {
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9",
+      "isGround": false,
+      "isPositiveVoltageSource": true
+    },
+    "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": {
+      "netId": "unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1",
+      "isGround": true,
+      "isPositiveVoltageSource": false
+    }
+  },
+  "pinStrongConnMap": {
+    "RPWR.2-LED_PWR.1": true,
+    "LED_PWR.1-RPWR.2": true,
+    "RTX.2-LED_TX.1": true,
+    "LED_TX.1-RTX.2": true,
+    "RIO2.2-LED_IO2.1": true,
+    "LED_IO2.1-RIO2.2": true
+  },
+  "netConnMap": {
+    "REN.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": true,
+    "RRST.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": true,
+    "RBOOT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": true,
+    "RPWR.1-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net9": true,
+    "R15.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "SW_RST.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "SW_BOOT.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "LED_PWR.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "LED_TX.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true,
+    "LED_IO2.2-unnamedsubcircuitsubcircuit_source_group_0_connectivity_net1": true
+  },
+  "chipGap": 0.6,
+  "decouplingCapsGap": 0.4,
+  "partitionGap": 1.2
+}
