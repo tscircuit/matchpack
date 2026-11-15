@@ -172,6 +172,11 @@ const placeNetOnlyDecouplingRow = (
   if (partition.partitionType !== "decoupling_caps" || !mainChipId || !side) {
     return
   }
+  // An anchored row is already in caller coordinates; translating it would
+  // invalidate the fixed positions even if the new location is collision-free.
+  if (Object.values(partition.chipMap).some((chip) => chip.fixedPosition)) {
+    return
+  }
 
   const mainPartition = packedPartitions.find(
     (candidate) =>
