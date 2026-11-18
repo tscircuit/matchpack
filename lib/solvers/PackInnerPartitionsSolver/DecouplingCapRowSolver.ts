@@ -21,7 +21,7 @@
  * the symbol is landscape without them, so they are not the trigger.)
  *
  * There is no packing problem here: N caps on one line. So the axis comes from the
- * pins and the row is placed directly. Caps keep their fixed rotation and their
+ * pins and the row is placed directly. Caps use permitted rotations and keep their
  * chipMap order (which follows the main chip's pin order), are pitched by chip.size
  * so value labels keep their room, and are aligned so every positive pin lands on
  * one rail.
@@ -37,23 +37,22 @@ import type {
   Chip,
   ChipId,
   PartitionInputProblem,
-  PinId,
 } from "../../types/InputProblem"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { getDecouplingRailNetId } from "../../utils/getDecouplingRailNetId"
 
-/** Axis a 2-pin chip's pins run along, once its fixed rotation is applied. */
+/** Axis a 2-pin chip's pins run along after applying a rotation. */
 const getPinAxis = (
   chip: Chip,
   problem: PartitionInputProblem,
+  rotation: number = chip.availableRotations?.[0] ?? 0,
 ): "x" | "y" | null => {
   if (chip.pins.length !== 2) return null
 
   const [pinA, pinB] = chip.pins.map((pinId) => problem.chipPinMap[pinId])
   if (!pinA || !pinB) return null
 
-  const rotation = chip.availableRotations?.[0] ?? 0
   const offsetA = rotatePinOffset(pinA.offset, rotation)
   const offsetB = rotatePinOffset(pinB.offset, rotation)
 
@@ -61,6 +60,59 @@ const getPinAxis = (
     return "y"
   }
   return "x"
+}
+
+const getRailPinId = (chip: Chip, problem: PartitionInputProblem) => {
+  const railNetId = getDecouplingRailNetId({
+    inputProblem: problem,
+    netIds: Object.keys(problem.netMap),
+  })
+  return railNetId
+    ? chip.pins.find((pinId) => problem.netConnMap[`${pinId}-${railNetId}`])
+    : undefined
+}
+
+const getRowRotations = (
+  chips: Chip[],
+  problem: PartitionInputProblem,
+  pinAxis: "x" | "y",
+): Map<ChipId, number> | null => {
+  const polarity = (chip: Chip, rotation: number): number | null => {
+    const railPinId = getRailPinId(chip, problem)
+    const otherPinId = chip.pins.find((id) => id !== railPinId)
+    const rail = railPinId && problem.chipPinMap[railPinId]
+    const other = otherPinId && problem.chipPinMap[otherPinId]
+    if (!rail || !other) return null
+    return (
+      Math.sign(
+        rotatePinOffset(rail.offset, rotation)[pinAxis] -
+          rotatePinOffset(other.offset, rotation)[pinAxis],
+      ) || null
+    )
+  }
+  const preferred = chips
+    .map((chip) => polarity(chip, chip.availableRotations?.[0] ?? 0))
+    .find((value) => value !== null)
+  // Try both polarities so a later fixed cap can constrain earlier flexible caps.
+  for (const direction of preferred == null
+    ? [null]
+    : [preferred, -preferred]) {
+    const rotations = new Map<ChipId, number>()
+    for (const chip of chips) {
+      const rotation = (
+        chip.availableRotations?.length ? chip.availableRotations : [0]
+      ).find(
+        (candidate) =>
+          getPinAxis(chip, problem, candidate) === pinAxis &&
+          (polarity(chip, candidate) === null ||
+            polarity(chip, candidate) === direction),
+      )
+      if (rotation === undefined) break
+      rotations.set(chip.chipId, rotation)
+    }
+    if (rotations.size === chips.length) return rotations
+  }
+  return null
 }
 
 /**
@@ -85,7 +137,10 @@ export const canLayoutDecouplingCapRow = (
     sharedPinAxis = pinAxis
   }
 
-  return sharedPinAxis !== null
+  return (
+    sharedPinAxis !== null &&
+    getRowRotations(chips, partition, sharedPinAxis) !== null
+  )
 }
 
 export class DecouplingCapRowSolver extends BaseSolver {
@@ -97,32 +152,22 @@ export class DecouplingCapRowSolver extends BaseSolver {
     this.partitionInputProblem = params.partitionInputProblem
   }
 
-  private getRotation(chip: Chip): number {
-    return chip.availableRotations?.[0] ?? 0
-  }
-
-  private isOnRailNet(pinId: PinId): boolean {
-    const problem = this.partitionInputProblem
-    const railNetId = getDecouplingRailNetId({
-      inputProblem: problem,
-      netIds: Object.keys(problem.netMap),
-    })
-    if (!railNetId) return false
-    return problem.netConnMap[`${pinId}-${railNetId}`] === true
-  }
-
   /**
    * Offset along the pin axis that puts this cap's rail pin on the shared rail.
    * Falls back to centering the body if no rail pin is available.
    */
-  private getRailOffset(chip: Chip, pinAxis: "x" | "y"): number {
-    const railPinId = chip.pins.find((pinId) => this.isOnRailNet(pinId))
+  private getRailOffset(
+    chip: Chip,
+    pinAxis: "x" | "y",
+    rotation: number,
+  ): number {
+    const railPinId = getRailPinId(chip, this.partitionInputProblem)
     if (!railPinId) return 0
 
     const pin = this.partitionInputProblem.chipPinMap[railPinId]
     if (!pin) return 0
 
-    return -rotatePinOffset(pin.offset, this.getRotation(chip))[pinAxis]
+    return -rotatePinOffset(pin.offset, rotation)[pinAxis]
   }
 
   override _step() {
@@ -131,6 +176,11 @@ export class DecouplingCapRowSolver extends BaseSolver {
 
     // canLayoutDecouplingCapRow guarantees every chip agrees on this axis.
     const pinAxis = getPinAxis(chips[0]!, problem)!
+    const rotations = getRowRotations(chips, problem, pinAxis)
+    if (!rotations) {
+      this.failed = true
+      return
+    }
     // Caps line up across their pin axis, so the two rails run straight.
     let rowAxis: "x" | "y" = "y"
     if (pinAxis === "y") rowAxis = "x"
@@ -138,7 +188,7 @@ export class DecouplingCapRowSolver extends BaseSolver {
     const gap = problem.decouplingCapsGap ?? problem.chipGap
 
     const extents = chips.map(
-      (chip) => getRotatedSize(chip.size, this.getRotation(chip))[rowAxis],
+      (chip) => getRotatedSize(chip.size, rotations.get(chip.chipId)!)[rowAxis],
     )
     const rowLength =
       extents.reduce((sum, extent) => sum + extent, 0) +
@@ -162,10 +212,14 @@ export class DecouplingCapRowSolver extends BaseSolver {
       const placement: Placement = {
         x: 0,
         y: 0,
-        ccwRotationDegrees: this.getRotation(chip),
+        ccwRotationDegrees: rotations.get(chip.chipId)!,
       }
       placement[rowAxis] = cursor + (rowDirection * extent) / 2
-      placement[pinAxis] = this.getRailOffset(chip, pinAxis)
+      placement[pinAxis] = this.getRailOffset(
+        chip,
+        pinAxis,
+        placement.ccwRotationDegrees,
+      )
       chipPlacements[chip.chipId] = placement
 
       cursor += rowDirection * (extent + gap)
