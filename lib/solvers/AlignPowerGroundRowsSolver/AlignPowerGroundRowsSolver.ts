@@ -174,11 +174,19 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
 
   /**
    * Row alignment is a final polish pass over an already-packed layout. It can
-   * improve readability, but it must not create a new physical collision between
-   * chip rectangles, so the aligned candidate is checked before it is accepted.
+   * improve readability, but must preserve chip clearance to stationary neighbors.
+   * Members of aligned rows keep their row-specific spacing; existing smaller
+   * gaps to stationary chips may remain, but must not get smaller.
    */
-  private hasChipOverlap(chipPlacements: Record<string, Placement>): boolean {
+  private hasUnsafeClearance(
+    chipPlacements: Record<string, Placement>,
+    groups: AlignmentGroup[],
+  ): boolean {
     const chipIds = Object.keys(this.inputProblem.chipMap)
+    const alignedChipIds = new Set<ChipId>()
+    for (const group of groups) {
+      for (const chipId of group.chipIds) alignedChipIds.add(chipId)
+    }
 
     for (let i = 0; i < chipIds.length; i++) {
       const chipIdA = chipIds[i]!
@@ -212,11 +220,23 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
           heightB = chipB.size.x
         }
 
-        const overlapsX =
-          Math.abs(placementA.x - placementB.x) < (widthA + widthB) / 2
-        const overlapsY =
-          Math.abs(placementA.y - placementB.y) < (heightA + heightB) / 2
-        if (overlapsX && overlapsY) return true
+        const clearance = Math.max(
+          Math.abs(placementA.x - placementB.x) - (widthA + widthB) / 2,
+          Math.abs(placementA.y - placementB.y) - (heightA + heightB) / 2,
+        )
+        if (clearance < 0) return true
+
+        const originalA = this.inputLayout.chipPlacements[chipIdA]!
+        const originalB = this.inputLayout.chipPlacements[chipIdB]!
+        const originalClearance = Math.max(
+          Math.abs(originalA.x - originalB.x) - (widthA + widthB) / 2,
+          Math.abs(originalA.y - originalB.y) - (heightA + heightB) / 2,
+        )
+        if (alignedChipIds.has(chipIdA) && alignedChipIds.has(chipIdB)) continue
+        const requiredGap = this.inputProblem.chipGap
+        if (clearance + 1e-6 < Math.min(requiredGap, originalClearance)) {
+          return true
+        }
       }
     }
 
@@ -235,7 +255,7 @@ export class AlignPowerGroundRowsSolver extends BaseSolver {
       this.alignGroup(chipPlacements, group.chipIds)
     }
 
-    if (this.hasChipOverlap(chipPlacements)) return null
+    if (this.hasUnsafeClearance(chipPlacements, groups)) return null
 
     return {
       chipPlacements,

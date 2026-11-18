@@ -56,6 +56,76 @@ const getSignalGroupedInputProblem = (): InputProblem => {
   return problem
 }
 
+test.each([0, 90, 180, 270])(
+  "row alignment preserves clearance to a fixed neighbor rotated %i degrees",
+  (rotation) => {
+    const problem = getSignalGroupedInputProblem()
+    delete problem.chipMap.R2
+    delete problem.chipMap.S2
+    problem.chipMap.U1 = {
+      chipId: "U1",
+      pins: [],
+      size: { x: 0.4, y: 0.8 },
+      fixedPosition: { x: -1.15, y: 2.8 },
+    }
+    const inputLayout: OutputLayout = {
+      chipPlacements: {
+        R1: { x: -2, y: 0, ccwRotationDegrees: 0 },
+        S1: { x: 2, y: 4, ccwRotationDegrees: 0 },
+        U1: { x: -1.15, y: 2.8, ccwRotationDegrees: rotation },
+      },
+      groupPlacements: {},
+    }
+    const before = structuredClone(inputLayout)
+    const solver = new AlignPowerGroundRowsSolver({
+      inputProblem: problem,
+      inputLayout,
+    })
+    solver.solve()
+    expect(solver.solved).toBe(true)
+    expect(solver.outputLayout).toEqual(before)
+    expect(inputLayout).toEqual(before)
+  },
+)
+
+test.each([
+  { name: "exact minimum clearance", neighborY: 3, firstY: 0, secondY: 4 },
+  {
+    name: "an improved existing small gap",
+    neighborY: 2.8,
+    firstY: 2.3,
+    secondY: 1.7,
+  },
+])("row alignment allows $name", ({ neighborY, firstY, secondY }) => {
+  const problem = getSignalGroupedInputProblem()
+  delete problem.chipMap.R2
+  delete problem.chipMap.S2
+  problem.chipMap.U1 = {
+    chipId: "U1",
+    pins: [],
+    size: { x: 0.4, y: 0.4 },
+    fixedPosition: { x: -1.15, y: neighborY },
+  }
+  const inputLayout: OutputLayout = {
+    chipPlacements: {
+      R1: { x: -1.15, y: firstY, ccwRotationDegrees: 0 },
+      S1: { x: 1.15, y: secondY, ccwRotationDegrees: 0 },
+      U1: { x: -1.15, y: neighborY, ccwRotationDegrees: 0 },
+    },
+    groupPlacements: {},
+  }
+  const solver = new AlignPowerGroundRowsSolver({
+    inputProblem: problem,
+    inputLayout,
+  })
+  solver.solve()
+  expect(solver.outputLayout!.chipPlacements.R1!.y).toBeCloseTo(2)
+  expect(solver.outputLayout!.chipPlacements.S1!.y).toBeCloseTo(2)
+  expect(solver.outputLayout!.chipPlacements.U1).toEqual(
+    inputLayout.chipPlacements.U1,
+  )
+})
+
 const getSignalGroupedInputLayout = (): OutputLayout => ({
   chipPlacements: {
     R1: { x: -1, y: 0, ccwRotationDegrees: 270 },
