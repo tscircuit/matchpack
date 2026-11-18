@@ -77,23 +77,21 @@ const getRowRotations = (
   problem: PartitionInputProblem,
   pinAxis: "x" | "y",
 ): Map<ChipId, number> | null => {
-  const polarity = (chip: Chip, rotation: number): number | null => {
+  const railSeparation = (chip: Chip, rotation: number): number | null => {
     const railPinId = getRailPinId(chip, problem)
     const otherPinId = chip.pins.find((id) => id !== railPinId)
     const rail = railPinId && problem.chipPinMap[railPinId]
     const other = otherPinId && problem.chipPinMap[otherPinId]
     if (!rail || !other) return null
     return (
-      Math.sign(
-        rotatePinOffset(rail.offset, rotation)[pinAxis] -
-          rotatePinOffset(other.offset, rotation)[pinAxis],
-      ) || null
+      rotatePinOffset(rail.offset, rotation)[pinAxis] -
+        rotatePinOffset(other.offset, rotation)[pinAxis] || null
     )
   }
   const preferred = chips
-    .map((chip) => polarity(chip, chip.availableRotations?.[0] ?? 0))
+    .map((chip) => railSeparation(chip, chip.availableRotations?.[0] ?? 0))
     .find((value) => value !== null)
-  // Try both polarities so a later fixed cap can constrain earlier flexible caps.
+  // Try either polarity so a later fixed cap can constrain earlier flexible caps.
   for (const direction of preferred == null
     ? [null]
     : [preferred, -preferred]) {
@@ -101,16 +99,33 @@ const getRowRotations = (
     for (const chip of chips) {
       const rotation = (
         chip.availableRotations?.length ? chip.availableRotations : [0]
-      ).find(
-        (candidate) =>
-          getPinAxis(chip, problem, candidate) === pinAxis &&
-          (polarity(chip, candidate) === null ||
-            polarity(chip, candidate) === direction),
-      )
+      ).find((candidate) => {
+        if (getPinAxis(chip, problem, candidate) !== pinAxis) return false
+        const separation = railSeparation(chip, candidate)
+        return (
+          separation === null ||
+          (direction !== null && Math.sign(separation) === Math.sign(direction))
+        )
+      })
       if (rotation === undefined) break
       rotations.set(chip.chipId, rotation)
     }
-    if (rotations.size === chips.length) return rotations
+    if (rotations.size === chips.length) {
+      const changesRotation = chips.some(
+        (chip) =>
+          rotations.get(chip.chipId) !== (chip.availableRotations?.[0] ?? 0),
+      )
+      // Preserve legacy preferred layouts, but do not flip caps to promise a
+      // straight pair of rails when their pin spans cannot match.
+      const spansMatch = chips.every((chip) => {
+        const separation = railSeparation(chip, rotations.get(chip.chipId)!)
+        return (
+          separation === null ||
+          (direction !== null && Math.abs(separation - direction) < 1e-6)
+        )
+      })
+      if (!changesRotation || spansMatch) return rotations
+    }
   }
   return null
 }

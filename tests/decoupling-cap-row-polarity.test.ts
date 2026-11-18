@@ -124,3 +124,32 @@ test("already consistent polarity retains preferred rotations", () => {
   expect(solver.layout!.chipPlacements.C1!.ccwRotationDegrees).toBe(0)
   expect(solver.layout!.chipPlacements.C2!.ccwRotationDegrees).toBe(0)
 })
+
+for (const rotations of [
+  [0, 180],
+  [90, 270],
+] as const) {
+  test(`incompatible pin spans decline a straight rail row at ${rotations}`, () => {
+    const problem = makeProblem([...rotations])
+    problem.chipPinMap["C2.1"]!.offset.y = 0.4
+    problem.chipPinMap["C2.2"]!.offset.y = -0.4
+    expect(canLayoutDecouplingCapRow(problem)).toBe(false)
+  })
+}
+
+test("roundoff in equivalent pin spans does not reject the row", () => {
+  const problem = makeProblem()
+  problem.chipPinMap["C2.1"]!.offset.y += 1e-10
+  expect(canLayoutDecouplingCapRow(problem)).toBe(true)
+})
+
+test("legacy preferred layouts with unequal spans remain eligible", () => {
+  const problem = makeProblem([0])
+  problem.netConnMap["C2.1-VCC"] = true
+  problem.netConnMap["C2.2-GND"] = true
+  problem.netConnMap["C2.1-GND"] = false
+  problem.netConnMap["C2.2-VCC"] = false
+  problem.chipPinMap["C2.1"]!.offset.y = 0.4
+  problem.chipPinMap["C2.2"]!.offset.y = -0.4
+  expect(canLayoutDecouplingCapRow(problem)).toBe(true)
+})
