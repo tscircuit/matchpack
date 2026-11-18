@@ -165,4 +165,3 @@ test("places multiple net-only decoupling rows on the y+ side of a chip without 
   expect(layout.chipPlacements.C1!.x).toBeLessThan(layout.chipPlacements.C3!.x)
   expect(solver.checkForOverlaps(layout)).toEqual([])
 })
-
