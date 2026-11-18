@@ -7,8 +7,8 @@ import input from "../assets/repro-adjacent-passive-partition-gap.input.json"
 // Captured from the exact LedBlinker TSX with @tscircuit/core 0.0.1803 and
 // @tscircuit/matchpack 0.0.88. The generated layout places C1's standalone
 // partition too close to the partition containing C3, causing their schematic
-// annotations to overlap downstream.
-test("adjacent passive partitions violate the configured gap", async () => {
+// annotations to overlap downstream. Row alignment must preserve the packed gap.
+test("adjacent passive partitions preserve the configured gap", async () => {
   const inputProblem = input as InputProblem
   const solver = new LayoutPipelineSolver(inputProblem)
   solver.solve()
@@ -30,7 +30,7 @@ test("adjacent passive partitions violate the configured gap", async () => {
   const verticalGap =
     c1Placement.y - c1Size.y / 2 - (c3Placement.y + c3Size.y / 2)
 
-  expect(verticalGap).toBeLessThan(inputProblem.partitionGap)
+  expect(verticalGap + 1e-6).toBeGreaterThanOrEqual(inputProblem.partitionGap)
 
   await expect(solver).toMatchSolverSnapshot(import.meta.path)
 })
