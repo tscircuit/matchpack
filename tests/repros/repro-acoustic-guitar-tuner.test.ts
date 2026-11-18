@@ -29,47 +29,51 @@ test("acoustic guitar tuner core layout repro", async () => {
   })
 })
 
-test.each([
-  0, 180,
-] as const)("grounded branches follow pin height outward on both sides at %i degrees", (ccwRotationDegrees) => {
-  const inputProblem = structuredClone(input) as InputProblem
-  inputProblem.chipMap.U2!.availableRotations = [ccwRotationDegrees]
-  const solver = new LayoutPipelineSolver(inputProblem)
-  solver.solve()
-  expect(solver.solved).toBe(true)
-  expect(solver.failed).toBe(false)
-  const placements = solver.getOutputLayout().chipPlacements
-  const mainPlacement = placements.U2!
-  const pairs = solver.groundedLoadPairSolver!.groundedLoadPairs.filter(
-    (pair) => pair.mainChipId === "U2",
-  )
-  expect(pairs).toHaveLength(9)
-  for (const side of ["x-", "x+"]) {
-    const sidePairs = pairs
-      .filter((pair) => inputProblem.chipPinMap[pair.mainPinId!]!.side === side)
-      .sort(
-        (first, second) =>
-          rotatePinOffset(
-            inputProblem.chipPinMap[first.mainPinId!]!.offset,
-            mainPlacement.ccwRotationDegrees,
-          ).y -
-          rotatePinOffset(
-            inputProblem.chipPinMap[second.mainPinId!]!.offset,
-            mainPlacement.ccwRotationDegrees,
-          ).y,
-      )
-    for (let index = 1; index < sidePairs.length; index++) {
-      const nearPlacement = placements[sidePairs[index - 1]!.lowerChip.chipId]!
-      const farPlacement = placements[sidePairs[index]!.lowerChip.chipId]!
-      expect(Math.abs(nearPlacement.x - mainPlacement.x)).toBeLessThan(
-        Math.abs(farPlacement.x - mainPlacement.x),
-      )
+test.each([0, 180] as const)(
+  "grounded branches follow pin height outward on both sides at %i degrees",
+  (ccwRotationDegrees) => {
+    const inputProblem = structuredClone(input) as InputProblem
+    inputProblem.chipMap.U2!.availableRotations = [ccwRotationDegrees]
+    const solver = new LayoutPipelineSolver(inputProblem)
+    solver.solve()
+    expect(solver.solved).toBe(true)
+    expect(solver.failed).toBe(false)
+    const placements = solver.getOutputLayout().chipPlacements
+    const mainPlacement = placements.U2!
+    const pairs = solver.groundedLoadPairSolver!.groundedLoadPairs.filter(
+      (pair) => pair.mainChipId === "U2",
+    )
+    expect(pairs).toHaveLength(9)
+    for (const side of ["x-", "x+"]) {
+      const sidePairs = pairs
+        .filter(
+          (pair) => inputProblem.chipPinMap[pair.mainPinId!]!.side === side,
+        )
+        .sort(
+          (first, second) =>
+            rotatePinOffset(
+              inputProblem.chipPinMap[first.mainPinId!]!.offset,
+              mainPlacement.ccwRotationDegrees,
+            ).y -
+            rotatePinOffset(
+              inputProblem.chipPinMap[second.mainPinId!]!.offset,
+              mainPlacement.ccwRotationDegrees,
+            ).y,
+        )
+      for (let index = 1; index < sidePairs.length; index++) {
+        const nearPlacement =
+          placements[sidePairs[index - 1]!.lowerChip.chipId]!
+        const farPlacement = placements[sidePairs[index]!.lowerChip.chipId]!
+        expect(Math.abs(nearPlacement.x - mainPlacement.x)).toBeLessThan(
+          Math.abs(farPlacement.x - mainPlacement.x),
+        )
+      }
+      for (const pair of sidePairs) {
+        expect(placements[pair.upperChip.chipId]!.x).toBeCloseTo(
+          placements[pair.lowerChip.chipId]!.x,
+        )
+      }
     }
-    for (const pair of sidePairs) {
-      expect(placements[pair.upperChip.chipId]!.x).toBeCloseTo(
-        placements[pair.lowerChip.chipId]!.x,
-      )
-    }
-  }
-  expect(solver.checkForOverlaps(solver.getOutputLayout())).toHaveLength(0)
-})
+    expect(solver.checkForOverlaps(solver.getOutputLayout())).toHaveLength(0)
+  },
+)
