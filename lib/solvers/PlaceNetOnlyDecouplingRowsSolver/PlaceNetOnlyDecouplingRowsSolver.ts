@@ -16,8 +16,9 @@ import type {
 import type { OutputLayout, Placement } from "../../types/OutputLayout"
 import type { Side } from "../../types/Side"
 import { createPinOwnerMap } from "../../utils/createPinOwnerMap"
+import { getDecouplingRailNetId } from "../../utils/getDecouplingRailNetId"
 import { getVerticalPinClearanceOffset } from "../../utils/getVerticalPinClearanceOffset"
-import { getRotatedSize } from "../../utils/rotatePinOffset"
+import { getRotatedSize, rotatePinOffset } from "../../utils/rotatePinOffset"
 import { BaseSolver } from "../BaseSolver"
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { PackedPartition } from "../PackInnerPartitionsSolver/PackInnerPartitionsSolver"
@@ -119,19 +120,55 @@ const partitionsHaveDirectConnection = (
   )
 }
 
-const movedChipsOverlap = (
+const getOverlappingBounds = (
   movedChipIds: ChipId[],
   context: { inputProblem: InputProblem; layout: OutputLayout },
-): boolean => {
+): Bounds | null => {
   const movedChipIdSet = new Set(movedChipIds)
-  return movedChipIds.some((movedChipId) => {
+  const overlappingCorners: { x: number; y: number }[] = []
+
+  for (const movedChipId of movedChipIds) {
     const movedBounds = getChipBounds(movedChipId, context)
-    return Object.keys(context.layout.chipPlacements).some((chipId) => {
-      if (!movedBounds || movedChipIdSet.has(chipId)) return false
+    if (!movedBounds) continue
+
+    for (const chipId of Object.keys(context.layout.chipPlacements)) {
+      if (movedChipIdSet.has(chipId)) continue
       const chipBounds = getChipBounds(chipId, context)
-      return chipBounds ? doBoundsOverlap(movedBounds, chipBounds) : false
-    })
-  })
+      if (chipBounds && doBoundsOverlap(movedBounds, chipBounds)) {
+        overlappingCorners.push(
+          { x: chipBounds.minX, y: chipBounds.minY },
+          { x: chipBounds.maxX, y: chipBounds.maxY },
+        )
+      }
+    }
+  }
+
+  return overlappingCorners.length > 0
+    ? getBoundsFromPoints(overlappingCorners)
+    : null
+}
+
+const getOutwardShift = ({
+  side,
+  gap,
+  rowBounds,
+  overlappingBounds,
+}: {
+  side: Side
+  gap: number
+  rowBounds: Bounds
+  overlappingBounds: Bounds
+}): { x: number; y: number } => {
+  if (side === "x+") {
+    return { x: overlappingBounds.maxX + gap - rowBounds.minX, y: 0 }
+  }
+  if (side === "x-") {
+    return { x: overlappingBounds.minX - gap - rowBounds.maxX, y: 0 }
+  }
+  if (side === "y+") {
+    return { x: 0, y: overlappingBounds.maxY + gap - rowBounds.minY }
+  }
+  return { x: 0, y: overlappingBounds.minY - gap - rowBounds.maxY }
 }
 
 const getRowOffset = ({
@@ -203,28 +240,45 @@ const placeNetOnlyDecouplingRow = (
   const rowBounds = getPartitionBounds(rowChipIds, boundsContext)
   if (!neighbor || !mainBounds || !rowBounds) return
 
+  const railNetId = getDecouplingRailNetId({
+    inputProblem,
+    netIds: Object.keys(partition.netMap),
+  })
+
   if (!neighborId) {
     const rowChipId = rowChipIds[0]
     const mainRailPin = getPositiveRailPin(
-      { chipId: mainChipId, side },
+      { chipId: mainChipId, side, railNetId },
       inputProblem,
     )
     const rowRailPin =
-      rowChipId && getPositiveRailPin({ chipId: rowChipId }, inputProblem)
+      rowChipId &&
+      getPositiveRailPin({ chipId: rowChipId, railNetId }, inputProblem)
     const rowPlacement = rowChipId && layout.chipPlacements[rowChipId]
     if (!mainRailPin || !rowRailPin || !rowPlacement) return
 
-    // Align the shared rail pins while leaving space for a readable trace.
-    neighbor = {
-      ...neighbor,
-      y:
-        neighbor.y +
-        getVerticalPinClearanceOffset({
-          upperPin: mainRailPin,
-          upperPlacement: neighbor,
-          lowerPin: rowRailPin,
-          lowerPlacement: { ...rowPlacement, y: neighbor.y },
-        }),
+    if (side === "y+" || side === "y-") {
+      const mainPinOffset = rotatePinOffset(
+        mainRailPin.offset,
+        neighbor.ccwRotationDegrees,
+      )
+      neighbor = {
+        ...neighbor,
+        x: neighbor.x + mainPinOffset.x,
+      }
+    } else {
+      // Align the shared rail pins while leaving space for a readable trace.
+      neighbor = {
+        ...neighbor,
+        y:
+          neighbor.y +
+          getVerticalPinClearanceOffset({
+            upperPin: mainRailPin,
+            upperPlacement: neighbor,
+            lowerPin: rowRailPin,
+            lowerPlacement: { ...rowPlacement, y: neighbor.y },
+          }),
+      }
     }
   }
 
@@ -249,8 +303,34 @@ const placeNetOnlyDecouplingRow = (
     }
   }
 
-  // Reject the row translation when it collides with another partition.
-  if (movedChipsOverlap(rowChipIds, boundsContext)) {
+  // If the target slot collides with another partition (e.g. a sibling rail row
+  // on the same side), shift outward along `side` until collision-free.
+  const maxShiftAttempts = Object.keys(inputProblem.chipMap).length
+  for (let attempt = 0; attempt < maxShiftAttempts; attempt++) {
+    const overlappingBounds = getOverlappingBounds(rowChipIds, boundsContext)
+    if (!overlappingBounds) break
+    const currentRowBounds = getPartitionBounds(rowChipIds, boundsContext)
+    if (!currentRowBounds) break
+
+    const shift = getOutwardShift({
+      side,
+      gap: mainToRowGap,
+      rowBounds: currentRowBounds,
+      overlappingBounds,
+    })
+    const shiftTransform = translate(shift.x, shift.y)
+    for (const chipId of rowChipIds) {
+      const placement = layout.chipPlacements[chipId]
+      if (!placement) continue
+      layout.chipPlacements[chipId] = {
+        ...placement,
+        ...applyToPoint(shiftTransform, placement),
+      }
+    }
+  }
+
+  // Reject the row translation if it still collides with another partition.
+  if (getOverlappingBounds(rowChipIds, boundsContext)) {
     for (const [chipId, placement] of previousPlacements) {
       layout.chipPlacements[chipId] = placement
     }
