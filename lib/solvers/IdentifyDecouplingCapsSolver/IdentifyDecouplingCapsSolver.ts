@@ -24,6 +24,7 @@ import { doBasicInputProblemLayout } from "../LayoutPipelineSolver/doBasicInputP
 import { visualizeInputProblem } from "../LayoutPipelineSolver/visualizeInputProblem"
 import type { Side } from "lib/types/Side"
 import { getDecouplingRailNetId } from "lib/utils/getDecouplingRailNetId"
+import { createPinOwnerMap } from "lib/utils/createPinOwnerMap"
 import {
   type GroundedCapacitor,
   groupGroundedCapacitorsByNetPair,
@@ -50,6 +51,7 @@ export interface DecouplingCapGroup {
  */
 export class IdentifyDecouplingCapsSolver extends BaseSolver {
   inputProblem: InputProblem
+  private pinOwnerMap: Map<PinId, Chip>
 
   queuedChips: Chip[]
 
@@ -63,6 +65,7 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
   constructor(inputProblem: InputProblem) {
     super()
     this.inputProblem = inputProblem
+    this.pinOwnerMap = createPinOwnerMap(inputProblem)
     this.queuedChips = Object.values(inputProblem.chipMap)
   }
 
@@ -108,11 +111,11 @@ export class IdentifyDecouplingCapsSolver extends BaseSolver {
       if (!connected) continue
       const [a, b] = connKey.split("-") as [PinId, PinId]
       if (a === pinId) {
-        const otherChipId = b.split(".")[0]!
-        neighbors.add(otherChipId)
+        const otherChipId = this.pinOwnerMap.get(b)?.chipId
+        if (otherChipId) neighbors.add(otherChipId)
       } else if (b === pinId) {
-        const otherChipId = a.split(".")[0]!
-        neighbors.add(otherChipId)
+        const otherChipId = this.pinOwnerMap.get(a)?.chipId
+        if (otherChipId) neighbors.add(otherChipId)
       }
     }
     return neighbors
